@@ -1,0 +1,30 @@
+Name:           array-primitives
+Version:        0.1
+License:        BSD3
+License-File:   LICENSE
+Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
+Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
+Copyright:      (c) Roman Leshchinskiy 2009
+Homepage:       FIXME
+Category:       Data
+Synopsis:       Wrappers for primitive array operations
+Description:
+        .
+        This package provides wrappers for primitive array operations from
+        GHC.Prim.
+        .
+
+Cabal-Version:  >= 1.2
+Build-Type:     Simple
+
+Library
+  Exposed-Modules:
+        Control.Monad.Primitive
+        Data.Primitive.MachDeps
+        Data.Primitive.Types
+        Data.Primitive.Array
+        Data.Primitive.ByteArray
+        Data.Primitive.Addr
+
+  Build-Depends: base >= 2 && < 4, ghc-prim, ghc >= 6.10
+
