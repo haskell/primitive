@@ -34,23 +34,49 @@ import GHC.Int (
 
 import GHC.Prim
 
+-- | A machine address
 data Addr = Addr Addr#
 
+-- | Class of types supporting primitive array operations
 class Prim a where
+
+  -- | Size of values of type @a@. The argument is not used.
   sizeOf#    :: a -> Int#
+
+  -- | Alignment of values of type @a@. The argument is not used.
   alignment# :: a -> Int#
 
+  -- | Read a value from the array. The offset is in elements of type
+  -- @a@ rather than in bytes.
   indexByteArray# :: ByteArray# -> Int# -> a
+
+  -- | Read a value from the mutable array. The offset is in elements of type
+  -- @a@ rather than in bytes.
   readByteArray# :: MutableByteArray# s -> Int# -> State# s -> (# State# s, a #)
+
+  -- | Write a value to the mutable array. The offset is in elements of type
+  -- @a@ rather than in bytes.
   writeByteArray# :: MutableByteArray# s -> Int# -> a -> State# s -> State# s
 
+  -- | Read a value from a memory position given by an address and an offset.
+  -- The memory block the address refers to must be immutable. The offset is in
+  -- elements of type @a@ rather than in bytes.
   indexOffAddr# :: Addr# -> Int# -> a
+
+  -- | Read a value from a memory position given by an address and an offset.
+  -- The offset is in elements of type @a@ rather than in bytes.
   readOffAddr# :: Addr# -> Int# -> State# s -> (# State# s, a #)
+
+  -- | Write a value to a memory position given by an address and an offset.
+  -- The offset is in elements of type @a@ rather than in bytes.
   writeOffAddr# :: Addr# -> Int# -> a -> State# s -> State# s
 
+
+-- | Size of values of type @a@. The argument is not used.
 sizeOf :: Prim a => a -> Int
 sizeOf x = I# (sizeOf# x)
 
+-- | Alignment of values of type @a@. The argument is not used.
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
 
