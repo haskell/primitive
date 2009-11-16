@@ -14,7 +14,7 @@
 module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
-  newArray, readArray, writeArray, indexArray,
+  newArray, readArray, writeArray, indexArray, indexArrayM,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray
 ) where
 
@@ -32,41 +32,53 @@ data MutableArray m a = MutableArray (MutableArray# (PrimState m) a)
 -- | Create a new mutable array of the specified size and initialise all
 -- elements with the given value.
 newArray :: PrimMonad m => Int -> a -> m (MutableArray m a)
+{-# INLINE newArray #-}
 newArray (I# n#) x = primitive
    (\s# -> case newArray# n# x s# of
              (# s'#, arr# #) -> (# s'#, MutableArray arr# #))
 
 -- | Read a value from the array at the given index.
 readArray :: PrimMonad m => MutableArray m a -> Int -> m a
+{-# INLINE readArray #-}
 readArray (MutableArray arr#) (I# i#) = primitive (readArray# arr# i#)
 
 -- | Write a value to the array at the given index.
 writeArray :: PrimMonad m => MutableArray m a -> Int -> a -> m ()
+{-# INLINE writeArray #-}
 writeArray (MutableArray arr#) (I# i#) x = primitive_ (writeArray# arr# i# x)
 
--- | Read a value to the array at the given index and apply a function to it.
--- This allows us to be strict in the vector if we want. Suppose we had
+-- | Read a value from the array at the given index.
+indexArray :: Array a -> Int -> a
+{-# INLINE indexArray #-}
+indexArray (Array arr#) (I# i#) = case indexArray# arr# i# of (# x #) -> x
+
+-- | Monadically read a value from the array at the given index.
+-- This allows us to be strict in the array while remaining lazy in the read
+-- element which is very useful for collective operations. Suppose we want to
+-- copy an array. We could do something like this:
 --
--- > leakyIndex :: Array a -> Int -> a
+-- > copy marr arr ... = do ...
+-- >                        writeArray marr i (indexArray arr i) ...
+-- >                        ...
 --
--- instead. Now, if we wanted to copy an array, we'd do something like
---
--- > copy marr arr ... = ... writeArray marr i (leakyIndex arr i) ...
---
--- Since primitive arrays are lazy, the call to 'indexArray' would not be
--- evaluated. Rather, @marr@ would be filled with thunks each of which would
+-- But since primitive arrays are lazy, the calls to 'indexArray' will not be
+-- evaluated. Rather, @marr@ will be filled with thunks each of which would
 -- retain a reference to @arr@. This is definitely not what we want!
 --
--- With the current interface, we can instead write
+-- With 'indexArrayM', we can instead write
 --
--- > copy marr arr ... = ... indexArray arr i (writeArray marr i) ...
+-- > copy marr arr ... = do ...
+-- >                        x <- indexArrayM arr i
+-- >                        writeArray marr i x
+-- >                        ...
 --
--- This code does not have the above problem because indexing (but not the
--- returned element!) is evaluated immediately. To get the leaky behaviour of
--- @leakyIndex@, simply use @'indexArray' arr i id@.
+-- Now, indexing is executed immediately although the returned element is
+-- still not evaluated.
 --
-indexArray :: Array a -> Int -> (a -> b) -> b
-indexArray (Array arr#) (I# i#) f = case indexArray# arr# i# of (# x #) -> f x
+indexArrayM :: Monad m => Array a -> Int -> m a 
+{-# INLINE indexArrayM #-}
+indexArrayM (Array arr#) (I# i#)
+  = case indexArray# arr# i# of (# x #) -> return x
 
 -- | Convert a mutable array to an immutable one without copying. The
 -- array should not be modified after the conversion.
