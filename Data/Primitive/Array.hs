@@ -83,6 +83,7 @@ indexArrayM (Array arr#) (I# i#)
 -- | Convert a mutable array to an immutable one without copying. The
 -- array should not be modified after the conversion.
 unsafeFreezeArray :: PrimMonad m => MutableArray m a -> m (Array a)
+{-# INLINE unsafeFreezeArray #-}
 unsafeFreezeArray (MutableArray arr#)
   = primitive (\s# -> case unsafeFreezeArray# arr# s# of
                         (# s'#, arr'# #) -> (# s'#, Array arr'# #))
@@ -90,12 +91,14 @@ unsafeFreezeArray (MutableArray arr#)
 -- | Convert an immutable array to an mutable one without copying. The
 -- immutable array should not be used after the conversion.
 unsafeThawArray :: PrimMonad m => Array a -> m (MutableArray m a)
+{-# INLINE unsafeThawArray #-}
 unsafeThawArray (Array arr#)
   = primitive (\s# -> case unsafeThawArray# arr# s# of
                         (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
 
 -- | Check whether the two arrays refer to the same memory block.
 sameMutableArray :: MutableArray m a -> MutableArray m a -> Bool
+{-# INLINE sameMutableArray #-}
 sameMutableArray (MutableArray arr#) (MutableArray brr#)
   = sameMutableArray# arr# brr#
 
