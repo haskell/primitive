@@ -1,4 +1,5 @@
 {-# LANGUAGE MagicHash #-}
+{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
 -- |
 -- Module      : Data.Primitive
 -- Copyright   : (c) Roman Leshchinskiy 2009
@@ -10,8 +11,7 @@
 -- Reexports all primitive operations
 --
 module Data.Primitive (
-  Prim(..),
-  
+  module Data.Primitive.Types,
   module Data.Primitive.Array,
   module Data.Primitive.ByteArray,
   module Data.Primitive.Addr
