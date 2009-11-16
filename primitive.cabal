@@ -1,13 +1,12 @@
-Name:           primitive-types
+Name:           primitive
 Version:        0.1
 License:        BSD3
 License-File:   LICENSE
 Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
 Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
 Copyright:      (c) Roman Leshchinskiy 2009
-Homepage:       FIXME
 Category:       Data
-Synopsis:       Wrappers for primitive array operations
+Synopsis:       Wrappers for primitive operations
 Description:
         .
         This package provides wrappers for primitive array operations from
@@ -27,5 +26,5 @@ Library
         Data.Primitive.ByteArray
         Data.Primitive.Addr
 
-  Build-Depends: base >= 2 && < 5, ghc-prim, ghc >= 6.10
+  Build-Depends: base >= 2 && < 5, ghc-prim
 
