@@ -20,6 +20,7 @@ Build-Type:     Simple
 Library
   Exposed-Modules:
         Control.Monad.Primitive
+        Data.Primitive
         Data.Primitive.MachDeps
         Data.Primitive.Types
         Data.Primitive.Array

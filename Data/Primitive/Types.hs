@@ -12,8 +12,9 @@
 --
 
 module Data.Primitive.Types (
+  Prim(..),
+
   Addr(..),
-  Prim(..), sizeOf, alignment
 ) where
 
 import Control.Monad.Primitive
@@ -70,15 +71,6 @@ class Prim a where
   -- | Write a value to a memory position given by an address and an offset.
   -- The offset is in elements of type @a@ rather than in bytes.
   writeOffAddr# :: Addr# -> Int# -> a -> State# s -> State# s
-
-
--- | Size of values of type @a@. The argument is not used.
-sizeOf :: Prim a => a -> Int
-sizeOf x = I# (sizeOf# x)
-
--- | Alignment of values of type @a@. The argument is not used.
-alignment :: Prim a => a -> Int
-alignment x = I# (alignment# x)
 
 #define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, idx_addr, rd_addr, wr_addr) \
 instance Prim ty where {                                        \
