@@ -27,5 +27,5 @@ Library
         Data.Primitive.ByteArray
         Data.Primitive.Addr
 
-  Build-Depends: base >= 2 && < 4, ghc-prim, ghc >= 6.10
+  Build-Depends: base >= 2 && < 5, ghc-prim, ghc >= 6.10
 
