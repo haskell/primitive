@@ -27,23 +27,23 @@ import GHC.Prim
 data Array a = Array (Array# a)
 
 -- | Mutable boxed arrays associated with a primitive state token.
-data MutableArray m a = MutableArray (MutableArray# (PrimState m) a)
+data MutableArray s a = MutableArray (MutableArray# s a)
 
 -- | Create a new mutable array of the specified size and initialise all
 -- elements with the given value.
-newArray :: PrimMonad m => Int -> a -> m (MutableArray m a)
+newArray :: PrimMonad m => Int -> a -> m (MutableArray (PrimState m) a)
 {-# INLINE newArray #-}
 newArray (I# n#) x = primitive
    (\s# -> case newArray# n# x s# of
              (# s'#, arr# #) -> (# s'#, MutableArray arr# #))
 
 -- | Read a value from the array at the given index.
-readArray :: PrimMonad m => MutableArray m a -> Int -> m a
+readArray :: PrimMonad m => MutableArray (PrimState m) a -> Int -> m a
 {-# INLINE readArray #-}
 readArray (MutableArray arr#) (I# i#) = primitive (readArray# arr# i#)
 
 -- | Write a value to the array at the given index.
-writeArray :: PrimMonad m => MutableArray m a -> Int -> a -> m ()
+writeArray :: PrimMonad m => MutableArray (PrimState m) a -> Int -> a -> m ()
 {-# INLINE writeArray #-}
 writeArray (MutableArray arr#) (I# i#) x = primitive_ (writeArray# arr# i# x)
 
@@ -82,7 +82,7 @@ indexArrayM (Array arr#) (I# i#)
 
 -- | Convert a mutable array to an immutable one without copying. The
 -- array should not be modified after the conversion.
-unsafeFreezeArray :: PrimMonad m => MutableArray m a -> m (Array a)
+unsafeFreezeArray :: PrimMonad m => MutableArray (PrimState m) a -> m (Array a)
 {-# INLINE unsafeFreezeArray #-}
 unsafeFreezeArray (MutableArray arr#)
   = primitive (\s# -> case unsafeFreezeArray# arr# s# of
@@ -90,7 +90,7 @@ unsafeFreezeArray (MutableArray arr#)
 
 -- | Convert an immutable array to an mutable one without copying. The
 -- immutable array should not be used after the conversion.
-unsafeThawArray :: PrimMonad m => Array a -> m (MutableArray m a)
+unsafeThawArray :: PrimMonad m => Array a -> m (MutableArray (PrimState m) a)
 {-# INLINE unsafeThawArray #-}
 unsafeThawArray (Array arr#)
   = primitive (\s# -> case unsafeThawArray# arr# s# of

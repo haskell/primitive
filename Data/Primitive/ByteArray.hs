@@ -31,10 +31,10 @@ import GHC.Prim
 data ByteArray = ByteArray ByteArray#
 
 -- | Mutable byte arrays associated with a primitive state token
-data MutableByteArray m = MutableByteArray (MutableByteArray# (PrimState m))
+data MutableByteArray s = MutableByteArray (MutableByteArray# s)
 
 -- | Create a new mutable byte array of the specified size.
-newByteArray :: PrimMonad m => Int -> m (MutableByteArray m)
+newByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
 {-# INLINE newByteArray #-}
 newByteArray (I# n#)
   = primitive (\s# -> case newByteArray# n# s# of
@@ -42,7 +42,7 @@ newByteArray (I# n#)
 
 -- | Create a /pinned/ byte array of the specified size. The garbage collector
 -- is guaranteed not to move it.
-newPinnedByteArray :: PrimMonad m => Int -> m (MutableByteArray m)
+newPinnedByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
 {-# INLINE newPinnedByteArray #-}
 newPinnedByteArray (I# n#)
   = primitive (\s# -> case newPinnedByteArray# n# s# of
@@ -50,7 +50,8 @@ newPinnedByteArray (I# n#)
 
 -- | Create a /pinned/ byte array of the specified size and with the give
 -- alignment. The garbage collector is guaranteed not to move it.
-newAlignedPinnedByteArray :: PrimMonad m => Int -> Int -> m (MutableByteArray m)
+newAlignedPinnedByteArray
+  :: PrimMonad m => Int -> Int -> m (MutableByteArray (PrimState m))
 {-# INLINE newAlignedPinnedByteArray #-}
 newAlignedPinnedByteArray (I# n#) (I# k#)
   = primitive (\s# -> case newAlignedPinnedByteArray# n# k# s# of
@@ -71,7 +72,8 @@ sameMutableByteArray (MutableByteArray arr#) (MutableByteArray brr#)
 
 -- | Convert a mutable byte array to an immutable one without copying. The
 -- array should not be modified after the conversion.
-unsafeFreezeByteArray :: PrimMonad m => MutableByteArray m -> m ByteArray
+unsafeFreezeByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> m ByteArray
 {-# INLINE unsafeFreezeByteArray #-}
 unsafeFreezeByteArray (MutableByteArray arr#)
   = primitive (\s# -> case unsafeFreezeByteArray# arr# s# of
@@ -95,7 +97,8 @@ indexByteArray (ByteArray arr#) (I# i#) = indexByteArray# arr# i#
 
 -- | Read a primitive value from the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
-readByteArray :: (Prim a, PrimMonad m) => MutableByteArray m -> Int -> m a
+readByteArray
+  :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -> Int -> m a
 {-# INLINE readByteArray #-}
 readByteArray (MutableByteArray arr#) (I# i#)
   = primitive (readByteArray# arr# i#)
@@ -103,7 +106,7 @@ readByteArray (MutableByteArray arr#) (I# i#)
 -- | Write a primitive value to the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
 writeByteArray
-  :: (Prim a, PrimMonad m) => MutableByteArray m -> Int -> a -> m ()
+  :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -> Int -> a -> m ()
 {-# INLINE writeByteArray #-}
 writeByteArray (MutableByteArray arr#) (I# i#) x
   = primitive_ (writeByteArray# arr# i# x)
