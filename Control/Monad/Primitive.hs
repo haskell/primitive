@@ -11,7 +11,7 @@
 -- Primitive state-transformer monads
 --
 
-module Control.Monad.Primitive ( PrimMonad(..), primitive_ ) where
+module Control.Monad.Primitive ( PrimMonad(..), RealWorld, primitive_ ) where
 
 import GHC.Prim   ( State#, RealWorld )
 import GHC.IOBase ( IO(..) )
