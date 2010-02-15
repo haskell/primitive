@@ -4,8 +4,8 @@ License:        BSD3
 License-File:   LICENSE
 Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
 Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
-Copyright:      (c) Roman Leshchinskiy 2009
-Homepage:       http://www.cse.unsw.edu.au/~rl/darcs/primitive
+Copyright:      (c) Roman Leshchinskiy 2009-10
+Homepage:       http://code.haskell.org/primitive
 Category:       Data
 Synopsis:       Wrappers for primitive operations
 Description:
