@@ -24,16 +24,6 @@ import Data.Primitive.Types
 import GHC.Base ( Int(..) )
 import GHC.Prim
 
-instance Eq Addr where
-  Addr a# == Addr b# = eqAddr# a# b#
-  Addr a# /= Addr b# = neAddr# a# b#
-
-instance Ord Addr where
-  Addr a# > Addr b# = gtAddr# a# b#
-  Addr a# >= Addr b# = geAddr# a# b#
-  Addr a# < Addr b# = ltAddr# a# b#
-  Addr a# <= Addr b# = leAddr# a# b#
-
 -- | The null address
 nullAddr :: Addr
 nullAddr = Addr nullAddr#

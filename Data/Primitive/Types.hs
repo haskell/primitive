@@ -38,6 +38,16 @@ import GHC.Prim
 -- | A machine address
 data Addr = Addr Addr#
 
+instance Eq Addr where
+  Addr a# == Addr b# = eqAddr# a# b#
+  Addr a# /= Addr b# = neAddr# a# b#
+
+instance Ord Addr where
+  Addr a# > Addr b# = gtAddr# a# b#
+  Addr a# >= Addr b# = geAddr# a# b#
+  Addr a# < Addr b# = ltAddr# a# b#
+  Addr a# <= Addr b# = leAddr# a# b#
+
 -- | Class of types supporting primitive array operations
 class Prim a where
 
