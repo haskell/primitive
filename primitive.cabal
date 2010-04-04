@@ -29,3 +29,10 @@ Library
 
   Build-Depends: base >= 2 && < 5, ghc-prim
 
+  Ghc-Options: -O2
+
+  Include-Dirs: cbits
+  Install-Includes: memops.h
+  includes: memops.h
+  c-sources: cbits/memops.c
+

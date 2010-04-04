@@ -1,4 +1,5 @@
-{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, ForeignFunctionInterface,
+             UnliftedFFITypes #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -24,6 +25,7 @@ module Data.Primitive.ByteArray (
 import Control.Monad.Primitive
 import Data.Primitive.Types
 
+import Foreign.C.Types
 import GHC.Base ( Int(..) )
 import GHC.Prim
 
@@ -110,4 +112,18 @@ writeByteArray
 {-# INLINE writeByteArray #-}
 writeByteArray (MutableByteArray arr#) (I# i#) x
   = primitive_ (writeByteArray# arr# i# x)
+
+memcpyMutableByteArray
+  :: PrimMonad m => MutableByteArray s -> Int -> MutableByteArray s -> Int
+                 -> Int -> m ()
+memcpyMutableByteArray (MutableByteArray dst#) doff
+                       (MutableByteArray src#) soff sz
+  = unsafePrimToPrim
+  $ memcpy_off dst# (fromIntegral doff) src# (fromIntegral soff)
+                    (fromIntegral sz)
+
+foreign import ccall unsafe "memops.h memcpy_off"
+  memcpy_off :: MutableByteArray# s -> CInt
+             -> MutableByteArray# s -> CInt
+             -> CSize -> IO ()
 
