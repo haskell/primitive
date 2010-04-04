@@ -12,7 +12,7 @@
 --
 
 module Data.Primitive.ByteArray (
-  ByteArray(..), MutableByteArray(..),
+  ByteArray(..), MutableByteArray(..), ByteArray#, MutableByteArray#,
 
   newByteArray, newPinnedByteArray, newAlignedPinnedByteArray,
   readByteArray, writeByteArray, indexByteArray,
