@@ -33,7 +33,7 @@ import GHC.Base ( Int(..) )
 import GHC.Prim
 
 import Data.Typeable ( Typeable )
-import Data.Data ( Data(..), mkNoRepType )
+import Data.Data ( Data(..), mkNorepType )
 
 -- | Byte arrays
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
@@ -180,10 +180,10 @@ foreign import ccall unsafe "memops.h memset_off"
 instance Data ByteArray where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.ByteArray"
+  dataTypeOf _ = mkNorepType "Data.Primitive.ByteArray.ByteArray"
 
 instance Typeable s => Data (MutableByteArray s) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.MutableByteArray"
+  dataTypeOf _ = mkNorepType "Data.Primitive.ByteArray.MutableByteArray"
 
