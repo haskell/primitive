@@ -3,7 +3,7 @@
 
 -- |
 -- Module      : Data.Primitive.ByteArray
--- Copyright   : (c) Roman Leshchinskiy 2009
+-- Copyright   : (c) Roman Leshchinskiy 2009-2010
 -- License     : BSD-style
 --
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
