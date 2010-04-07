@@ -1,5 +1,5 @@
 {-# LANGUAGE MagicHash, UnboxedTuples, ForeignFunctionInterface,
-             UnliftedFFITypes #-}
+             UnliftedFFITypes, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -32,11 +32,15 @@ import Data.Word ( Word8 )
 import GHC.Base ( Int(..) )
 import GHC.Prim
 
+import Data.Typeable ( Typeable )
+import Data.Data ( Data(..), mkNoRepType )
+
 -- | Byte arrays
-data ByteArray = ByteArray ByteArray#
+data ByteArray = ByteArray ByteArray# deriving ( Typeable )
 
 -- | Mutable byte arrays associated with a primitive state token
 data MutableByteArray s = MutableByteArray (MutableByteArray# s)
+                                        deriving( Typeable )
 
 -- | Create a new mutable byte array of the specified size.
 newByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
@@ -172,4 +176,14 @@ foreign import ccall unsafe "memops.h memmove_off"
 
 foreign import ccall unsafe "memops.h memset_off"
   memset_mba :: MutableByteArray# s -> CInt -> CInt -> CSize -> IO ()
+
+instance Data ByteArray where
+  toConstr _ = error "toConstr"
+  gunfold _ _ = error "gunfold"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.ByteArray"
+
+instance Typeable s => Data (MutableByteArray s) where
+  toConstr _ = error "toConstr"
+  gunfold _ _ = error "gunfold"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.MutableByteArray"
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE UnboxedTuples, MagicHash, CPP #-}
+{-# LANGUAGE UnboxedTuples, MagicHash, CPP, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.Types
@@ -35,8 +35,11 @@ import GHC.Int (
 
 import GHC.Prim
 
+import Data.Typeable ( Typeable )
+import Data.Data ( Data(..), mkNoRepType )
+
 -- | A machine address
-data Addr = Addr Addr#
+data Addr = Addr Addr# deriving ( Typeable )
 
 instance Eq Addr where
   Addr a# == Addr b# = eqAddr# a# b#
@@ -47,6 +50,12 @@ instance Ord Addr where
   Addr a# >= Addr b# = geAddr# a# b#
   Addr a# < Addr b# = ltAddr# a# b#
   Addr a# <= Addr b# = leAddr# a# b#
+
+instance Data Addr where
+  toConstr _ = error "toConstr"
+  gunfold _ _ = error "gunfold"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.Types.Addr"
+
 
 -- | Class of types supporting primitive array operations
 class Prim a where

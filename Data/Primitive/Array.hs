@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -23,11 +23,15 @@ import Control.Monad.Primitive
 import GHC.Base  ( Int(..) )
 import GHC.Prim
 
+import Data.Typeable ( Typeable )
+import Data.Data ( Data(..), mkNoRepType )
+
 -- | Boxed arrays
-data Array a = Array (Array# a)
+data Array a = Array (Array# a) deriving ( Typeable )
 
 -- | Mutable boxed arrays associated with a primitive state token.
 data MutableArray s a = MutableArray (MutableArray# s a)
+                                deriving ( Typeable )
 
 -- | Create a new mutable array of the specified size and initialise all
 -- elements with the given value.
@@ -101,4 +105,14 @@ sameMutableArray :: MutableArray s a -> MutableArray s a -> Bool
 {-# INLINE sameMutableArray #-}
 sameMutableArray (MutableArray arr#) (MutableArray brr#)
   = sameMutableArray# arr# brr#
+
+instance Typeable a => Data (Array a) where
+  toConstr _ = error "toConstr"
+  gunfold _ _ = error "gunfold"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.Array.Array"
+
+instance (Typeable s, Typeable a) => Data (MutableArray s a) where
+  toConstr _ = error "toConstr"
+  gunfold _ _ = error "gunfold"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.Array.MutableArray"
 
