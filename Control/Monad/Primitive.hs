@@ -14,11 +14,12 @@
 module Control.Monad.Primitive (
   PrimMonad(..), RealWorld, primitive_,
   primToPrim, primToIO, primToST,
-  unsafePrimToPrim, unsafePrimToIO, unsafePrimToST
+  unsafePrimToPrim, unsafePrimToIO, unsafePrimToST,
+  unsafeInlinePrim, unsafeInlineIO, unsafeInlineST
 ) where
 
 import GHC.Prim   ( State#, RealWorld )
-import GHC.Base   ( unsafeCoerce# )
+import GHC.Base   ( unsafeCoerce#, realWorld# )
 import GHC.IOBase ( IO(..) )
 import GHC.ST     ( ST(..) )
 
@@ -76,4 +77,16 @@ unsafePrimToST = unsafePrimToPrim
 -- | Convert any 'PrimMonad' to 'IO'. This operation is highly unsafe!
 unsafePrimToIO :: PrimMonad m => m a -> IO a
 unsafePrimToIO = unsafePrimToPrim
+
+unsafeInlinePrim :: PrimMonad m => m a -> a
+{-# INLINE unsafeInlinePrim #-}
+unsafeInlinePrim m = unsafeInlineIO (unsafePrimToIO m)
+
+unsafeInlineIO :: IO a -> a
+{-# INLINE unsafeInlineIO #-}
+unsafeInlineIO m = case internal m realWorld# of (# _, r #) -> r
+
+unsafeInlineST :: ST s a -> a
+{-# INLINE unsafeInlineST #-}
+unsafeInlineST = unsafeInlinePrim
 
