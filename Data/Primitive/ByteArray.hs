@@ -124,6 +124,7 @@ memcpyByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
                  -> MutableByteArray (PrimState m) -> Int
                  -> Int -> m ()
+{-# INLINE memcpyByteArray #-}
 memcpyByteArray (MutableByteArray dst#) doff
                 (MutableByteArray src#) soff sz
   = unsafePrimToPrim
@@ -134,6 +135,7 @@ memcpyByteArray'
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
                  -> ByteArray -> Int
                  -> Int -> m ()
+{-# INLINE memcpyByteArray' #-}
 memcpyByteArray' (MutableByteArray dst#) doff
                  (ByteArray src#) soff sz
   = unsafePrimToPrim
@@ -144,6 +146,7 @@ memmoveByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
                  -> MutableByteArray (PrimState m) -> Int
                  -> Int -> m ()
+{-# INLINE memmoveByteArray #-}
 memmoveByteArray (MutableByteArray dst#) doff
                  (MutableByteArray src#) soff sz
   = unsafePrimToPrim
@@ -153,6 +156,7 @@ memmoveByteArray (MutableByteArray dst#) doff
 memsetByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> Word8
                  -> Int -> m ()
+{-# INLINE memsetByteArray #-}
 memsetByteArray (MutableByteArray dst#) doff c sz
   = unsafePrimToPrim
   $ memset_mba dst# (fromIntegral doff) (fromIntegral c) (fromIntegral sz)
