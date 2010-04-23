@@ -163,22 +163,22 @@ memsetByteArray (MutableByteArray dst#) doff c sz
 
 
 
-foreign import ccall unsafe "memops.h memcpy_off"
+foreign import ccall unsafe "primitive-memops.h memcpy_off"
   memcpy_mba :: MutableByteArray# s -> CInt
              -> MutableByteArray# s -> CInt
              -> CSize -> IO ()
 
-foreign import ccall unsafe "memops.h memcpy_off"
+foreign import ccall unsafe "primitive-memops.h memcpy_off"
   memcpy_ba :: MutableByteArray# s -> CInt
             -> ByteArray# -> CInt
             -> CSize -> IO ()
 
-foreign import ccall unsafe "memops.h memmove_off"
+foreign import ccall unsafe "primitive-memops.h memmove_off"
   memmove_mba :: MutableByteArray# s -> CInt
               -> MutableByteArray# s -> CInt
               -> CSize -> IO ()
 
-foreign import ccall unsafe "memops.h memset_off"
+foreign import ccall unsafe "primitive-memops.h memset_off"
   memset_mba :: MutableByteArray# s -> CInt -> CInt -> CSize -> IO ()
 
 instance Data ByteArray where

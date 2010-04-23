@@ -32,7 +32,7 @@ Library
   Ghc-Options: -O2
 
   Include-Dirs: cbits
-  Install-Includes: memops.h
-  includes: memops.h
-  c-sources: cbits/memops.c
+  Install-Includes: primitive-memops.h
+  includes: primitive-memops.h
+  c-sources: cbits/primitive-memops.c
 
