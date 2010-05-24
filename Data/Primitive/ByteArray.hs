@@ -17,7 +17,7 @@ module Data.Primitive.ByteArray (
 
   newByteArray, newPinnedByteArray, newAlignedPinnedByteArray,
   readByteArray, writeByteArray, indexByteArray,
-  unsafeFreezeByteArray,
+  unsafeFreezeByteArray, unsafeThawByteArray,
   sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
   byteArrayContents,
 
@@ -87,6 +87,14 @@ unsafeFreezeByteArray
 unsafeFreezeByteArray (MutableByteArray arr#)
   = primitive (\s# -> case unsafeFreezeByteArray# arr# s# of
                         (# s'#, arr'# #) -> (# s'#, ByteArray arr'# #))
+
+-- | Convert an immutable byte array to a mutable one without copying. The
+-- original array should not be used after the conversion.
+unsafeThawByteArray
+  :: PrimMonad m => ByteArray -> m (MutableByteArray (PrimState m))
+{-# INLINE unsafeThawByteArray #-}
+unsafeThawByteArray (ByteArray arr#)
+  = primitive (\s# -> (# s#, MutableByteArray (unsafeCoerce# arr#) #))
 
 -- | Size of the byte array.
 sizeofByteArray :: ByteArray -> Int
