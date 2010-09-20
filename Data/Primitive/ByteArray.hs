@@ -19,7 +19,7 @@ module Data.Primitive.ByteArray (
   readByteArray, writeByteArray, indexByteArray,
   unsafeFreezeByteArray, unsafeThawByteArray,
   sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
-  byteArrayContents,
+  byteArrayContents, mutableByteArrayContents,
 
   memcpyByteArray, memcpyByteArray', memmoveByteArray, memsetByteArray
 ) where
@@ -72,6 +72,14 @@ newAlignedPinnedByteArray (I# n#) (I# k#)
 byteArrayContents :: ByteArray -> Addr
 {-# INLINE byteArrayContents #-}
 byteArrayContents (ByteArray arr#) = Addr (byteArrayContents# arr#)
+
+-- | Yield a pointer to the array's data. This operation is only safe on
+-- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
+-- 'newAlignedPinnedByteArray'.
+mutableByteArrayContents :: MutableByteArray s -> Addr
+{-# INLINE mutableByteArrayContents #-}
+mutableByteArrayContents (MutableByteArray arr#)
+  = Addr (byteArrayContents# (unsafeCoerce# arr#))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
