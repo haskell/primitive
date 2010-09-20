@@ -15,7 +15,8 @@ module Data.Primitive.Addr (
   Addr(..),
 
   nullAddr, plusAddr, minusAddr, remAddr,
-  indexOffAddr, readOffAddr, writeOffAddr
+  indexOffAddr, readOffAddr, writeOffAddr,
+  memcpyAddr
 ) where
 
 import Control.Monad.Primitive
@@ -23,6 +24,10 @@ import Data.Primitive.Types
 
 import GHC.Base ( Int(..) )
 import GHC.Prim
+
+import GHC.Ptr
+import Foreign.Marshal.Utils
+
 
 -- | The null address
 nullAddr :: Addr
@@ -61,4 +66,8 @@ readOffAddr (Addr addr#) (I# i#) = primitive (readOffAddr# addr# i#)
 writeOffAddr :: (Prim a, PrimMonad m) => Addr -> Int -> a -> m ()
 {-# INLINE writeOffAddr #-}
 writeOffAddr (Addr addr#) (I# i#) x = primitive_ (writeOffAddr# addr# i# x)
+
+memcpyAddr :: PrimMonad m => Addr -> Addr -> Int -> m ()
+memcpyAddr (Addr dst#) (Addr src#) n
+  = unsafePrimToPrim $ copyBytes (Ptr dst#) (Ptr src#) n
 
