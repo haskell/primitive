@@ -15,10 +15,11 @@ module Control.Monad.Primitive (
   PrimMonad(..), RealWorld, primitive_,
   primToPrim, primToIO, primToST,
   unsafePrimToPrim, unsafePrimToIO, unsafePrimToST,
-  unsafeInlinePrim, unsafeInlineIO, unsafeInlineST
+  unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
+  touch
 ) where
 
-import GHC.Prim   ( State#, RealWorld )
+import GHC.Prim   ( State#, RealWorld, touch# )
 import GHC.Base   ( unsafeCoerce#, realWorld# )
 import GHC.IOBase ( IO(..) )
 import GHC.ST     ( ST(..) )
@@ -89,4 +90,8 @@ unsafeInlineIO m = case internal m realWorld# of (# _, r #) -> r
 unsafeInlineST :: ST s a -> a
 {-# INLINE unsafeInlineST #-}
 unsafeInlineST = unsafeInlinePrim
+
+touch :: PrimMonad m => a -> m ()
+touch x = unsafePrimToPrim
+        $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
