@@ -1,5 +1,5 @@
 {-# LANGUAGE MagicHash, UnboxedTuples, ForeignFunctionInterface,
-             UnliftedFFITypes, DeriveDataTypeable #-}
+             UnliftedFFITypes, DeriveDataTypeable, CPP #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -136,6 +136,11 @@ writeByteArray
 writeByteArray (MutableByteArray arr#) (I# i#) x
   = primitive_ (writeByteArray# arr# i# x)
 
+#if __GLASGOW_HASKELL__ >= 702
+i# :: Int -> Int#
+i# (I# n#) = n#
+#endif
+
 memcpyByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
                  -> MutableByteArray (PrimState m) -> Int
@@ -143,9 +148,13 @@ memcpyByteArray
 {-# INLINE memcpyByteArray #-}
 memcpyByteArray (MutableByteArray dst#) doff
                 (MutableByteArray src#) soff sz
+#if __GLASGOW_HASKELL__ >= 702
+  = primitive_ (copyMutableByteArray# src# (i# soff) dst# (i# doff) (i# sz))
+#else
   = unsafePrimToPrim
   $ memcpy_mba dst# (fromIntegral doff) src# (fromIntegral soff)
                     (fromIntegral sz)
+#endif
 
 memcpyByteArray'
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
@@ -154,9 +163,13 @@ memcpyByteArray'
 {-# INLINE memcpyByteArray' #-}
 memcpyByteArray' (MutableByteArray dst#) doff
                  (ByteArray src#) soff sz
+#if __GLASGOW_HASKELL__ >= 702
+  = primitive_ (copyByteArray# src# (i# soff) dst# (i# doff) (i# sz))
+#else
   = unsafePrimToPrim
   $ memcpy_ba dst# (fromIntegral doff) src# (fromIntegral soff)
                  (fromIntegral sz)
+#endif
 
 memmoveByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
