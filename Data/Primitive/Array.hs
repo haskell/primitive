@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, DeriveDataTypeable #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns, CPP #-}
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -15,7 +15,8 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM,
-  unsafeFreezeArray, unsafeThawArray, sameMutableArray
+  unsafeFreezeArray, unsafeThawArray, sameMutableArray,
+  copyArray, copyMutableArray
 ) where
 
 import Control.Monad.Primitive
@@ -105,6 +106,52 @@ sameMutableArray :: MutableArray s a -> MutableArray s a -> Bool
 {-# INLINE sameMutableArray #-}
 sameMutableArray (MutableArray arr#) (MutableArray brr#)
   = sameMutableArray# arr# brr#
+
+-- | Copy a slice of an immutable array to a mutable array.
+copyArray :: PrimMonad m
+          => Array a                         -- ^ source array
+          -> Int                             -- ^ offset into source array
+          -> MutableArray (PrimState m) a    -- ^ destination array
+          -> Int                             -- ^ offset into destination array
+          -> Int                             -- ^ number of elements to copy
+          -> m ()
+{-# INLINE copyArray #-}
+#if __GLASGOW_HASKELL__ >= 702
+copyArray (Array src#) (I# soff#) (MutableArray dst#) (I# doff#) (I# len#)
+  = primitive_ (copyArray# src# soff# dst# doff# len#)
+#else
+copyArray !src !soff !dst !doff !len = go 0
+  where
+    go i | i < len = do
+                       x <- indexArrayM src (soff+i)
+                       writeArray dst (doff+i) x
+                       go (i+1)
+         | otherwise = return ()
+#endif
+
+-- | Copy a slice of a mutable array to another array. The two arrays may
+-- not be the same.
+copyMutableArray :: PrimMonad m
+          => MutableArray (PrimState m) a    -- ^ source array
+          -> Int                             -- ^ offset into source array
+          -> MutableArray (PrimState m) a    -- ^ destination array
+          -> Int                             -- ^ offset into destination array
+          -> Int                             -- ^ number of elements to copy
+          -> m ()
+{-# INLINE copyMutableArray #-}
+#if __GLASGOW_HASKELL__ >= 702
+copyMutableArray (MutableArray src#) (I# soff#)
+                 (MutableArray dst#) (I# doff#) (I# len#)
+  = primitive_ (copyMutableArray# src# soff# dst# doff# len#)
+#else
+copyMutableArray !src !soff !dst !doff !len = go 0
+  where
+    go i | i < len = do
+                       x <- readArray src (soff+i)
+                       writeArray dst (doff+i) x
+                       go (i+1)
+         | otherwise = return ()
+#endif
 
 instance Typeable a => Data (Array a) where
   toConstr _ = error "toConstr"
