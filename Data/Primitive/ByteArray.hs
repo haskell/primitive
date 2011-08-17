@@ -20,7 +20,9 @@ module Data.Primitive.ByteArray (
   unsafeFreezeByteArray, unsafeThawByteArray,
   sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
   byteArrayContents, mutableByteArrayContents,
+  copyByteArray, copyMutableByteArray, moveByteArray, fillByteArray,
 
+  -- * Deprecated operations
   memcpyByteArray, memcpyByteArray', memmoveByteArray, memsetByteArray
 ) where
 
@@ -141,28 +143,17 @@ i# :: Int -> Int#
 i# (I# n#) = n#
 #endif
 
-memcpyByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
-                 -> MutableByteArray (PrimState m) -> Int
-                 -> Int -> m ()
-{-# INLINE memcpyByteArray #-}
-memcpyByteArray (MutableByteArray dst#) doff
-                (MutableByteArray src#) soff sz
-#if __GLASGOW_HASKELL__ >= 702
-  = primitive_ (copyMutableByteArray# src# (i# soff) dst# (i# doff) (i# sz))
-#else
-  = unsafePrimToPrim
-  $ memcpy_mba dst# (fromIntegral doff) src# (fromIntegral soff)
-                    (fromIntegral sz)
-#endif
-
-memcpyByteArray'
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
-                 -> ByteArray -> Int
-                 -> Int -> m ()
-{-# INLINE memcpyByteArray' #-}
-memcpyByteArray' (MutableByteArray dst#) doff
-                 (ByteArray src#) soff sz
+-- | Copy a slice of an immutable byte array to a mutable byte array.
+copyByteArray
+  :: PrimMonad m => ByteArray           -- ^ source array
+                 -> Int                 -- ^ offset into source array
+                 -> MutableByteArray (PrimState m)
+                                        -- ^ destination array
+                 -> Int                 -- ^ offset into destination array
+                 -> Int                 -- ^ number of bytes to copy
+                 -> m ()
+{-# INLINE copyByteArray #-}
+copyByteArray (ByteArray src#) soff (MutableByteArray dst#) doff sz
 #if __GLASGOW_HASKELL__ >= 702
   = primitive_ (copyByteArray# src# (i# soff) dst# (i# doff) (i# sz))
 #else
@@ -171,25 +162,94 @@ memcpyByteArray' (MutableByteArray dst#) doff
                  (fromIntegral sz)
 #endif
 
-memmoveByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
-                 -> MutableByteArray (PrimState m) -> Int
-                 -> Int -> m ()
-{-# INLINE memmoveByteArray #-}
-memmoveByteArray (MutableByteArray dst#) doff
-                 (MutableByteArray src#) soff sz
+-- | Copy a slice of a mutable byte array into another array. The two slices
+-- may not overlap.
+copyMutableByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m)
+                                        -- ^ source array
+                 -> Int                 -- ^ offset into source array
+                 -> MutableByteArray (PrimState m)
+                                        -- ^ destination array
+                 -> Int                 -- ^ offset into destination array
+                 -> Int                 -- ^ number of bytes to copy
+                 -> m ()
+{-# INLINE copyMutableByteArray #-}
+copyMutableByteArray (MutableByteArray src#) soff
+                     (MutableByteArray dst#) doff sz
+#if __GLASGOW_HASKELL__ >= 702
+  = primitive_ (copyMutableByteArray# src# (i# soff) dst# (i# doff) (i# sz))
+#else
+  = unsafePrimToPrim
+  $ memcpy_mba dst# (fromIntegral doff) src# (fromIntegral soff)
+                    (fromIntegral sz)
+#endif
+
+-- | Copy a slice of a mutable byte array into another, potentially
+-- overlapping array.
+moveByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m)
+                                        -- ^ source array
+                 -> Int                 -- ^ offset into source array
+                 -> MutableByteArray (PrimState m)
+                                        -- ^ destination array
+                 -> Int                 -- ^ offset into destination array
+                 -> Int                 -- ^ number of bytes to copy
+                 -> m ()
+{-# INLINE moveByteArray #-}
+moveByteArray (MutableByteArray src#) soff
+              (MutableByteArray dst#) doff sz
   = unsafePrimToPrim
   $ memmove_mba dst# (fromIntegral doff) src# (fromIntegral soff)
                      (fromIntegral sz)
 
-memsetByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> Word8
-                 -> Int -> m ()
-{-# INLINE memsetByteArray #-}
-memsetByteArray (MutableByteArray dst#) doff c sz
+-- | Fill a slice of a mutable byte array with a value.
+fillByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m)
+                                        -- ^ array to fill
+                 -> Int                 -- ^ offset into array
+                 -> Int                 -- ^ number of bytes to fill
+                 -> Word8               -- ^ value to fill with
+                 -> m ()
+{-# INLINE fillByteArray #-}
+fillByteArray (MutableByteArray dst#) doff c sz
   = unsafePrimToPrim
   $ memset_mba dst# (fromIntegral doff) (fromIntegral c) (fromIntegral sz)
 
+
+
+memcpyByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
+                 -> MutableByteArray (PrimState m) -> Int
+                 -> Int -> m ()
+{-# DEPRECATED memcpyByteArray "Use copyMutableByteArray instead (NOTE: arguments are flipped)" #-}
+{-# INLINE memcpyByteArray #-}
+memcpyByteArray dst doff src soff sz
+  = copyMutableByteArray src soff dst doff sz
+
+memcpyByteArray'
+  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
+                 -> ByteArray -> Int
+                 -> Int -> m ()
+{-# DEPRECATED memcpyByteArray' "Use copyByteArray instead (NOTE: arguments are flipped)" #-}
+{-# INLINE memcpyByteArray' #-}
+memcpyByteArray' dst doff src soff sz
+  = copyByteArray src soff dst doff sz
+
+memmoveByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
+                 -> MutableByteArray (PrimState m) -> Int
+                 -> Int -> m ()
+{-# DEPRECATED memmoveByteArray "Use moveByteArray instead (NOTE: arguments are flipped)" #-}
+{-# INLINE memmoveByteArray #-}
+memmoveByteArray dst doff src soff sz
+  = moveByteArray src soff dst doff sz
+
+memsetByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> Word8
+                 -> Int -> m ()
+{-# DEPRECATED memsetByteArray "Use fillByteArray instead (NOTE: arguments are flipped)" #-}
+{-# INLINE memsetByteArray #-}
+memsetByteArray dst off x sz = fillByteArray dst off sz x
 
 
 foreign import ccall unsafe "primitive-memops.h memcpy_off"
