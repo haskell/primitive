@@ -13,6 +13,18 @@ Description:
         This package provides wrappers for primitive array operations from
         GHC.Prim.
         .
+        Changes in version 0.4
+        .
+        * Support for GHC 7.2 array copying primitives
+        .
+        * New in @Data.Primitive.ByteArray@: @copyByteArray@,
+          @copyMutableByteArray@, @moveByteArray@, @fillByteArray@
+        .
+        * Deprecated in @Data.Primitive.ByteArray@: @memcpyByteArray@,
+          @memcpyByteArray'@, @memmoveByteArray@, @memsetByteArray@
+        .
+        * New in @Data.Primitive.Array@: copyArray@, @copyMutableByteArray@
+        .
 
 Cabal-Version:  >= 1.2
 Build-Type:     Simple
