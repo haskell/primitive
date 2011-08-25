@@ -23,7 +23,7 @@ Description:
         * Deprecated in @Data.Primitive.ByteArray@: @memcpyByteArray@,
           @memcpyByteArray'@, @memmoveByteArray@, @memsetByteArray@
         .
-        * New in @Data.Primitive.Array@: copyArray@, @copyMutableByteArray@
+        * New in @Data.Primitive.Array@: @copyArray@, @copyMutableByteArray@
         .
 
 Cabal-Version:  >= 1.2
