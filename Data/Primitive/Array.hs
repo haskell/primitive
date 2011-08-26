@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns, CPP #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -25,7 +25,8 @@ import GHC.Base  ( Int(..) )
 import GHC.Prim
 
 import Data.Typeable ( Typeable )
-import Data.Data ( Data(..), mkNorepType )
+import Data.Data ( Data(..) )
+import Data.Primitive.Internal.Compat ( mkNoRepType )
 
 -- | Boxed arrays
 data Array a = Array (Array# a) deriving ( Typeable )
@@ -156,10 +157,10 @@ copyMutableArray !src !soff !dst !doff !len = go 0
 instance Typeable a => Data (Array a) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNorepType "Data.Primitive.Array.Array"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.Array.Array"
 
 instance (Typeable s, Typeable a) => Data (MutableArray s a) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNorepType "Data.Primitive.Array.MutableArray"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.Array.MutableArray"
 

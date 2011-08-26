@@ -1,5 +1,5 @@
 {-# LANGUAGE MagicHash, UnboxedTuples, ForeignFunctionInterface,
-             UnliftedFFITypes, DeriveDataTypeable, CPP #-}
+             UnliftedFFITypes, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -35,7 +35,8 @@ import GHC.Base ( Int(..) )
 import GHC.Prim
 
 import Data.Typeable ( Typeable )
-import Data.Data ( Data(..), mkNorepType )
+import Data.Data ( Data(..) )
+import Data.Primitive.Internal.Compat ( mkNoRepType )
 
 -- | Byte arrays
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
@@ -273,10 +274,10 @@ foreign import ccall unsafe "primitive-memops.h memset_off"
 instance Data ByteArray where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNorepType "Data.Primitive.ByteArray.ByteArray"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.ByteArray"
 
 instance Typeable s => Data (MutableByteArray s) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNorepType "Data.Primitive.ByteArray.MutableByteArray"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.MutableByteArray"
 

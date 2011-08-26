@@ -21,7 +21,11 @@ module Control.Monad.Primitive (
 
 import GHC.Prim   ( State#, RealWorld, touch# )
 import GHC.Base   ( unsafeCoerce#, realWorld# )
+#if MIN_VERSION_base(4,2,0)
+import GHC.IO     ( IO(..) )
+#else
 import GHC.IOBase ( IO(..) )
+#endif
 import GHC.ST     ( ST(..) )
 
 -- | Class of primitive state-transformer monads

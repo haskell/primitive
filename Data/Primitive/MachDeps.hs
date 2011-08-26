@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 -- |
 -- Module      : Data.Primitive.MachDeps
 -- Copyright   : (c) Roman Leshchinskiy 2009

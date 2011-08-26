@@ -1,4 +1,4 @@
-{-# LANGUAGE UnboxedTuples, MagicHash, CPP, DeriveDataTypeable #-}
+{-# LANGUAGE UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.Types
@@ -36,7 +36,8 @@ import GHC.Int (
 import GHC.Prim
 
 import Data.Typeable ( Typeable )
-import Data.Data ( Data(..), mkNorepType )
+import Data.Data ( Data(..) )
+import Data.Primitive.Internal.Compat ( mkNoRepType )
 
 -- | A machine address
 data Addr = Addr Addr# deriving ( Typeable )
@@ -54,7 +55,7 @@ instance Ord Addr where
 instance Data Addr where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNorepType "Data.Primitive.Types.Addr"
+  dataTypeOf _ = mkNoRepType "Data.Primitive.Types.Addr"
 
 
 -- | Class of types supporting primitive array operations
