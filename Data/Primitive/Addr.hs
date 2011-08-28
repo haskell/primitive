@@ -16,7 +16,7 @@ module Data.Primitive.Addr (
 
   nullAddr, plusAddr, minusAddr, remAddr,
   indexOffAddr, readOffAddr, writeOffAddr,
-  memcpyAddr
+  copyAddr, moveAddr, memcpyAddr
 ) where
 
 import Control.Monad.Primitive
@@ -68,7 +68,28 @@ writeOffAddr :: (Prim a, PrimMonad m) => Addr -> Int -> a -> m ()
 {-# INLINE writeOffAddr #-}
 writeOffAddr (Addr addr#) (I# i#) x = primitive_ (writeOffAddr# addr# i# x)
 
-memcpyAddr :: PrimMonad m => Addr -> Addr -> Int -> m ()
-memcpyAddr (Addr dst#) (Addr src#) n
+-- | Copy the given number of bytes from the second 'Addr' to the first. The
+-- areas may not overlap.
+copyAddr :: PrimMonad m => Addr         -- ^ destination address
+                        -> Addr         -- ^ source address
+                        -> Int          -- ^ number of bytes
+                        -> m ()
+{-# INLINE copyAddr #-}
+copyAddr (Addr dst#) (Addr src#) n
   = unsafePrimToPrim $ copyBytes (Ptr dst#) (Ptr src#) n
+
+-- | Copy the given number of bytes from the second 'Addr' to the first. The
+-- areas may overlap.
+moveAddr :: PrimMonad m => Addr         -- ^ destination address
+                        -> Addr         -- ^ source address
+                        -> Int          -- ^ number of bytes
+                        -> m ()
+{-# INLINE moveAddr #-}
+moveAddr (Addr dst#) (Addr src#) n
+  = unsafePrimToPrim $ moveBytes (Ptr dst#) (Ptr src#) n
+
+memcpyAddr :: PrimMonad m => Addr -> Addr -> Int -> m ()
+{-# INLINE memcpyAddr #-}
+{-# DEPRECATED memcpyAddr "Use copyAddr instead" #-}
+memcpyAddr = copyAddr
 
