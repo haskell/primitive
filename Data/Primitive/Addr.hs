@@ -45,6 +45,7 @@ plusAddr (Addr a#) (I# i#) = Addr (plusAddr# a# i#)
 minusAddr :: Addr -> Addr -> Int
 minusAddr (Addr a#) (Addr b#) = I# (minusAddr# a# b#)
 
+-- | The remainder of the address and the integer.
 remAddr :: Addr -> Int -> Int
 remAddr (Addr a#) (I# i#) = I# (remAddr# a# i#)
 
