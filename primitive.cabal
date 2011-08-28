@@ -17,13 +17,17 @@ Description:
         .
         * Support for GHC 7.2 array copying primitives
         .
-        * New in @Data.Primitive.ByteArray@: @copyByteArray@,
+        * New in "Data.Primitive.ByteArray": @copyByteArray@,
           @copyMutableByteArray@, @moveByteArray@, @fillByteArray@
         .
-        * Deprecated in @Data.Primitive.ByteArray@: @memcpyByteArray@,
+        * Deprecated in "Data.Primitive.ByteArray": @memcpyByteArray@,
           @memcpyByteArray'@, @memmoveByteArray@, @memsetByteArray@
         .
-        * New in @Data.Primitive.Array@: @copyArray@, @copyMutableByteArray@
+        * New in "Data.Primitive.Array": @copyArray@, @copyMutableByteArray@
+        .
+        * New in "Data.Primitive.Addr": @copyAddr@, @moveAddr@
+        .
+        * Deprecated in "Data.Primitive.Addr": @memcpyAddr@
         .
 
 Cabal-Version:  >= 1.2
