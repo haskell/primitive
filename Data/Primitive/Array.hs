@@ -110,18 +110,18 @@ sameMutableArray (MutableArray arr#) (MutableArray brr#)
 
 -- | Copy a slice of an immutable array to a mutable array.
 copyArray :: PrimMonad m
-          => Array a                         -- ^ source array
-          -> Int                             -- ^ offset into source array
-          -> MutableArray (PrimState m) a    -- ^ destination array
+          => MutableArray (PrimState m) a    -- ^ destination array
           -> Int                             -- ^ offset into destination array
+          -> Array a                         -- ^ source array
+          -> Int                             -- ^ offset into source array
           -> Int                             -- ^ number of elements to copy
           -> m ()
 {-# INLINE copyArray #-}
 #if __GLASGOW_HASKELL__ >= 702
-copyArray (Array src#) (I# soff#) (MutableArray dst#) (I# doff#) (I# len#)
+copyArray (MutableArray dst#) (I# doff#) (Array src#) (I# soff#) (I# len#)
   = primitive_ (copyArray# src# soff# dst# doff# len#)
 #else
-copyArray !src !soff !dst !doff !len = go 0
+copyArray !dst !doff !src !soff !len = go 0
   where
     go i | i < len = do
                        x <- indexArrayM src (soff+i)
@@ -133,19 +133,19 @@ copyArray !src !soff !dst !doff !len = go 0
 -- | Copy a slice of a mutable array to another array. The two arrays may
 -- not be the same.
 copyMutableArray :: PrimMonad m
-          => MutableArray (PrimState m) a    -- ^ source array
-          -> Int                             -- ^ offset into source array
-          -> MutableArray (PrimState m) a    -- ^ destination array
+          => MutableArray (PrimState m) a    -- ^ destination array
           -> Int                             -- ^ offset into destination array
+          -> MutableArray (PrimState m) a    -- ^ source array
+          -> Int                             -- ^ offset into source array
           -> Int                             -- ^ number of elements to copy
           -> m ()
 {-# INLINE copyMutableArray #-}
 #if __GLASGOW_HASKELL__ >= 702
-copyMutableArray (MutableArray src#) (I# soff#)
-                 (MutableArray dst#) (I# doff#) (I# len#)
+copyMutableArray (MutableArray dst#) (I# doff#)
+                 (MutableArray src#) (I# soff#) (I# len#)
   = primitive_ (copyMutableArray# src# soff# dst# doff# len#)
 #else
-copyMutableArray !src !soff !dst !doff !len = go 0
+copyMutableArray !dst !doff !src !soff !len = go 0
   where
     go i | i < len = do
                        x <- readArray src (soff+i)
