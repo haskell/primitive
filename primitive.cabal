@@ -13,6 +13,10 @@ Description:
         This package provides wrappers for primitive array operations from
         GHC.Prim.
         .
+        Changes in version 0.4.0.1
+        .
+        * Critical bug fix in @fillByteArray@
+        .
         Changes in version 0.4
         .
         * Support for GHC 7.2 array copying primitives
