@@ -212,7 +212,7 @@ fillByteArray
                  -> Word8               -- ^ value to fill with
                  -> m ()
 {-# INLINE fillByteArray #-}
-fillByteArray (MutableByteArray dst#) doff c sz
+fillByteArray (MutableByteArray dst#) doff sz c
   = unsafePrimToPrim
   $ memset_mba dst# (fromIntegral doff) (fromIntegral c) (fromIntegral sz)
 
