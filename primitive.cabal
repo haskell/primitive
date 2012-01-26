@@ -13,6 +13,10 @@ Description:
         This package provides wrappers for primitive array operations from
         GHC.Prim.
         .
+        Changes in version 0.5
+        .
+        * Efficient block fill operations: @setByteArray@, @setAddr@
+        .
         Changes in version 0.4.1
         .
         * New module "Data.Primitive.MutVar"
