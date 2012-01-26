@@ -64,4 +64,8 @@ Library
   Install-Includes: primitive-memops.h
   includes: primitive-memops.h
   c-sources: cbits/primitive-memops.c
+  cc-options: -O3 -ftree-vectorize -fomit-frame-pointer
+  if arch(i386) || arch(x86_64) {
+    cc-options: -msse2
+  }
 
