@@ -98,7 +98,11 @@ class Prim a where
   -- The offset is in elements of type @a@ rather than in bytes.
   writeOffAddr# :: Addr# -> Int# -> a -> State# s -> State# s
 
-#define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, set_arr, idx_addr, rd_addr, wr_addr) \
+  -- | Fill a memory block given by an address, an offset and a length.
+  -- The offset and length are in elements of type @a@ rather than in bytes.
+  setOffAddr# :: Addr# -> Int# -> Int# -> a -> State# s -> State# s
+
+#define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, set_arr, idx_addr, rd_addr, wr_addr, set_addr) \
 instance Prim ty where {                                        \
   sizeOf# _ = unI# sz                                           \
 ; alignment# _ = unI# align                                     \
@@ -114,6 +118,9 @@ instance Prim ty where {                                        \
 ; readOffAddr#  addr# i# s# = case rd_addr addr# i# s# of       \
                         { (# s1#, x# #) -> (# s1#, ctr x# #) }  \
 ; writeOffAddr# addr# i# (ctr x#) s# = wr_addr addr# i# x# s#   \
+; setOffAddr# addr# i# n# (ctr x#) s#                           \
+    = case internal (set_addr addr# i# n# x#) (unsafeCoerce# s#) of \
+        { (# s1#, _ #) -> unsafeCoerce# s1# }                   \
 ; {-# INLINE sizeOf# #-}                                        \
 ; {-# INLINE alignment# #-}                                     \
 ; {-# INLINE indexByteArray# #-}                                \
@@ -123,6 +130,7 @@ instance Prim ty where {                                        \
 ; {-# INLINE indexOffAddr# #-}                                  \
 ; {-# INLINE readOffAddr# #-}                                   \
 ; {-# INLINE writeOffAddr# #-}                                  \
+; {-# INLINE setOffAddr# #-}                                    \
 }
 
 unI# :: Int -> Int#
@@ -130,44 +138,44 @@ unI# (I# n#) = n#
 
 derivePrim(Word, W#, sIZEOF_WORD, aLIGNMENT_WORD,
            indexWordArray#, readWordArray#, writeWordArray#, setWordArray#,
-           indexWordOffAddr#, readWordOffAddr#, writeWordOffAddr#)
+           indexWordOffAddr#, readWordOffAddr#, writeWordOffAddr#, setWordOffAddr#)
 derivePrim(Word8, W8#, sIZEOF_WORD8, aLIGNMENT_WORD8,
            indexWord8Array#, readWord8Array#, writeWord8Array#, setWord8Array#,
-           indexWord8OffAddr#, readWord8OffAddr#, writeWord8OffAddr#)
+           indexWord8OffAddr#, readWord8OffAddr#, writeWord8OffAddr#, setWord8OffAddr#)
 derivePrim(Word16, W16#, sIZEOF_WORD16, aLIGNMENT_WORD16,
            indexWord16Array#, readWord16Array#, writeWord16Array#, setWord16Array#,
-           indexWord16OffAddr#, readWord16OffAddr#, writeWord16OffAddr#)
+           indexWord16OffAddr#, readWord16OffAddr#, writeWord16OffAddr#, setWord16OffAddr#)
 derivePrim(Word32, W32#, sIZEOF_WORD32, aLIGNMENT_WORD32,
            indexWord32Array#, readWord32Array#, writeWord32Array#, setWord32Array#,
-           indexWord32OffAddr#, readWord32OffAddr#, writeWord32OffAddr#)
+           indexWord32OffAddr#, readWord32OffAddr#, writeWord32OffAddr#, setWord32OffAddr#)
 derivePrim(Word64, W64#, sIZEOF_WORD64, aLIGNMENT_WORD64,
            indexWord64Array#, readWord64Array#, writeWord64Array#, setWord64Array#,
-           indexWord64OffAddr#, readWord64OffAddr#, writeWord64OffAddr#)
+           indexWord64OffAddr#, readWord64OffAddr#, writeWord64OffAddr#, setWord64OffAddr#)
 derivePrim(Int, I#, sIZEOF_INT, aLIGNMENT_INT,
            indexIntArray#, readIntArray#, writeIntArray#, setIntArray#,
-           indexIntOffAddr#, readIntOffAddr#, writeIntOffAddr#)
+           indexIntOffAddr#, readIntOffAddr#, writeIntOffAddr#, setIntOffAddr#)
 derivePrim(Int8, I8#, sIZEOF_INT8, aLIGNMENT_INT8,
            indexInt8Array#, readInt8Array#, writeInt8Array#, setInt8Array#,
-           indexInt8OffAddr#, readInt8OffAddr#, writeInt8OffAddr#)
+           indexInt8OffAddr#, readInt8OffAddr#, writeInt8OffAddr#, setInt8OffAddr#)
 derivePrim(Int16, I16#, sIZEOF_INT16, aLIGNMENT_INT16,
            indexInt16Array#, readInt16Array#, writeInt16Array#, setInt16Array#,
-           indexInt16OffAddr#, readInt16OffAddr#, writeInt16OffAddr#)
+           indexInt16OffAddr#, readInt16OffAddr#, writeInt16OffAddr#, setInt16OffAddr#)
 derivePrim(Int32, I32#, sIZEOF_INT32, aLIGNMENT_INT32,
            indexInt32Array#, readInt32Array#, writeInt32Array#, setInt32Array#,
-           indexInt32OffAddr#, readInt32OffAddr#, writeInt32OffAddr#)
+           indexInt32OffAddr#, readInt32OffAddr#, writeInt32OffAddr#, setInt32OffAddr#)
 derivePrim(Int64, I64#, sIZEOF_INT64, aLIGNMENT_INT64,
            indexInt64Array#, readInt64Array#, writeInt64Array#, setInt64Array#,
-           indexInt64OffAddr#, readInt64OffAddr#, writeInt64OffAddr#)
+           indexInt64OffAddr#, readInt64OffAddr#, writeInt64OffAddr#, setInt64OffAddr#)
 derivePrim(Float, F#, sIZEOF_FLOAT, aLIGNMENT_FLOAT,
            indexFloatArray#, readFloatArray#, writeFloatArray#, setFloatArray#,
-           indexFloatOffAddr#, readFloatOffAddr#, writeFloatOffAddr#)
+           indexFloatOffAddr#, readFloatOffAddr#, writeFloatOffAddr#, setFloatOffAddr#)
 derivePrim(Double, D#, sIZEOF_DOUBLE, aLIGNMENT_DOUBLE,
            indexDoubleArray#, readDoubleArray#, writeDoubleArray#, setDoubleArray#,
-           indexDoubleOffAddr#, readDoubleOffAddr#, writeDoubleOffAddr#)
+           indexDoubleOffAddr#, readDoubleOffAddr#, writeDoubleOffAddr#, setDoubleOffAddr#)
 derivePrim(Char, C#, sIZEOF_CHAR, aLIGNMENT_CHAR,
            indexWideCharArray#, readWideCharArray#, writeWideCharArray#, setWideCharArray#,
-           indexWideCharOffAddr#, readWideCharOffAddr#, writeWideCharOffAddr#)
+           indexWideCharOffAddr#, readWideCharOffAddr#, writeWideCharOffAddr#, setWideCharOffAddr#)
 derivePrim(Addr, Addr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
-           indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#)
+           indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
 
