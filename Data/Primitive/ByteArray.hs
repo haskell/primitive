@@ -13,17 +13,28 @@
 --
 
 module Data.Primitive.ByteArray (
+  -- * Types
   ByteArray(..), MutableByteArray(..), ByteArray#, MutableByteArray#,
 
+  -- * Allocation
   newByteArray, newPinnedByteArray, newAlignedPinnedByteArray,
+
+  -- * Element access
   readByteArray, writeByteArray, indexByteArray,
+
+  -- * Freezing and thawing
   unsafeFreezeByteArray, unsafeThawByteArray,
+
+  -- * Block operations
+  copyByteArray, copyMutableByteArray, moveByteArray,
+  setByteArray, fillByteArray,
+
+  -- * Information
   sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
   byteArrayContents, mutableByteArrayContents,
-  copyByteArray, copyMutableByteArray, moveByteArray, fillByteArray,
 
   -- * Deprecated operations
-  memcpyByteArray, memcpyByteArray', memmoveByteArray, memsetByteArray
+  memcpyByteArray, memcpyByteArray', memmoveByteArray, memsetByteArray,
 ) where
 
 import Control.Monad.Primitive
@@ -203,18 +214,28 @@ moveByteArray (MutableByteArray dst#) doff
   $ memmove_mba dst# (fromIntegral doff) src# (fromIntegral soff)
                      (fromIntegral sz)
 
--- | Fill a slice of a mutable byte array with a value.
+-- | Fill a slice of a mutable byte array with a value. The offset and length
+-- are given in elements of type @a@ rather than in bytes.
+setByteArray
+  :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -- ^ array to fill
+                           -> Int                 -- ^ offset into array
+                           -> Int                 -- ^ number of values to fill
+                           -> a                   -- ^ value to fill with
+                           -> m ()
+{-# INLINE setByteArray #-}
+setByteArray (MutableByteArray dst#) (I# doff#) (I# sz#) x
+  = primitive_ (setByteArray# dst# doff# sz# x)
+
+-- | Fill a slice of a mutable byte array with a byte.
 fillByteArray
   :: PrimMonad m => MutableByteArray (PrimState m)
                                         -- ^ array to fill
                  -> Int                 -- ^ offset into array
                  -> Int                 -- ^ number of bytes to fill
-                 -> Word8               -- ^ value to fill with
+                 -> Word8               -- ^ byte to fill with
                  -> m ()
 {-# INLINE fillByteArray #-}
-fillByteArray (MutableByteArray dst#) doff sz c
-  = unsafePrimToPrim
-  $ memset_mba dst# (fromIntegral doff) (fromIntegral c) (fromIntegral sz)
+fillByteArray = setByteArray
 
 
 
