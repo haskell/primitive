@@ -82,7 +82,7 @@ class Prim a where
   writeByteArray# :: MutableByteArray# s -> Int# -> a -> State# s -> State# s
 
   -- | Fill a slice of the mutable array with a value. The offset and length
-  -- of the chunk is in elements of type @a@ rather than in bytes.
+  -- of the chunk are in elements of type @a@ rather than in bytes.
   setByteArray# :: MutableByteArray# s -> Int# -> Int# -> a -> State# s -> State# s
 
   -- | Read a value from a memory position given by an address and an offset.
