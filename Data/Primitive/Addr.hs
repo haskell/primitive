@@ -22,10 +22,7 @@ module Data.Primitive.Addr (
   indexOffAddr, readOffAddr, writeOffAddr,
 
   -- * Block operations
-  copyAddr, moveAddr, setAddr,
-
-  -- * Deprecated operations
-  memcpyAddr
+  copyAddr, moveAddr, setAddr
 ) where
 
 import Control.Monad.Primitive
@@ -102,9 +99,4 @@ moveAddr (Addr dst#) (Addr src#) n
 setAddr :: (Prim a, PrimMonad m) => Addr -> Int -> a -> m ()
 {-# INLINE setAddr #-}
 setAddr (Addr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
-
-memcpyAddr :: PrimMonad m => Addr -> Addr -> Int -> m ()
-{-# INLINE memcpyAddr #-}
-{-# DEPRECATED memcpyAddr "Use copyAddr instead" #-}
-memcpyAddr = copyAddr
 

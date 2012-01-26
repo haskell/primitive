@@ -31,10 +31,7 @@ module Data.Primitive.ByteArray (
 
   -- * Information
   sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
-  byteArrayContents, mutableByteArrayContents,
-
-  -- * Deprecated operations
-  memcpyByteArray, memcpyByteArray', memmoveByteArray, memsetByteArray,
+  byteArrayContents, mutableByteArrayContents
 ) where
 
 import Control.Monad.Primitive
@@ -237,38 +234,6 @@ fillByteArray
 {-# INLINE fillByteArray #-}
 fillByteArray = setByteArray
 
-
-
-memcpyByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
-                 -> MutableByteArray (PrimState m) -> Int
-                 -> Int -> m ()
-{-# DEPRECATED memcpyByteArray "Use copyMutableByteArray instead" #-}
-{-# INLINE memcpyByteArray #-}
-memcpyByteArray = copyMutableByteArray
-
-memcpyByteArray'
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
-                 -> ByteArray -> Int
-                 -> Int -> m ()
-{-# DEPRECATED memcpyByteArray' "Use copyByteArray instead" #-}
-{-# INLINE memcpyByteArray' #-}
-memcpyByteArray' = copyByteArray
-
-memmoveByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
-                 -> MutableByteArray (PrimState m) -> Int
-                 -> Int -> m ()
-{-# DEPRECATED memmoveByteArray "Use moveByteArray instead" #-}
-{-# INLINE memmoveByteArray #-}
-memmoveByteArray = moveByteArray
-
-memsetByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> Word8
-                 -> Int -> m ()
-{-# DEPRECATED memsetByteArray "Use fillByteArray instead (WARNING: order of arguments is different)" #-}
-{-# INLINE memsetByteArray #-}
-memsetByteArray dst off x sz = fillByteArray dst off sz x
 
 
 foreign import ccall unsafe "primitive-memops.h memcpy_off"
