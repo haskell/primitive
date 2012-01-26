@@ -104,7 +104,16 @@ instance Prim ty where {                                        \
 ; indexOffAddr# addr# i# = ctr (idx_addr addr# i#)              \
 ; readOffAddr#  addr# i# s# = case rd_addr addr# i# s# of       \
                         { (# s1#, x# #) -> (# s1#, ctr x# #) }  \
-; writeOffAddr# addr# i# (ctr x#) s# = wr_addr addr# i# x# s#   }
+; writeOffAddr# addr# i# (ctr x#) s# = wr_addr addr# i# x# s#   \
+; {-# INLINE sizeOf# #-}                                        \
+; {-# INLINE alignment# #-}                                     \
+; {-# INLINE indexByteArray# #-}                                \
+; {-# INLINE readByteArray# #-}                                 \
+; {-# INLINE writeByteArray# #-}                                \
+; {-# INLINE indexOffAddr# #-}                                  \
+; {-# INLINE readOffAddr# #-}                                   \
+; {-# INLINE writeOffAddr# #-}                                  \
+}
 
 unI# :: Int -> Int#
 unI# (I# n#) = n#
