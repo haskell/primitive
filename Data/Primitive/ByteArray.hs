@@ -286,9 +286,6 @@ foreign import ccall unsafe "primitive-memops.h memmove_off"
               -> MutableByteArray# s -> CInt
               -> CSize -> IO ()
 
-foreign import ccall unsafe "primitive-memops.h memset_off"
-  memset_mba :: MutableByteArray# s -> CInt -> CInt -> CSize -> IO ()
-
 instance Data ByteArray where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"

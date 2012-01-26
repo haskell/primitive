@@ -6,7 +6,6 @@
 
 void memcpy_off( void *dst, int doff, void *src, int soff, size_t len );
 void memmove_off( void *dst, int doff, void *src, int soff, size_t len );
-void memset_off( void *dst, int doff, int c, size_t len );
 
 void hsprimitive_memset_Word8 (HsWord8 *, int, int, HsWord);
 void hsprimitive_memset_Word16 (HsWord16 *, int, int, HsWord);

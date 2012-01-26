@@ -11,11 +11,6 @@ void memmove_off( void *dst, int doff, void *src, int soff, size_t len )
   memmove( (char *)dst + doff, (char *)src + soff, len );
 }
 
-void memset_off( void *dst, int doff, int c, size_t len )
-{
-  memset( (char *)dst + doff, c, len );
-}
-
 #define MEMSET(TYPE, ATYPE)                                                  \
 void hsprimitive_memset_ ## TYPE (Hs ## TYPE *p, int off, int n, ATYPE x)    \
 {                                                                            \
