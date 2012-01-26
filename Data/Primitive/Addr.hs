@@ -12,11 +12,20 @@
 --
 
 module Data.Primitive.Addr (
+  -- * Types
   Addr(..),
 
+  -- * Address arithmetic
   nullAddr, plusAddr, minusAddr, remAddr,
+
+  -- * Element access
   indexOffAddr, readOffAddr, writeOffAddr,
-  copyAddr, moveAddr, memcpyAddr
+
+  -- * Block operations
+  copyAddr, moveAddr, setAddr,
+
+  -- * Deprecated operations
+  memcpyAddr
 ) where
 
 import Control.Monad.Primitive
@@ -87,6 +96,12 @@ moveAddr :: PrimMonad m => Addr         -- ^ destination address
 {-# INLINE moveAddr #-}
 moveAddr (Addr dst#) (Addr src#) n
   = unsafePrimToPrim $ moveBytes (Ptr dst#) (Ptr src#) n
+
+-- | Fill a memory block of with the given value. The length is in
+-- elements of type @a@ rather than in bytes.
+setAddr :: (Prim a, PrimMonad m) => Addr -> Int -> a -> m ()
+{-# INLINE setAddr #-}
+setAddr (Addr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
 
 memcpyAddr :: PrimMonad m => Addr -> Addr -> Int -> m ()
 {-# INLINE memcpyAddr #-}
