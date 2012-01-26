@@ -55,6 +55,7 @@ Library
 
   Other-Modules:
         Data.Primitive.Internal.Compat
+        Data.Primitive.Internal.Operations
 
   Build-Depends: base >= 4 && < 5, ghc-prim
 

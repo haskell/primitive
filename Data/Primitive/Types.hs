@@ -1,5 +1,4 @@
-{-# LANGUAGE UnboxedTuples, MagicHash, DeriveDataTypeable,
-             ForeignFunctionInterface, UnliftedFFITypes #-}
+{-# LANGUAGE UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.Types
@@ -20,6 +19,7 @@ module Data.Primitive.Types (
 
 import Control.Monad.Primitive
 import Data.Primitive.MachDeps
+import Data.Primitive.Internal.Operations
 
 import GHC.Base (
     unsafeCoerce#,
@@ -170,34 +170,4 @@ derivePrim(Char, C#, sIZEOF_CHAR, aLIGNMENT_CHAR,
 derivePrim(Addr, Addr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#)
-
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
-  setWord8Array# :: MutableByteArray# s -> Int# -> Int# -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
-  setWord16Array# :: MutableByteArray# s -> Int# -> Int# -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
-  setWord32Array# :: MutableByteArray# s -> Int# -> Int# -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"
-  setWord64Array# :: MutableByteArray# s -> Int# -> Int# -> Word64# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
-  setWordArray# :: MutableByteArray# s -> Int# -> Int# -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
-  setInt8Array# :: MutableByteArray# s -> Int# -> Int# -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
-  setInt16Array# :: MutableByteArray# s -> Int# -> Int# -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
-  setInt32Array# :: MutableByteArray# s -> Int# -> Int# -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"
-  setInt64Array# :: MutableByteArray# s -> Int# -> Int# -> Int64# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
-  setIntArray# :: MutableByteArray# s -> Int# -> Int# -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Ptr"
-  setAddrArray# :: MutableByteArray# s -> Int# -> Int# -> Addr# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Float"
-  setFloatArray# :: MutableByteArray# s -> Int# -> Int# -> Float# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Double"
-  setDoubleArray# :: MutableByteArray# s -> Int# -> Int# -> Double# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Char"
-  setWideCharArray# :: MutableByteArray# s -> Int# -> Int# -> Char# -> IO ()
-
 
