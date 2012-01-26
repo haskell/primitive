@@ -75,7 +75,7 @@ unsafePrimToPrim :: (PrimMonad m1, PrimMonad m2) => m1 a -> m2 a
 unsafePrimToPrim m = primitive (unsafeCoerce# (internal m))
 
 -- | Convert any 'PrimMonad' to 'ST' with an arbitrary state token. This
--- operations is highly unsafe!
+-- operation is highly unsafe!
 unsafePrimToST :: PrimMonad m => m a -> ST s a
 unsafePrimToST = unsafePrimToPrim
 
