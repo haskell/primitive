@@ -1,12 +1,12 @@
 #include <string.h>
 #include "primitive-memops.h"
 
-void memcpy_off( void *dst, int doff, void *src, int soff, size_t len )
+void hsprimitive_memcpy( void *dst, int doff, void *src, int soff, size_t len )
 {
   memcpy( (char *)dst + doff, (char *)src + soff, len );
 }
 
-void memmove_off( void *dst, int doff, void *src, int soff, size_t len )
+void hsprimitive_memmove( void *dst, int doff, void *src, int soff, size_t len )
 {
   memmove( (char *)dst + doff, (char *)src + soff, len );
 }

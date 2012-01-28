@@ -236,17 +236,17 @@ fillByteArray = setByteArray
 
 
 
-foreign import ccall unsafe "primitive-memops.h memcpy_off"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
   memcpy_mba :: MutableByteArray# s -> CInt
              -> MutableByteArray# s -> CInt
              -> CSize -> IO ()
 
-foreign import ccall unsafe "primitive-memops.h memcpy_off"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
   memcpy_ba :: MutableByteArray# s -> CInt
             -> ByteArray# -> CInt
             -> CSize -> IO ()
 
-foreign import ccall unsafe "primitive-memops.h memmove_off"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
   memmove_mba :: MutableByteArray# s -> CInt
               -> MutableByteArray# s -> CInt
               -> CSize -> IO ()
