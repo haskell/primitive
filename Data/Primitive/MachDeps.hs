@@ -1,3 +1,4 @@
+{-# LANGUAGE MagicHash #-}
 -- |
 -- Module      : Data.Primitive.MachDeps
 -- Copyright   : (c) Roman Leshchinskiy 2009
@@ -12,6 +13,8 @@
 module Data.Primitive.MachDeps where
 
 #include "MachDeps.h"
+
+import GHC.Prim
 
 sIZEOF_CHAR,
  aLIGNMENT_CHAR,
@@ -109,4 +112,12 @@ aLIGNMENT_INT64 = ALIGNMENT_INT64
 
 sIZEOF_WORD64 = SIZEOF_WORD64
 aLIGNMENT_WORD64 = ALIGNMENT_WORD64
+
+#if WORD_SIZE_IN_BITS == 32
+type Word64_# = Word64#
+type Int64_# = Int64#
+#else
+type Word64_# = Word#
+type Int64_# = Int#
+#endif
 

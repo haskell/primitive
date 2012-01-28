@@ -26,6 +26,7 @@ module Data.Primitive.Internal.Operations (
   setAddrOffAddr#, setFloatOffAddr#, setDoubleOffAddr#, setWideCharOffAddr#
 ) where
 
+import Data.Primitive.MachDeps (Word64_#, Int64_#)
 import GHC.Prim
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
@@ -35,7 +36,7 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
   setWord32Array# :: MutableByteArray# s -> Int# -> Int# -> Word# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"
-  setWord64Array# :: MutableByteArray# s -> Int# -> Int# -> Word64# -> IO ()
+  setWord64Array# :: MutableByteArray# s -> Int# -> Int# -> Word64_# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
   setWordArray# :: MutableByteArray# s -> Int# -> Int# -> Word# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
@@ -45,7 +46,7 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
   setInt32Array# :: MutableByteArray# s -> Int# -> Int# -> Int# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"
-  setInt64Array# :: MutableByteArray# s -> Int# -> Int# -> Int64# -> IO ()
+  setInt64Array# :: MutableByteArray# s -> Int# -> Int# -> Int64_# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
   setIntArray# :: MutableByteArray# s -> Int# -> Int# -> Int# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Ptr"
@@ -64,7 +65,7 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
   setWord32OffAddr# :: Addr# -> Int# -> Int# -> Word# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"
-  setWord64OffAddr# :: Addr# -> Int# -> Int# -> Word64# -> IO ()
+  setWord64OffAddr# :: Addr# -> Int# -> Int# -> Word64_# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
   setWordOffAddr# :: Addr# -> Int# -> Int# -> Word# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
@@ -74,7 +75,7 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
   setInt32OffAddr# :: Addr# -> Int# -> Int# -> Int# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"
-  setInt64OffAddr# :: Addr# -> Int# -> Int# -> Int64# -> IO ()
+  setInt64OffAddr# :: Addr# -> Int# -> Int# -> Int64_# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
   setIntOffAddr# :: Addr# -> Int# -> Int# -> Int# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Ptr"
