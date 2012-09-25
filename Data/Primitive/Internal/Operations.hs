@@ -2,7 +2,7 @@
 
 -- |
 -- Module      : Data.Primitive.Internal.Operations
--- Copyright   : (c) Roman Leshchinskiy 2011
+-- Copyright   : (c) Roman Leshchinskiy 2011-2012
 -- License     : BSD-style
 --
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>

@@ -2,10 +2,10 @@
 
 -- |
 -- Module      : Data.Primitive.MutVar
--- Copyright   : (c) Justin Bonnar 2011
+-- Copyright   : (c) Justin Bonnar 2011, Roman Leshchinskiy 2011-2012
 -- License     : BSD-style
 --
--- Maintainer  : Justin Bonnar <justinbonnar@gmail.com>
+-- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 -- 
 -- Primitive boxed mutable variables
