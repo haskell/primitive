@@ -17,12 +17,14 @@ module Data.Primitive.MutVar (
   newMutVar,
   readMutVar,
   writeMutVar,
-  
+
+  atomicModifyMutVar,
   modifyMutVar
 ) where
 
 import Control.Monad.Primitive ( PrimMonad(..), primitive_ )
-import GHC.Prim ( MutVar#, sameMutVar#, newMutVar#, readMutVar#, writeMutVar# )
+import GHC.Prim ( MutVar#, sameMutVar#, newMutVar#,
+                  readMutVar#, writeMutVar#, atomicModifyMutVar# )
 import Data.Typeable ( Typeable )
 
 -- | A 'MutVar' behaves like a single-element mutable array associated
@@ -49,6 +51,11 @@ readMutVar (MutVar mv#) = primitive (readMutVar# mv#)
 writeMutVar :: PrimMonad m => MutVar (PrimState m) a -> a -> m ()
 {-# INLINE writeMutVar #-}
 writeMutVar (MutVar mv#) newValue = primitive_ (writeMutVar# mv# newValue)
+
+-- | Atomically mutate the contents of a 'MutVar'
+atomicModifyMutVar :: PrimMonad m => MutVar (PrimState m) a -> (a -> (a,b)) -> m b
+{-# INLINE atomicModifyMutVar #-}
+atomicModifyMutVar (MutVar mv#) f = primitive $ atomicModifyMutVar# mv# f
 
 -- | Mutate the contents of a 'MutVar' 
 modifyMutVar :: PrimMonad m => MutVar (PrimState m) a -> (a -> a) -> m ()
