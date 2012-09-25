@@ -7,11 +7,10 @@ Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
 Copyright:      (c) Roman Leshchinskiy 2009-2012
 Homepage:       http://code.haskell.org/primitive
 Category:       Data
-Synopsis:       Wrappers for primitive operations
+Synopsis:       Primitive memory-related operations
 Description:
         .
-        This package provides wrappers for primitive array operations from
-        GHC.Prim.
+        This package provides various primitive memory-related operations.
         .
         Changes in version 0.5
         .
