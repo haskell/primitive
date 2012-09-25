@@ -36,6 +36,9 @@ import GHC.Int (
   )
 
 import GHC.Prim
+#if __GLASGOW_HASKELL__ >= 706
+    hiding (setByteArray#)
+#endif
 
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
