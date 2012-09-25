@@ -14,31 +14,9 @@ Description:
         .
         Changes in version 0.5
         .
+        * New in "Data.Primitive.MutVar": @atomicModifyMutVar@
+        .
         * Efficient block fill operations: @setByteArray@, @setAddr@
-        .
-        Changes in version 0.4.1
-        .
-        * New module "Data.Primitive.MutVar"
-        .
-        Changes in version 0.4.0.1
-        .
-        * Critical bug fix in @fillByteArray@
-        .
-        Changes in version 0.4
-        .
-        * Support for GHC 7.2 array copying primitives
-        .
-        * New in "Data.Primitive.ByteArray": @copyByteArray@,
-          @copyMutableByteArray@, @moveByteArray@, @fillByteArray@
-        .
-        * Deprecated in "Data.Primitive.ByteArray": @memcpyByteArray@,
-          @memcpyByteArray'@, @memmoveByteArray@, @memsetByteArray@
-        .
-        * New in "Data.Primitive.Array": @copyArray@, @copyMutableByteArray@
-        .
-        * New in "Data.Primitive.Addr": @copyAddr@, @moveAddr@
-        .
-        * Deprecated in "Data.Primitive.Addr": @memcpyAddr@
         .
 
 Cabal-Version:  >= 1.2
