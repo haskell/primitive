@@ -117,7 +117,8 @@ copyArray :: PrimMonad m
           -> Int                             -- ^ number of elements to copy
           -> m ()
 {-# INLINE copyArray #-}
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ > 706
+-- NOTE: copyArray# and copyMutableArray# are slightly broken in GHC 7.6.* and earlier
 copyArray (MutableArray dst#) (I# doff#) (Array src#) (I# soff#) (I# len#)
   = primitive_ (copyArray# src# soff# dst# doff# len#)
 #else
@@ -140,7 +141,8 @@ copyMutableArray :: PrimMonad m
           -> Int                             -- ^ number of elements to copy
           -> m ()
 {-# INLINE copyMutableArray #-}
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 706
+-- NOTE: copyArray# and copyMutableArray# are slightly broken in GHC 7.6.* and earlier
 copyMutableArray (MutableArray dst#) (I# doff#)
                  (MutableArray src#) (I# soff#) (I# len#)
   = primitive_ (copyMutableArray# src# soff# dst# doff# len#)

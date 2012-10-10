@@ -1,5 +1,5 @@
 Name:           primitive
-Version:        0.5
+Version:        0.5.0.1
 License:        BSD3
 License-File:   LICENSE
 Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
@@ -11,6 +11,10 @@ Synopsis:       Primitive memory-related operations
 Description:
         .
         This package provides various primitive memory-related operations.
+        .
+        Changes in version 0.5.0.1
+        .
+        * Disable array copying primitives for GHC 7.6.* and earlier
         .
         Changes in version 0.5
         .
