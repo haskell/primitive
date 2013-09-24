@@ -7,7 +7,7 @@
 --
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
--- 
+--
 -- Primitive operations on machine addresses
 --
 

@@ -7,7 +7,7 @@
 --
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
--- 
+--
 -- Reexports all primitive operations
 --
 module Data.Primitive (

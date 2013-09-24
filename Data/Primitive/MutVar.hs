@@ -7,13 +7,13 @@
 --
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
--- 
+--
 -- Primitive boxed mutable variables
 --
 
 module Data.Primitive.MutVar (
   MutVar(..),
-  
+
   newMutVar,
   readMutVar,
   writeMutVar,
@@ -57,7 +57,7 @@ atomicModifyMutVar :: PrimMonad m => MutVar (PrimState m) a -> (a -> (a,b)) -> m
 {-# INLINE atomicModifyMutVar #-}
 atomicModifyMutVar (MutVar mv#) f = primitive $ atomicModifyMutVar# mv# f
 
--- | Mutate the contents of a 'MutVar' 
+-- | Mutate the contents of a 'MutVar'
 modifyMutVar :: PrimMonad m => MutVar (PrimState m) a -> (a -> a) -> m ()
 {-# INLINE modifyMutVar #-}
 modifyMutVar (MutVar mv#) g = primitive_ $ \s# ->

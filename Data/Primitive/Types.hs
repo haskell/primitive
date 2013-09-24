@@ -7,7 +7,7 @@
 --
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
--- 
+--
 -- Basic types and classes for primitive array operations
 --
 

@@ -7,7 +7,7 @@
 --
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
--- 
+--
 -- Primitive boxed arrays
 --
 
@@ -81,7 +81,7 @@ indexArray (Array arr#) (I# i#) = case indexArray# arr# i# of (# x #) -> x
 -- Now, indexing is executed immediately although the returned element is
 -- still not evaluated.
 --
-indexArrayM :: Monad m => Array a -> Int -> m a 
+indexArrayM :: Monad m => Array a -> Int -> m a
 {-# INLINE indexArrayM #-}
 indexArrayM (Array arr#) (I# i#)
   = case indexArray# arr# i# of (# x #) -> return x
