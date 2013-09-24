@@ -25,6 +25,7 @@ module Data.Primitive.MutVar (
 import Control.Monad.Primitive ( PrimMonad(..), primitive_ )
 import GHC.Prim ( MutVar#, sameMutVar#, newMutVar#,
                   readMutVar#, writeMutVar#, atomicModifyMutVar# )
+import Data.Primitive.Internal.Compat ( isTrue# )
 import Data.Typeable ( Typeable )
 
 -- | A 'MutVar' behaves like a single-element mutable array associated
@@ -33,7 +34,7 @@ data MutVar s a = MutVar (MutVar# s a)
   deriving ( Typeable )
 
 instance Eq (MutVar s a) where
-  MutVar mva# == MutVar mvb# = sameMutVar# mva# mvb#
+  MutVar mva# == MutVar mvb# = isTrue# (sameMutVar# mva# mvb#)
 
 -- | Create a new 'MutVar' with the specified initial value
 newMutVar :: PrimMonad m => a -> m (MutVar (PrimState m) a)

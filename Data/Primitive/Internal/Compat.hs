@@ -1,3 +1,5 @@
+{-# LANGUAGE MagicHash #-}
+
 -- |
 -- Module      : Data.Primitive.Internal.Compat
 -- Copyright   : (c) Roman Leshchinskiy 2011-2012
@@ -9,13 +11,28 @@
 -- Compatibility functions
 --
 
-module Data.Primitive.Internal.Compat (mkNoRepType) where
+module Data.Primitive.Internal.Compat (
+    isTrue#
+  , mkNoRepType
+  ) where
 
 #if MIN_VERSION_base(4,2,0)
 import Data.Data (mkNoRepType)
 #else
 import Data.Data (mkNorepType)
+#endif
 
+#if MIN_VERSION_base(4,7,0)
+import GHC.Exts (isTrue#)
+#endif
+
+
+
+#if !MIN_VERSION_base(4,2,0)
 mkNoRepType = mkNorepType
 #endif
 
+#if !MIN_VERSION_base(4,7,0)
+isTrue# :: Bool -> Bool
+isTrue# b = b
+#endif

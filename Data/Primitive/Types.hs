@@ -42,20 +42,20 @@ import GHC.Prim
 
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
-import Data.Primitive.Internal.Compat ( mkNoRepType )
+import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 
 -- | A machine address
 data Addr = Addr Addr# deriving ( Typeable )
 
 instance Eq Addr where
-  Addr a# == Addr b# = eqAddr# a# b#
-  Addr a# /= Addr b# = neAddr# a# b#
+  Addr a# == Addr b# = isTrue# (eqAddr# a# b#)
+  Addr a# /= Addr b# = isTrue# (neAddr# a# b#)
 
 instance Ord Addr where
-  Addr a# > Addr b# = gtAddr# a# b#
-  Addr a# >= Addr b# = geAddr# a# b#
-  Addr a# < Addr b# = ltAddr# a# b#
-  Addr a# <= Addr b# = leAddr# a# b#
+  Addr a# > Addr b# = isTrue# (gtAddr# a# b#)
+  Addr a# >= Addr b# = isTrue# (geAddr# a# b#)
+  Addr a# < Addr b# = isTrue# (ltAddr# a# b#)
+  Addr a# <= Addr b# = isTrue# (leAddr# a# b#)
 
 instance Data Addr where
   toConstr _ = error "toConstr"
@@ -181,4 +181,3 @@ derivePrim(Char, C#, sIZEOF_CHAR, aLIGNMENT_CHAR,
 derivePrim(Addr, Addr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
-

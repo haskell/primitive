@@ -47,7 +47,7 @@ import GHC.Prim
 
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
-import Data.Primitive.Internal.Compat ( mkNoRepType )
+import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 
 -- | Byte arrays
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
@@ -99,7 +99,7 @@ mutableByteArrayContents (MutableByteArray arr#)
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
 {-# INLINE sameMutableByteArray #-}
 sameMutableByteArray (MutableByteArray arr#) (MutableByteArray brr#)
-  = sameMutableByteArray# arr# brr#
+  = isTrue# (sameMutableByteArray# arr# brr#)
 
 -- | Convert a mutable byte array to an immutable one without copying. The
 -- array should not be modified after the conversion.
@@ -263,4 +263,3 @@ instance Typeable s => Data (MutableByteArray s) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
   dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.MutableByteArray"
-

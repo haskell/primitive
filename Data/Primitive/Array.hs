@@ -26,7 +26,7 @@ import GHC.Prim
 
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
-import Data.Primitive.Internal.Compat ( mkNoRepType )
+import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 
 -- | Boxed arrays
 data Array a = Array (Array# a) deriving ( Typeable )
@@ -106,7 +106,7 @@ unsafeThawArray (Array arr#)
 sameMutableArray :: MutableArray s a -> MutableArray s a -> Bool
 {-# INLINE sameMutableArray #-}
 sameMutableArray (MutableArray arr#) (MutableArray brr#)
-  = sameMutableArray# arr# brr#
+  = isTrue# (sameMutableArray# arr# brr#)
 
 -- | Copy a slice of an immutable array to a mutable array.
 copyArray :: PrimMonad m
@@ -165,4 +165,3 @@ instance (Typeable s, Typeable a) => Data (MutableArray s a) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
   dataTypeOf _ = mkNoRepType "Data.Primitive.Array.MutableArray"
-
