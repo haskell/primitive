@@ -114,16 +114,16 @@ instance Prim ty where {                                        \
                         { (# s1#, x# #) -> (# s1#, ctr x# #) }  \
 ; writeByteArray# arr# i# (ctr x#) s# = wr_arr arr# i# x# s#    \
 ; setByteArray# arr# i# n# (ctr x#) s#                          \
-    = case internal (set_arr arr# i# n# x#) (unsafeCoerce# s#) of \
-        { (# s1#, _ #) -> unsafeCoerce# s1# }                   \
+    = case unsafeCoerce# (internal (set_arr arr# i# n# x#)) s# of \
+        { (# s1#, _ #) -> s1# }                                 \
                                                                 \
 ; indexOffAddr# addr# i# = ctr (idx_addr addr# i#)              \
 ; readOffAddr#  addr# i# s# = case rd_addr addr# i# s# of       \
                         { (# s1#, x# #) -> (# s1#, ctr x# #) }  \
 ; writeOffAddr# addr# i# (ctr x#) s# = wr_addr addr# i# x# s#   \
 ; setOffAddr# addr# i# n# (ctr x#) s#                           \
-    = case internal (set_addr addr# i# n# x#) (unsafeCoerce# s#) of \
-        { (# s1#, _ #) -> unsafeCoerce# s1# }                   \
+    = case unsafeCoerce# (internal (set_addr addr# i# n# x#)) s# of \
+        { (# s1#, _ #) -> s1# }                                 \
 ; {-# INLINE sizeOf# #-}                                        \
 ; {-# INLINE alignment# #-}                                     \
 ; {-# INLINE indexByteArray# #-}                                \
