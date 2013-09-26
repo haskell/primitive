@@ -2,6 +2,7 @@ Name:           primitive
 Version:        0.5.1.0
 License:        BSD3
 License-File:   LICENSE
+
 Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
 Maintainer:     Roman Leshchinskiy <rl@cse.unsw.edu.au>
 Copyright:      (c) Roman Leshchinskiy 2009-2012
@@ -9,26 +10,18 @@ Homepage:       https://github.com/haskell/primitive
 Bug-Reports:    https://github.com/haskell/primitive/issues
 Category:       Data
 Synopsis:       Primitive memory-related operations
-Description:
-        .
-        This package provides various primitive memory-related operations.
-        .
-        Changes in version 0.5.0.1
-        .
-        * Disable array copying primitives for GHC 7.6.* and earlier
-        .
-        Changes in version 0.5
-        .
-        * New in "Data.Primitive.MutVar": @atomicModifyMutVar@
-        .
-        * Efficient block fill operations: @setByteArray@, @setAddr@
-        .
-
-Cabal-Version:  >= 1.6
+Cabal-Version:  >= 1.10
 Build-Type:     Simple
+Description:    This package provides various primitive memory-related operations.
+
+Extra-Source-Files: changelog
 
 Library
-  Extensions: CPP
+  Default-Language: Haskell2010
+  Other-Extensions:
+        BangPatterns, CPP, DeriveDataTypeable, ForeignFunctionInterface,
+        MagicHash, TypeFamilies, UnboxedTuples, UnliftedFFITypes
+
   Exposed-Modules:
         Control.Monad.Primitive
         Data.Primitive
@@ -52,9 +45,8 @@ Library
   includes: primitive-memops.h
   c-sources: cbits/primitive-memops.c
   cc-options: -O3 -ftree-vectorize -fomit-frame-pointer
-  if arch(i386) || arch(x86_64) {
-    cc-options: -msse2
-  }
+  if arch(i386) || arch(x86_64)
+      cc-options: -msse2
 
 source-repository head
   type:     git

@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, ForeignFunctionInterface,
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, ForeignFunctionInterface,
              UnliftedFFITypes, DeriveDataTypeable #-}
 
 -- |

@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP, MagicHash #-}
 -- |
 -- Module      : Data.Primitive.MachDeps
 -- Copyright   : (c) Roman Leshchinskiy 2009-2012
