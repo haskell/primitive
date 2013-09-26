@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, TypeFamilies #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, TypeFamilies #-}
 
 -- |
 -- Module      : Control.Monad.Primitive

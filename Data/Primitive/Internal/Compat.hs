@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP, MagicHash #-}
 
 -- |
 -- Module      : Data.Primitive.Internal.Compat
