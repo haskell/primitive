@@ -22,7 +22,6 @@ import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
 
 import GHC.Base (
-    unsafeCoerce#,
     Int(..), Char(..),
   )
 import GHC.Float (

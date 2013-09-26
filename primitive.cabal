@@ -38,7 +38,7 @@ Library
 
   Build-Depends: base >= 4 && < 5, ghc-prim
 
-  Ghc-Options: -O2
+  Ghc-Options: -O2 -Wall
 
   Include-Dirs: cbits
   Install-Includes: primitive-memops.h
