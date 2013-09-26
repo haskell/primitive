@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, ForeignFunctionInterface,
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, ForeignFunctionInterface,
              UnliftedFFITypes, DeriveDataTypeable #-}
 
 -- |
@@ -151,8 +151,8 @@ writeByteArray (MutableByteArray arr#) (I# i#) x
   = primitive_ (writeByteArray# arr# i# x)
 
 #if __GLASGOW_HASKELL__ >= 702
-i# :: Int -> Int#
-i# (I# n#) = n#
+unI# :: Int -> Int#
+unI# (I# n#) = n#
 #endif
 
 -- | Copy a slice of an immutable byte array to a mutable byte array.
@@ -167,7 +167,7 @@ copyByteArray
 {-# INLINE copyByteArray #-}
 copyByteArray (MutableByteArray dst#) doff (ByteArray src#) soff sz
 #if __GLASGOW_HASKELL__ >= 702
-  = primitive_ (copyByteArray# src# (i# soff) dst# (i# doff) (i# sz))
+  = primitive_ (copyByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
 #else
   = unsafePrimToPrim
   $ memcpy_ba dst# (fromIntegral doff) src# (fromIntegral soff)
@@ -189,7 +189,7 @@ copyMutableByteArray
 copyMutableByteArray (MutableByteArray dst#) doff
                      (MutableByteArray src#) soff sz
 #if __GLASGOW_HASKELL__ >= 702
-  = primitive_ (copyMutableByteArray# src# (i# soff) dst# (i# doff) (i# sz))
+  = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
 #else
   = unsafePrimToPrim
   $ memcpy_mba dst# (fromIntegral doff) src# (fromIntegral soff)
@@ -237,8 +237,7 @@ fillByteArray
 {-# INLINE fillByteArray #-}
 fillByteArray = setByteArray
 
-
-
+#if __GLASGOW_HASKELL__ < 702
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
   memcpy_mba :: MutableByteArray# s -> CInt
              -> MutableByteArray# s -> CInt
@@ -248,6 +247,7 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
   memcpy_ba :: MutableByteArray# s -> CInt
             -> ByteArray# -> CInt
             -> CSize -> IO ()
+#endif
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
   memmove_mba :: MutableByteArray# s -> CInt

@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 
 -- |
 -- Module      : Data.Primitive.Array

@@ -1,4 +1,4 @@
-{-# LANGUAGE UnboxedTuples, MagicHash, DeriveDataTypeable #-}
+{-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.Types
@@ -22,7 +22,6 @@ import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
 
 import GHC.Base (
-    unsafeCoerce#,
     Int(..), Char(..),
   )
 import GHC.Float (
