@@ -19,7 +19,9 @@ module Data.Primitive.MutVar (
   writeMutVar,
 
   atomicModifyMutVar,
-  modifyMutVar
+  atomicModifyMutVar',
+  modifyMutVar,
+  modifyMutVar'
 ) where
 
 import Control.Monad.Primitive ( PrimMonad(..), primitive_ )
@@ -58,9 +60,27 @@ atomicModifyMutVar :: PrimMonad m => MutVar (PrimState m) a -> (a -> (a,b)) -> m
 {-# INLINE atomicModifyMutVar #-}
 atomicModifyMutVar (MutVar mv#) f = primitive $ atomicModifyMutVar# mv# f
 
+-- | Strict version of 'atomicModifyMutVar'. This forces both the value stored
+-- in the 'MutVar' as well as the value returned.
+atomicModifyMutVar' :: PrimMonad m => MutVar (PrimState m) a -> (a -> (a, b)) -> m b
+{-# INLINE atomicModifyMutVar' #-}
+atomicModifyMutVar' mv f = do
+  b <- atomicModifyMutVar mv force
+  b `seq` return b
+  where
+    force x = let (a, b) = f x in (a, a `seq` b)
+
 -- | Mutate the contents of a 'MutVar'
 modifyMutVar :: PrimMonad m => MutVar (PrimState m) a -> (a -> a) -> m ()
 {-# INLINE modifyMutVar #-}
 modifyMutVar (MutVar mv#) g = primitive_ $ \s# ->
   case readMutVar# mv# s# of
     (# s'#, a #) -> writeMutVar# mv# (g a) s'#
+
+-- | Strict version of 'modifyMutVar'
+modifyMutVar' :: PrimMonad m => MutVar (PrimState m) a -> (a -> a) -> m ()
+{-# INLINE modifyMutVar' #-}
+modifyMutVar' (MutVar mv#) g = primitive_ $ \s# ->
+  case readMutVar# mv# s# of
+    (# s'#, a #) -> let a' = g a in a' `seq` writeMutVar# mv# a' s'#
+
