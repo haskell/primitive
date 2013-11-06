@@ -1,5 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, ForeignFunctionInterface,
-             UnliftedFFITypes, DeriveDataTypeable #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray

@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, ForeignFunctionInterface, UnliftedFFITypes #-}
+{-# LANGUAGE MagicHash, UnliftedFFITypes #-}
 
 -- |
 -- Module      : Data.Primitive.Internal.Operations
