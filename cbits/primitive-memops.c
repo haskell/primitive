@@ -19,7 +19,7 @@ void hsprimitive_memset_ ## TYPE (Hs ## TYPE *p, int off, int n, ATYPE x)    \
     memset(p, 0, n * sizeof(Hs ## TYPE));                                    \
   else if (sizeof(Hs ## TYPE) == sizeof(int)*2) {                            \
     int *q = (int *)p;                                                       \
-    const int *r = (const int *)&x;                                          \
+    const int *r = (const int *)(void *)&x;                                  \
     while (n>0) {                                                            \
       q[0] = r[0];                                                           \
       q[1] = r[1];                                                           \
@@ -49,4 +49,3 @@ MEMSET(Ptr, HsPtr)
 MEMSET(Float, HsFloat)
 MEMSET(Double, HsDouble)
 MEMSET(Char, HsChar)
-
