@@ -16,7 +16,10 @@ module Data.Primitive.Array (
 
   newArray, readArray, writeArray, indexArray, indexArrayM,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
-  copyArray, copyMutableArray
+  copyArray, copyMutableArray,
+#if __GLASGOW_HASKELL__ >= 721
+  cloneArray, cloneMutableArray
+#endif
 ) where
 
 import Control.Monad.Primitive
@@ -154,6 +157,32 @@ copyMutableArray !dst !doff !src !soff !len = go 0
                        writeArray dst (doff+i) x
                        go (i+1)
          | otherwise = return ()
+#endif
+
+#if __GLASGOW_HASKELL__ >= 721
+-- | Return a newly allocated Array with the specified subrange of the
+-- provided Array. The provided Array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
+cloneArray :: Array a -- ^ source array
+           -> Int     -- ^ offset into destination array
+           -> Int     -- ^ number of elements to copy
+           -> Array a
+{-# INLINE cloneArray #-}
+cloneArray (Array arr#) (I# off#) (I# len#) 
+  = case cloneArray# arr# off# len# of arr'# -> Array arr'#
+
+-- | Return a newly allocated MutableArray. with the specified subrange of
+-- the provided MutableArray. The provided MutableArray should contain the
+-- full subrange specified by the two Ints, but this is not checked.
+cloneMutableArray :: PrimMonad m
+        => MutableArray (PrimState m) a -- ^ source array
+        -> Int                          -- ^ offset into destination array
+        -> Int                          -- ^ number of elements to copy
+        -> m (MutableArray (PrimState m) a)
+{-# INLINE cloneMutableArray #-}
+cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
+   (\s# -> case cloneMutableArray# arr# off# len# s# of
+             (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
 #endif
 
 instance Typeable a => Data (Array a) where
