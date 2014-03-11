@@ -167,7 +167,7 @@ cloneArray :: Array a -- ^ source array
            -> Int     -- ^ number of elements to copy
            -> Array a
 {-# INLINE cloneArray #-}
-#if __GLASGOW_HASKELL__ >= 721
+#if __GLASGOW_HASKELL__ >= 702
 cloneArray (Array arr#) (I# off#) (I# len#) 
   = case cloneArray# arr# off# len# of arr'# -> Array arr'#
 #else
@@ -186,7 +186,7 @@ cloneMutableArray :: PrimMonad m
         -> Int                          -- ^ number of elements to copy
         -> m (MutableArray (PrimState m) a)
 {-# INLINE cloneMutableArray #-}
-#if __GLASGOW_HASKELL__ >= 721
+#if __GLASGOW_HASKELL__ >= 702
 cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
    (\s# -> case cloneMutableArray# arr# off# len# s# of
              (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
