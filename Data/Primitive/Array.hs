@@ -17,9 +17,7 @@ module Data.Primitive.Array (
   newArray, readArray, writeArray, indexArray, indexArrayM,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
-#if __GLASGOW_HASKELL__ >= 721
   cloneArray, cloneMutableArray
-#endif
 ) where
 
 import Control.Monad.Primitive
@@ -30,6 +28,8 @@ import GHC.Prim
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+
+import Control.Monad.ST(runST)
 
 -- | Boxed arrays
 data Array a = Array (Array# a) deriving ( Typeable )
@@ -159,7 +159,6 @@ copyMutableArray !dst !doff !src !soff !len = go 0
          | otherwise = return ()
 #endif
 
-#if __GLASGOW_HASKELL__ >= 721
 -- | Return a newly allocated Array with the specified subrange of the
 -- provided Array. The provided Array should contain the full subrange
 -- specified by the two Ints, but this is not checked.
@@ -168,8 +167,15 @@ cloneArray :: Array a -- ^ source array
            -> Int     -- ^ number of elements to copy
            -> Array a
 {-# INLINE cloneArray #-}
+#if __GLASGOW_HASKELL__ >= 721
 cloneArray (Array arr#) (I# off#) (I# len#) 
   = case cloneArray# arr# off# len# of arr'# -> Array arr'#
+#else
+cloneArray arr off len = runST $ do
+    marr2 <- newArray len (error "Undefined element")
+    copyArray marr2 0 arr off len
+    unsafeFreezeArray marr2
+#endif
 
 -- | Return a newly allocated MutableArray. with the specified subrange of
 -- the provided MutableArray. The provided MutableArray should contain the
@@ -180,9 +186,20 @@ cloneMutableArray :: PrimMonad m
         -> Int                          -- ^ number of elements to copy
         -> m (MutableArray (PrimState m) a)
 {-# INLINE cloneMutableArray #-}
+#if __GLASGOW_HASKELL__ >= 721
 cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
    (\s# -> case cloneMutableArray# arr# off# len# s# of
              (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
+#else
+cloneMutableArray marr off len = do
+        marr2 <- newArray len (error "Undefined element")
+        let go !i !j c
+                | c >= len = return marr2
+                | otherwise = do
+                    b <- readArray marr i
+                    writeArray marr2 j b
+                    go (i+1) (j+1) (c+1)
+        go off 0 0
 #endif
 
 instance Typeable a => Data (Array a) where
