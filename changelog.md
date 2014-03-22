@@ -1,0 +1,49 @@
+## Changes in version 0.5.3.0
+
+ * Implement `cloneArray` and `cloneMutableArray` primitives
+   (with fall-back implementations for GHCs prior to version 7.2.1)
+
+## Changes in version 0.5.2.1
+
+ * Add strict variants of `MutVar` modification functions
+   `atomicModifyMutVar'` and `modifyMutVar'`
+
+ * Fix compilation on Solaris 10 with GNU C 3.4.3
+
+## Changes in version 0.5.1.0
+
+ * Add support for GHC 7.7's new primitive `Bool` representation
+
+## Changes in version 0.5.0.1
+
+ * Disable array copying primitives for GHC 7.6.* and earlier
+
+## Changes in version 0.5
+
+ * New in `Data.Primitive.MutVar`: `atomicModifyMutVar`
+
+ * Efficient block fill operations: `setByteArray`, `setAddr`
+
+## Changes in version 0.4.1
+
+ * New module `Data.Primitive.MutVar`
+
+## Changes in version 0.4.0.1
+
+ * Critical bug fix in `fillByteArray`
+
+## Changes in version 0.4
+
+ * Support for GHC 7.2 array copying primitives
+
+ * New in `Data.Primitive.ByteArray`: `copyByteArray`,
+   `copyMutableByteArray`, `moveByteArray`, `fillByteArray`
+
+ * Deprecated in `Data.Primitive.ByteArray`: `memcpyByteArray`,
+   `memcpyByteArray'`, `memmoveByteArray`, `memsetByteArray`
+
+ * New in `Data.Primitive.Array`: `copyArray`, `copyMutableByteArray`
+
+ * New in `Data.Primitive.Addr`: `copyAddr`, `moveAddr`
+
+ * Deprecated in `Data.Primitive.Addr`: `memcpyAddr`

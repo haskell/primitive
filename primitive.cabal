@@ -14,7 +14,7 @@ Cabal-Version:  >= 1.10
 Build-Type:     Simple
 Description:    This package provides various primitive memory-related operations.
 
-Extra-Source-Files: changelog
+Extra-Source-Files: changelog.md
 
 Library
   Default-Language: Haskell2010
