@@ -1,3 +1,4 @@
+#include <ghcconfig.h>
 #include <string.h>
 #include "primitive-memops.h"
 
