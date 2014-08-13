@@ -44,7 +44,9 @@ class Monad m => PrimMonad m where
 primitive_ :: PrimMonad m
               => (State# (PrimState m) -> State# (PrimState m)) -> m ()
 {-# INLINE primitive_ #-}
-primitive_ f = primitive (\s# -> (# f s#, () #))
+primitive_ f = primitive (\s# ->
+    case f s# of
+        s'# -> (# s'#, () #))
 
 instance PrimMonad IO where
   type PrimState IO = RealWorld
