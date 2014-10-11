@@ -1,3 +1,11 @@
+## Changes in version 0.5.4.0
+
+ * Changed primitive_ to work around an oddity with GHC's code generation
+   on certain versions that led to side effects not happening when used
+   in conjunction with certain very unsafe IO performers.
+
+ * Allow primitive to build on GHC 7.9
+
 ## Changes in version 0.5.3.0
 
  * Implement `cloneArray` and `cloneMutableArray` primitives
