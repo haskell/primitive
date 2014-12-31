@@ -36,7 +36,9 @@ Library
         Data.Primitive.Internal.Compat
         Data.Primitive.Internal.Operations
 
-  Build-Depends: base >= 4.3 && < 4.9, ghc-prim >= 0.2 && < 0.4
+  Build-Depends: base >= 4.3 && < 4.9
+               , ghc-prim >= 0.2 && < 0.4
+               , transformers >= 0.2 && < 0.5
 
   Ghc-Options: -O2 -Wall
 
