@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, TypeFamilies #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, TypeFamilies,
+             ScopedTypeVariables #-}
 
 -- |
 -- Module      : Control.Monad.Primitive
@@ -16,11 +17,16 @@ module Control.Monad.Primitive (
   primToPrim, primToIO, primToST,
   unsafePrimToPrim, unsafePrimToIO, unsafePrimToST,
   unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
-  touch
+  touch, evalPrim
 ) where
 
 import GHC.Prim   ( State#, RealWorld, touch# )
 import GHC.Base   ( unsafeCoerce#, realWorld# )
+#if MIN_VERSION_base(4,4,0)
+import GHC.Base   ( seq# )
+#else
+import Control.Exception (evaluate)
+#endif
 #if MIN_VERSION_base(4,2,0)
 import GHC.IO     ( IO(..) )
 #else
@@ -112,3 +118,12 @@ touch :: PrimMonad m => a -> m ()
 touch x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
+-- | Create an action to force a value; generalizes 'Control.Exception.evaluate'
+evalPrim :: forall a m . PrimMonad m => a -> m a
+#if MIN_VERSION_base(4,4,0)
+evalPrim a = primitive (\s -> seq# a s)
+#else
+-- This may or may not work so well, but there's probably nothing better to do.
+{-# NOINLINE evalPrim #-}
+evalPrim a = unsafePrimToPrim (evaluate a :: IO a)
+#endif
