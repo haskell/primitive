@@ -15,7 +15,7 @@ main = do
             case writeArray arr 0 'B' of
                 IO f ->
                     case f realWorld# of
-                        _ -> ()
+                        (# _, _ #) -> ()
     c1 <- readArray arr 0
     return $! unit
     c2 <- readArray arr 0
