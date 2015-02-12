@@ -14,7 +14,7 @@
 
 module Control.Monad.Primitive (
   PrimMonad(..), RealWorld, primitive_,
-  PrimMonadInternal(..),
+  PrimBase(..),
   primToPrim, primToIO, primToST,
   unsafePrimToPrim, unsafePrimToIO, unsafePrimToST,
   unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
@@ -63,7 +63,7 @@ class Monad m => PrimMonad m where
 -- Unlike 'PrimMonad', this typeclass requires that the @Monad@ be fully
 -- expressed as a state transformer, therefore disallowing other monad
 -- transformers on top of the base @IO@ or @ST@.
-class PrimMonad m => PrimMonadInternal m where
+class PrimMonad m => PrimBase m where
   -- | Expose the internal structure of the monad
   internal :: m a -> State# (PrimState m) -> (# State# (PrimState m), a #)
 
@@ -79,7 +79,7 @@ instance PrimMonad IO where
   type PrimState IO = RealWorld
   primitive = IO
   {-# INLINE primitive #-}
-instance PrimMonadInternal IO where
+instance PrimBase IO where
   internal (IO p) = p
   {-# INLINE internal #-}
 
@@ -140,44 +140,44 @@ instance PrimMonad (ST s) where
   type PrimState (ST s) = s
   primitive = ST
   {-# INLINE primitive #-}
-instance PrimMonadInternal (ST s) where
+instance PrimBase (ST s) where
   internal (ST p) = p
   {-# INLINE internal #-}
 
 -- | Convert a 'PrimMonad' to another monad with the same state token.
-primToPrim :: (PrimMonadInternal m1, PrimMonad m2, PrimState m1 ~ PrimState m2)
+primToPrim :: (PrimBase m1, PrimMonad m2, PrimState m1 ~ PrimState m2)
         => m1 a -> m2 a
 {-# INLINE primToPrim #-}
 primToPrim m = primitive (internal m)
 
 -- | Convert a 'PrimMonad' with a 'RealWorld' state token to 'IO'
-primToIO :: (PrimMonadInternal m, PrimState m ~ RealWorld) => m a -> IO a
+primToIO :: (PrimBase m, PrimState m ~ RealWorld) => m a -> IO a
 {-# INLINE primToIO #-}
 primToIO = primToPrim
 
 -- | Convert a 'PrimMonad' to 'ST'
-primToST :: PrimMonadInternal m => m a -> ST (PrimState m) a
+primToST :: PrimBase m => m a -> ST (PrimState m) a
 {-# INLINE primToST #-}
 primToST = primToPrim
 
 -- | Convert a 'PrimMonad' to another monad with a possibly different state
 -- token. This operation is highly unsafe!
-unsafePrimToPrim :: (PrimMonadInternal m1, PrimMonad m2) => m1 a -> m2 a
+unsafePrimToPrim :: (PrimBase m1, PrimMonad m2) => m1 a -> m2 a
 {-# INLINE unsafePrimToPrim #-}
 unsafePrimToPrim m = primitive (unsafeCoerce# (internal m))
 
 -- | Convert any 'PrimMonad' to 'ST' with an arbitrary state token. This
 -- operation is highly unsafe!
-unsafePrimToST :: PrimMonadInternal m => m a -> ST s a
+unsafePrimToST :: PrimBase m => m a -> ST s a
 {-# INLINE unsafePrimToST #-}
 unsafePrimToST = unsafePrimToPrim
 
 -- | Convert any 'PrimMonad' to 'IO'. This operation is highly unsafe!
-unsafePrimToIO :: PrimMonadInternal m => m a -> IO a
+unsafePrimToIO :: PrimBase m => m a -> IO a
 {-# INLINE unsafePrimToIO #-}
 unsafePrimToIO = unsafePrimToPrim
 
-unsafeInlinePrim :: PrimMonadInternal m => m a -> a
+unsafeInlinePrim :: PrimBase m => m a -> a
 {-# INLINE unsafeInlinePrim #-}
 unsafeInlinePrim m = unsafeInlineIO (unsafePrimToIO m)
 
