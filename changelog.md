@@ -1,3 +1,11 @@
+## Changes in version 0.6
+
+ * Split PrimMonad into two classes to allow automatic lifting of primitive
+   operations into monad transformers. The `internal` operation has moved to the
+   `PrimBase` class.
+
+ * Fixed the test suite on older GHCs
+
 ## Changes in version 0.5.4.0
 
  * Changed primitive_ to work around an oddity with GHC's code generation
