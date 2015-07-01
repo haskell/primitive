@@ -29,7 +29,9 @@ import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 
+#if !(__GLASGOW_HASKELL__ >= 702)
 import Control.Monad.ST(runST)
+#endif
 
 -- | Boxed arrays
 data Array a = Array (Array# a) deriving ( Typeable )
