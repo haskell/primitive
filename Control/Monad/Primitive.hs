@@ -31,7 +31,9 @@ import GHC.IOBase ( IO(..) )
 import GHC.ST     ( ST(..) )
 
 import Control.Monad.Trans.Class (lift)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid)
+#endif
 
 import Control.Monad.Trans.Identity ( IdentityT)
 import Control.Monad.Trans.List     ( ListT    )
