@@ -1,3 +1,12 @@
+## Changes in version 0.6.1.0
+
+ * Use more appropriate types in internal memset functions, which prevents
+   overflows/segfaults on 64-bit systems.
+
+ * Fixed a warning on GHC 7.10
+
+ * Worked around a -dcore-lint bug in GHC 7.6/7.7
+
 ## Changes in version 0.6
 
  * Split PrimMonad into two classes to allow automatic lifting of primitive
