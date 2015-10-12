@@ -49,8 +49,8 @@ import Control.Monad.Zip
 import Data.Foldable (Foldable(..), toList)
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Traversable (Traversable(..))
-#endif
 import Data.Monoid
+#endif
 
 import Text.ParserCombinators.ReadP
 
@@ -374,12 +374,14 @@ instance Exts.IsList (Array a) where
   fromList l = Exts.fromListN (length l) l
   toList = toList
 #else
+fromListN :: Int -> [a] -> Array a
 fromListN n l =
   createArray n (die "fromListN" "mismatched size and list") $ \mi ->
     let go i (x:xs) = writeArray mi i x >> go (i+1) xs
         go _ [    ] = return ()
      in go 0 l
 
+fromList :: [a] -> Array a
 fromList l = fromListN (length l) l
 #endif
 
@@ -503,7 +505,7 @@ instance Read a => Read (Array a) where
     n <- readS_to_P reads
     skipSpaces
     l <- readS_to_P reads
-    pure $ fromListN n l
+    return $ fromListN n l
 
 arrayDataType :: DataType
 arrayDataType = mkDataType "Data.Primitive.Array.Array" [fromListConstr]
