@@ -46,7 +46,10 @@ import Control.Monad.Fix
 #if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
 #endif
-import Data.Foldable (Foldable(..))
+import Data.Foldable (Foldable(..), toList)
+#if !(MIN_VERSION_base(4,8,0))
+import Data.Traversable (Traversable(..))
+#endif
 import Data.Monoid
 
 import Text.ParserCombinators.ReadP
@@ -275,7 +278,7 @@ createArray n x f = runST $ do
   unsafeFreezeArray ma
 
 die :: String -> String -> a
-die fun problem = error $ "Data.Primitive.Array." <> fun <> ": " <> problem
+die fun problem = error $ "Data.Primitive.Array." ++ fun ++ ": " ++ problem
 
 instance Eq a => Eq (Array a) where
   a1 == a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
@@ -302,14 +305,6 @@ instance Foldable Array where
    where go i | i < 0     = z
               | otherwise = f (go $ i-1) (indexArray a i)
   {-# INLINE foldl #-}
-  foldr' f z a = go (sizeofArray a - 1) z
-   where go i !acc | i < 0     = acc
-                   | otherwise = go (i-1) (f (indexArray a i) acc)
-  {-# INLINE foldr' #-}
-  foldl' f z a = go 0 z
-   where go i !acc | i < sizeofArray a = go (i+1) (f acc $ indexArray a i)
-                   | otherwise         = acc
-  {-# INLINE foldl' #-}
   foldr1 f a | sz < 0    = die "foldr1" "empty array"
              | otherwise = go 0
    where sz = sizeofArray a - 1
@@ -324,6 +319,16 @@ instance Foldable Array where
          go i | i < 1     = f (go $ i-1) (indexArray a i)
               | otherwise = z
   {-# INLINE foldl1 #-}
+#if MIN_VERSION_base(4,5,0)
+  foldr' f z a = go (sizeofArray a - 1) z
+   where go i !acc | i < 0     = acc
+                   | otherwise = go (i-1) (f (indexArray a i) acc)
+  {-# INLINE foldr' #-}
+  foldl' f z a = go 0 z
+   where go i !acc | i < sizeofArray a = go (i+1) (f acc $ indexArray a i)
+                   | otherwise         = acc
+  {-# INLINE foldl' #-}
+#endif
 #if MIN_VERSION_base(4,8,0)
   toList a = Exts.build $ \c z -> let
       sz = sizeofArray a
@@ -385,6 +390,9 @@ instance Functor Array where
                | otherwise         = writeArray mb i (f $ indexArray a i)
                                   >> go (i+1)
        in go 0
+#if MIN_VERSION_base(4,8,0)
+  e <$ a = runST $ newArray (sizeofArray a) e >>= unsafeFreezeArray
+#endif
 
 instance Applicative Array where
   pure x = runST $ newArray 1 x >>= unsafeFreezeArray
@@ -417,11 +425,14 @@ instance Alternative Array where
   a1 <|> a2 = createArray (sza1 + sza2) (die "<|>" "impossible") $ \ma ->
     copyArray ma 0 a1 0 sza1 >> copyArray ma sza1 a2 0 sza2
    where sza1 = sizeofArray a1 ; sza2 = sizeofArray a2
-  some = die "some" "infinite arrays are not well defined"
-  many = die "many" "infinite arrays are not well defined"
+  some a | sizeofArray a == 0 = emptyArray
+         | otherwise = die "some" "infinite arrays are not well defined"
+  many a | sizeofArray a == 0 = pure []
+         | otherwise = die "many" "infinite arrays are not well defined"
 
 instance Monad Array where
   return = pure
+  (>>) = (*>)
   a >>= f = push 0 [] (sizeofArray a - 1)
    where
    push !sz bs i
@@ -433,6 +444,7 @@ instance Monad Array where
      let go off (b:bs) = copyArray mb off b 0 (sizeofArray b) >> go (off + sizeofArray b) bs
          go _   [    ] = return ()
       in go 0 stk
+  fail _ = empty
 
 instance MonadPlus Array where
   mzero = empty
