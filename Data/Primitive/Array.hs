@@ -167,8 +167,8 @@ unsafeThawArray a
 -- | Check whether the two arrays refer to the same memory block.
 sameMutableArray :: MutableArray s a -> MutableArray s a -> Bool
 {-# INLINE sameMutableArray #-}
-sameMutableArray (MutableArray arr#) (MutableArray brr#)
-  = isTrue# (sameMutableArray# arr# brr#)
+sameMutableArray arr brr
+  = isTrue# (sameMutableArray# (marray# arr) (marray# brr))
 
 -- | Copy a slice of an immutable array to a mutable array.
 copyArray :: PrimMonad m
