@@ -293,7 +293,7 @@ instance Ord a => Ord (Array a) where
    where
    mn = sizeofArray a1 `min` sizeofArray a2
    loop i
-     | i < mn    = compare (indexArray a1 i) (indexArray a2 i) <> loop (i+1)
+     | i < mn    = compare (indexArray a1 i) (indexArray a2 i) `mappend` loop (i+1)
      | otherwise = compare (sizeofArray a1) (sizeofArray a2)
 
 instance Foldable Array where
@@ -319,7 +319,7 @@ instance Foldable Array where
          go i | i < 1     = f (go $ i-1) (indexArray a i)
               | otherwise = z
   {-# INLINE foldl1 #-}
-#if MIN_VERSION_base(4,5,0)
+#if MIN_VERSION_base(4,6,0)
   foldr' f z a = go (sizeofArray a - 1) z
    where go i !acc | i < 0     = acc
                    | otherwise = go (i-1) (f (indexArray a i) acc)
