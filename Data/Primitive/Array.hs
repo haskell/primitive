@@ -17,6 +17,7 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM,
+  freezeArray, thawArray,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
@@ -138,6 +139,25 @@ indexArrayM :: Monad m => Array a -> Int -> m a
 indexArrayM arr (I# i#)
   = case indexArray# (array# arr) i# of (# x #) -> return x
 
+-- | Create an immutable copy of a slice of an array.
+--
+-- This operation makes a copy of the specified section, so it is safe to
+-- continue using the mutable array afterward.
+freezeArray
+  :: PrimMonad m
+  => MutableArray (PrimState m) a -- ^ source
+  -> Int                          -- ^ offset
+  -> Int                          -- ^ length
+  -> m (Array a)
+{-# INLINE freezeArray #-}
+freezeArray ma (I# off#) (I# len#) =
+  primitive $ \s -> case freezeArray# (marray# ma) off# len# s of
+    (# s', a# #) -> (# s', a #)
+     where a = Array a#
+#if (__GLASGOW_HASKELL__ < 702)
+                 (I# len#)
+#endif
+
 -- | Convert a mutable array to an immutable one without copying. The
 -- array should not be modified after the conversion.
 unsafeFreezeArray :: PrimMonad m => MutableArray (PrimState m) a -> m (Array a)
@@ -150,6 +170,25 @@ unsafeFreezeArray arr
                                     (sizeofMutableArray arr)
 #endif
                           in (# s'#, a #))
+
+-- | Create a mutable array from a slice of an immutable array.
+--
+-- This operation makes a copy of the specified slice, so it is safe to use the
+-- immutable array afterward.
+thawArray
+  :: PrimMonad m
+  => Array a -- ^ source
+  -> Int     -- ^ offset
+  -> Int     -- ^ length
+  -> m (MutableArray (PrimState m) a)
+{-# INLINE thawArray #-}
+thawArray a (I# off#) (I# len#) =
+  primitive $ \s -> case thawArray# (array# a) off# len# s of
+    (# s', ma# #) -> (# s', ma #)
+     where ma = MutableArray ma#
+#if (__GLASGOW_HASKELL__ < 702)
+                  (I# len#)
+#endif
 
 -- | Convert an immutable array to an mutable one without copying. The
 -- immutable array should not be used after the conversion.
