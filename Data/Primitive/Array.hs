@@ -182,12 +182,15 @@ thawArray
   -> Int     -- ^ length
   -> m (MutableArray (PrimState m) a)
 {-# INLINE thawArray #-}
-thawArray a (I# off#) (I# len#) =
-  primitive $ \s -> case thawArray# (array# a) off# len# s of
-    (# s', ma# #) -> (# s', ma #)
-     where ma = MutableArray ma#
-#if (__GLASGOW_HASKELL__ < 702)
-                  (I# len#)
+#if (__GLASGOW_HASKELL__ >= 702)
+thawArray (Array a#) (I# off#) (I# len#) =
+  primitive $ \s -> case thawArray# a# off# len# s of
+    (# s', ma# #) -> (# s', MutableArray ma# #)
+#else
+thawArray src off len = do
+  dst <- newArray len (die "thawArray" "impossible")
+  copyArray dst 0 src off len
+  return dst
 #endif
 
 -- | Convert an immutable array to an mutable one without copying. The
