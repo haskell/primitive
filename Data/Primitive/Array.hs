@@ -150,12 +150,15 @@ freezeArray
   -> Int                          -- ^ length
   -> m (Array a)
 {-# INLINE freezeArray #-}
-freezeArray ma (I# off#) (I# len#) =
-  primitive $ \s -> case freezeArray# (marray# ma) off# len# s of
-    (# s', a# #) -> (# s', a #)
-     where a = Array a#
-#if (__GLASGOW_HASKELL__ < 702)
-                 (I# len#)
+#if (__GLASGOW_HASKELL__ >= 702)
+freezeArray (MutableArray ma#) (I# off#) (I# len#) =
+  primitive $ \s -> case freezeArray# ma# off# len# s of
+    (# s', a# #) -> (# s', Array a# #)
+#else
+freezeArray src off len = do
+  dst <- newArray len (die "freezeArray" "impossible")
+  copyMutableArray dst 0 src off len
+  unsafeFreezeArray dst
 #endif
 
 -- | Convert a mutable array to an immutable one without copying. The
