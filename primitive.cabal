@@ -29,6 +29,7 @@ Library
         Data.Primitive.Types
         Data.Primitive.Array
         Data.Primitive.ByteArray
+        Data.Primitive.SmallArray
         Data.Primitive.Addr
         Data.Primitive.MutVar
 
