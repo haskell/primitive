@@ -70,7 +70,9 @@ import Control.Monad
 import Control.Monad.Fix
 import Control.Monad.Primitive
 import Control.Monad.ST
+#if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
+#endif
 import Data.Data
 import Data.Foldable
 import Data.Functor.Identity
@@ -100,7 +102,9 @@ newtype SmallArray a = SmallArray (Array a) deriving
   , Alternative
   , Monad
   , MonadPlus
+#if MIN_VERSION_base(4,4,0)
   , MonadZip
+#endif
   , MonadFix
   , Monoid
   , Typeable
