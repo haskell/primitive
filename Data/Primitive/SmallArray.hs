@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -574,7 +573,7 @@ instance Monoid (SmallArray a) where
   mempty = empty
   mappend = (<|>)
   mconcat sas = createSmallArray n (die "mconcat" "impossible") $ \sma ->
-    fix ? 0 ? sas $ \go off -> \case
+    fix ? 0 ? sas $ \go off l -> case l of
       [] -> return ()
       sa:stk -> copySmallArray sma off sa 0 (length sa) *> go (off+1) stk
    where n = sum . fmap length $ sas
@@ -583,7 +582,7 @@ instance IsList (SmallArray a) where
   type Item (SmallArray a) = a
   fromListN n l =
     createSmallArray n (die "fromListN" "mismatched size and list") $ \sma ->
-      fix ? 0 ? l $ \go i -> \case
+      fix ? 0 ? l $ \go i li -> case li of
         [] -> pure ()
         x:xs -> writeSmallArray sma i x *> go (i+1) xs
   fromList l = fromListN (length l) l
