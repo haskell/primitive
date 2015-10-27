@@ -60,8 +60,10 @@ module Data.Primitive.SmallArray
 #define HAVE_SMALL_ARRAY 1
 #endif
 
+#if MIN_VERSION_base(4,7,0)
 import GHC.Exts hiding (toList)
 import qualified GHC.Exts
+#endif
 
 import Control.Applicative
 import Control.Monad
