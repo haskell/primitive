@@ -15,9 +15,9 @@
 module Control.Monad.Primitive (
   PrimMonad(..), RealWorld, primitive_,
   PrimBase(..),
-  liftPrim, primToPrim, primToIO, primToST,
-  unsafePrimToPrim, unsafePrimToIO, unsafePrimToST,
-  unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
+  liftPrim, primToPrim, primToIO, primToST, ioToPrim, stToPrim,
+  unsafePrimToPrim, unsafePrimToIO, unsafePrimToST, unsafeIOToPrim,
+  unsafeSTToPrim, unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
   touch
 ) where
 
@@ -169,6 +169,16 @@ primToST :: PrimBase m => m a -> ST (PrimState m) a
 {-# INLINE primToST #-}
 primToST = primToPrim
 
+-- | Convert an 'IO' action to a 'PrimMonad'.
+ioToPrim :: (PrimMonad m, PrimState m ~ RealWorld) => IO a -> m a
+{-# INLINE ioToPrim #-}
+ioToPrim = primToPrim
+
+-- | Convert an 'ST' action to a 'PrimMonad'.
+stToPrim :: PrimMonad m => ST (PrimState m) a -> m a
+{-# INLINE stToPrim #-}
+stToPrim = primToPrim
+
 -- | Convert a 'PrimBase' to another monad with a possibly different state
 -- token. This operation is highly unsafe!
 unsafePrimToPrim :: (PrimBase m1, PrimMonad m2) => m1 a -> m2 a
@@ -185,6 +195,18 @@ unsafePrimToST = unsafePrimToPrim
 unsafePrimToIO :: PrimBase m => m a -> IO a
 {-# INLINE unsafePrimToIO #-}
 unsafePrimToIO = unsafePrimToPrim
+
+-- | Convert an 'ST' action with an arbitraty state token to any 'PrimMonad'.
+-- This operation is highly unsafe!
+unsafeSTToPrim :: PrimMonad m => ST s a -> m a
+{-# INLINE unsafeSTToPrim #-}
+unsafeSTToPrim = unsafePrimToPrim
+
+-- | Convert an 'IO' action to any 'PrimMonad'. This operation is highly
+-- unsafe!
+unsafeIOToPrim :: PrimMonad m => IO a -> m a
+{-# INLINE unsafeIOToPrim #-}
+unsafeIOToPrim = unsafePrimToPrim
 
 unsafeInlinePrim :: PrimBase m => m a -> a
 {-# INLINE unsafeInlinePrim #-}
