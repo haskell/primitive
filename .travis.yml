@@ -69,7 +69,6 @@ script:
    RC=true; for T in ${TESTS[@]}; do echo "== $T ==";
    if dist-newstyle/build/*/build/$T/$T; then echo "= $T OK =";
    else echo "= $T FAILED ="; RC=false; fi; done; $RC
- - cabal check
  - cabal sdist # test that a source-distribution can be generated
 
  # Check that the resulting source distribution can be built w/o and w tests
