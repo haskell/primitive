@@ -16,6 +16,15 @@ Description:    This package provides various primitive memory-related operation
 
 Extra-Source-Files: changelog.md
 
+Tested-With:
+  GHC == 7.0.4,
+  GHC == 7.2.2,
+  GHC == 7.4.2,
+  GHC == 7.6.3,
+  GHC == 7.8.4,
+  GHC == 7.10.3,
+  GHC == 8.0.1
+
 Library
   Default-Language: Haskell2010
   Other-Extensions:
