@@ -34,6 +34,10 @@ import GHC.Int (
     Int8(..), Int16(..), Int32(..), Int64(..)
   )
 
+import GHC.Ptr (
+    Ptr(..), FunPtr(..)
+  )
+
 import GHC.Prim
 #if __GLASGOW_HASKELL__ >= 706
     hiding (setByteArray#)
@@ -105,7 +109,7 @@ class Prim a where
   setOffAddr# :: Addr# -> Int# -> Int# -> a -> State# s -> State# s
 
 #define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, set_arr, idx_addr, rd_addr, wr_addr, set_addr) \
-instance Prim ty where {                                        \
+instance Prim (ty) where {                                      \
   sizeOf# _ = unI# sz                                           \
 ; alignment# _ = unI# align                                     \
 ; indexByteArray# arr# i# = ctr (idx_arr arr# i#)               \
@@ -184,5 +188,11 @@ derivePrim(Char, C#, sIZEOF_CHAR, aLIGNMENT_CHAR,
            indexWideCharArray#, readWideCharArray#, writeWideCharArray#, setWideCharArray#,
            indexWideCharOffAddr#, readWideCharOffAddr#, writeWideCharOffAddr#, setWideCharOffAddr#)
 derivePrim(Addr, Addr, sIZEOF_PTR, aLIGNMENT_PTR,
+           indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
+           indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
+derivePrim(Ptr a, Ptr, sIZEOF_PTR, aLIGNMENT_PTR,
+           indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
+           indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
+derivePrim(FunPtr a, FunPtr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
