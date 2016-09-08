@@ -41,7 +41,7 @@ import Control.Monad.Trans.Class (lift)
 import Data.Monoid (Monoid)
 #endif
 
-import Control.Monad.Trans.Identity ( IdentityT)
+import Control.Monad.Trans.Identity ( IdentityT (IdentityT) )
 import Control.Monad.Trans.List     ( ListT    )
 import Control.Monad.Trans.Maybe    ( MaybeT   )
 import Control.Monad.Trans.Error    ( ErrorT, Error)
@@ -95,6 +95,9 @@ instance PrimMonad m => PrimMonad (IdentityT m) where
   type PrimState (IdentityT m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+instance PrimBase m => PrimBase (IdentityT m) where
+  internal (IdentityT m) = internal m
+  {-# INLINE internal #-}
 instance PrimMonad m => PrimMonad (ListT m) where
   type PrimState (ListT m) = PrimState m
   primitive = lift . primitive
