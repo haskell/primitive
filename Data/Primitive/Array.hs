@@ -10,7 +10,7 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Primitive boxed arrays
+-- Primitive arrays of boxed values.
 --
 
 module Data.Primitive.Array (
