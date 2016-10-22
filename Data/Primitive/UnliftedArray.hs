@@ -109,7 +109,7 @@ instance PrimUnlifted (MutableUnliftedArray s e) where
   toArrayArray# (MutableUnliftedArray maa#) = unsafeCoerce# maa#
   fromArrayArray# aa# = MutableUnliftedArray (unsafeCoerce# aa#)
 
-instance PrimUnlifted (A.Array a) where
+instance PrimUnlifted (Array a) where
   toArrayArray# (A.Array a#) = unsafeCoerce# a#
   fromArrayArray# aa# = A.Array (unsafeCoerce# aa#)
 
@@ -117,7 +117,7 @@ instance PrimUnlifted (A.MutableArray s a) where
   toArrayArray# (A.MutableArray ma#) = unsafeCoerce# ma#
   fromArrayArray# aa# = A.MutableArray (unsafeCoerce# aa#)
 
-instance PrimUnlifted BA.ByteArray where
+instance PrimUnlifted ByteArray where
   toArrayArray# (BA.ByteArray ba#) = unsafeCoerce# ba#
   fromArrayArray# aa# = BA.ByteArray (unsafeCoerce# aa#)
 
