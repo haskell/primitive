@@ -1,5 +1,6 @@
 {-# Language MagicHash #-}
 {-# Language UnboxedTuples #-}
+{-# Language DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Primitive.UnliftedArray
@@ -166,7 +167,7 @@ newUnliftedArray
   -> a -- ^ initial value
   -> m (MutableUnliftedArray (PrimState m) a)
 newUnliftedArray len v =
-  unsafeNewUnliftedArray len >>= \mua -> mua <$ setUnliftedArray mua v
+  unsafeNewUnliftedArray len >>= \mua -> setUnliftedArray mua v >> return mua
 {-# inline newUnliftedArray #-}
 
 -- | Yields the length of an 'UnliftedArray'.
@@ -324,7 +325,8 @@ thawUnliftedArray
   -> m (MutableUnliftedArray (PrimState m) a)
 thawUnliftedArray src off len = do
   dst <- unsafeNewUnliftedArray len
-  dst <$ copyUnliftedArray dst 0 src off len
+  copyUnliftedArray dst 0 src off len
+  return dst
 {-# inline thawUnliftedArray #-}
 
 -- | Creates a copy of a portion of an 'UnliftedArray'
@@ -347,7 +349,8 @@ cloneMutableUnliftedArray
   -> m (MutableUnliftedArray (PrimState m) a)
 cloneMutableUnliftedArray src off len = do
   dst <- unsafeNewUnliftedArray len
-  dst <$ copyMutableUnliftedArray dst 0 src off len
+  copyMutableUnliftedArray dst 0 src off len
+  return dst
 {-# inline cloneMutableUnliftedArray #-}
 
 instance Eq (MutableUnliftedArray s a) where
