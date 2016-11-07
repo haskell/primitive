@@ -39,6 +39,7 @@ Library
         Data.Primitive.Array
         Data.Primitive.ByteArray
         Data.Primitive.SmallArray
+        Data.Primitive.UnliftedArray
         Data.Primitive.Addr
         Data.Primitive.MutVar
 
