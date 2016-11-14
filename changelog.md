@@ -1,3 +1,22 @@
+## Changes in version 0.7.0.0
+
+ * Drop support for GHCs before 7.4
+
+ * `SmallArray` support
+
+ * `ArrayArray#` based support for more efficient arrays of unlifted pointer types
+
+ * Make `Array` and the like instances of various classes for convenient use
+
+ * Add `Prim` instances for Ptr and FunPtr
+
+ * Add `ioToPrim`, `stToPrim` and unsafe counterparts for situations that would
+   otherwise require type ascriptions on `primToPrim`
+
+ * Add `evalPrim`
+
+ * Add `PrimBase` instance for `IdentityT`
+
 ## Changes in version 0.6.1.0
 
  * Use more appropriate types in internal memset functions, which prevents
