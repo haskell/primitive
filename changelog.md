@@ -1,4 +1,4 @@
-## Changes in version 0.7.0.0
+## Changes in version 0.6.2.0
 
  * Drop support for GHCs before 7.4
 
