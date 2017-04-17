@@ -28,8 +28,11 @@ module Data.Primitive.ByteArray (
   copyByteArray, copyMutableByteArray, moveByteArray,
   setByteArray, fillByteArray,
 
+  -- * Resizing
+  shrinkMutableByteArray, resizeMutableByteArray,
+
   -- * Information
-  sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
+  sizeofByteArray, sizeofMutableByteArray, getSizeofMutableByteArray, sameMutableByteArray,
   byteArrayContents, mutableByteArrayContents
 ) where
 
@@ -123,9 +126,44 @@ sizeofByteArray :: ByteArray -> Int
 sizeofByteArray (ByteArray arr#) = I# (sizeofByteArray# arr#)
 
 -- | Size of the mutable byte array.
+--   Note that this is deprecated as it is unsafe in the presence of 
+--   concurrent resize operations on the same byte array. See 
+--   'getSizeofMutableByteArray'.
 sizeofMutableByteArray :: MutableByteArray s -> Int
 {-# INLINE sizeofMutableByteArray #-}
 sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr#)
+
+-- | Size of the mutable byte array.
+getSizeofMutableByteArray :: PrimMonad m => MutableByteArray (PrimState m) -> m Int
+{-# INLINE getSizeofMutableByteArray #-}
+getSizeofMutableByteArray (MutableByteArray arr#)
+  = primitive (\s# -> case getSizeofMutableByteArray# arr# s# of
+      (# s'#, i# #) -> (# s'#, I# i# #) )
+
+-- | Shrink mutable byte array to new specified size (in bytes). The new size argument 
+--   must be less than or equal to the current size as reported by 'sizeofMutableArray'.
+shrinkMutableByteArray :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> m ()
+{-# INLINE shrinkMutableByteArray #-}
+shrinkMutableByteArray (MutableByteArray arr#) (I# i#) 
+  = primitive (\s# -> case shrinkMutableByteArray# arr# i# s# of
+      s'# -> (# s'#, () #) )
+
+-- | Resize (unpinned) mutable byte array to new specified size (in bytes).
+--   The returned @MutableByteArray\#@ is either the original
+--   'MutableByteArray' resized in-place or, if not possible, a newly
+--   allocated (unpinned) 'MutableByteArray' (with the original content
+--   copied over).
+-- 
+--   To avoid undefined behaviour, the original 'MutableByteArray' shall
+--   not be accessed anymore after a 'resizeMutableByteArray' has been
+--   performed.  Moreover, no reference to the old one should be kept in order
+--   to allow garbage collection of the original 'MutableByteArray' in
+--   case a new 'MutableByteArray' had to be allocated.
+resizeMutableByteArray :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> m (MutableByteArray (PrimState m))
+{-# INLINE resizeMutableByteArray #-}
+resizeMutableByteArray (MutableByteArray arr#) (I# i#) 
+  = primitive (\s# -> case resizeMutableByteArray# arr# i# s# of
+      (# s'#, arr'# #) -> (# s'#, MutableByteArray arr'# #) )
 
 -- | Read a primitive value from the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
