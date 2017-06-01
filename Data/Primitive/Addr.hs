@@ -22,12 +22,16 @@ module Data.Primitive.Addr (
   indexOffAddr, readOffAddr, writeOffAddr,
 
   -- * Block operations
-  copyAddr, moveAddr, setAddr
+  copyAddr, moveAddr, setAddr,
+
+  -- * Conversion
+  addrToInt
 ) where
 
 import Control.Monad.Primitive
 import Data.Primitive.Types
 
+import Numeric
 import GHC.Base ( Int(..) )
 import GHC.Prim
 
@@ -100,3 +104,7 @@ setAddr :: (Prim a, PrimMonad m) => Addr -> Int -> a -> m ()
 {-# INLINE setAddr #-}
 setAddr (Addr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
 
+-- | Convert an 'Addr' to an 'Int'.
+addrToInt :: Addr -> Int
+{-# INLINE addrToInt #-}
+addrToInt (Addr addr#) = I# (addr2Int# addr#)
