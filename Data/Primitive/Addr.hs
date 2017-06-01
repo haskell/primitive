@@ -25,7 +25,10 @@ module Data.Primitive.Addr (
   copyAddr, moveAddr, setAddr,
 
   -- * Conversion
-  addrToInt
+  addrToInt,
+
+  -- * Formatting
+  showAddr
 ) where
 
 import Control.Monad.Primitive
@@ -108,3 +111,7 @@ setAddr (Addr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
 addrToInt :: Addr -> Int
 {-# INLINE addrToInt #-}
 addrToInt (Addr addr#) = I# (addr2Int# addr#)
+
+-- | Produce a string representation of an 'Addr'. Useful while debugging.
+showAddr :: Addr -> String
+showAddr addr = "0x" ++ showHex (fromIntegral $ addrToInt addr :: Word) ""
