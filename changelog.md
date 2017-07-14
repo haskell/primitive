@@ -1,3 +1,8 @@
+## Changes in version next
+
+ * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
+   `transformers`
+
 ## Changes in version 0.6.2.0
 
  * Drop support for GHCs before 7.4

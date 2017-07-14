@@ -41,6 +41,7 @@ import Control.Monad.Trans.Class (lift)
 import Data.Monoid (Monoid)
 #endif
 
+import Control.Monad.Trans.Cont     ( ContT    )
 import Control.Monad.Trans.Identity ( IdentityT (IdentityT) )
 import Control.Monad.Trans.List     ( ListT    )
 import Control.Monad.Trans.Maybe    ( MaybeT   )
@@ -52,6 +53,11 @@ import Control.Monad.Trans.RWS      ( RWST     )
 
 #if MIN_VERSION_transformers(0,4,0)
 import Control.Monad.Trans.Except   ( ExceptT  )
+#endif
+
+#if MIN_VERSION_transformers(0,5,3)
+import Control.Monad.Trans.Accum    ( AccumT   )
+import Control.Monad.Trans.Select   ( SelectT  )
 #endif
 
 import qualified Control.Monad.Trans.RWS.Strict    as Strict ( RWST   )
@@ -91,6 +97,10 @@ instance PrimBase IO where
   internal (IO p) = p
   {-# INLINE internal #-}
 
+instance PrimMonad m => PrimMonad (ContT r m) where
+  type PrimState (ContT r m) = PrimState m
+  primitive = lift . primitive
+  {-# INLINE primitive #-}
 instance PrimMonad m => PrimMonad (IdentityT m) where
   type PrimState (IdentityT m) = PrimState m
   primitive = lift . primitive
@@ -130,6 +140,22 @@ instance (Monoid w, PrimMonad m) => PrimMonad (RWST r w s m) where
 #if MIN_VERSION_transformers(0,4,0)
 instance PrimMonad m => PrimMonad (ExceptT e m) where
   type PrimState (ExceptT e m) = PrimState m
+  primitive = lift . primitive
+  {-# INLINE primitive #-}
+#endif
+
+#if MIN_VERSION_transformers(0,5,3)
+instance ( Monoid w
+         , PrimMonad m
+# if !(MIN_VERSION_base(4,8,0))
+         , Functor m
+# endif
+         ) => PrimMonad (AccumT w m) where
+  type PrimState (AccumT w m) = PrimState m
+  primitive = lift . primitive
+  {-# INLINE primitive #-}
+instance PrimMonad m => PrimMonad (SelectT r m) where
+  type PrimState (SelectT r m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
 #endif
