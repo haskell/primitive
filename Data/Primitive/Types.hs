@@ -46,9 +46,14 @@ import GHC.Prim
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+import Numeric
 
 -- | A machine address
 data Addr = Addr Addr# deriving ( Typeable )
+
+instance Show Addr where
+  showsPrec _ (Addr a) =
+    showString "0x" . showHex (fromIntegral (I# (addr2Int# a)) :: Word)
 
 instance Eq Addr where
   Addr a# == Addr b# = isTrue# (eqAddr# a# b#)
