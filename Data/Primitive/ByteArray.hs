@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -20,6 +21,9 @@ module Data.Primitive.ByteArray (
 
   -- * Element access
   readByteArray, writeByteArray, indexByteArray,
+
+  -- * Folding
+  foldrByteArray,
 
   -- * Freezing and thawing
   unsafeFreezeByteArray, unsafeThawByteArray,
@@ -47,6 +51,8 @@ import GHC.Prim
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+import Numeric
+import System.IO.Unsafe
 
 -- | Byte arrays
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
@@ -117,12 +123,12 @@ unsafeThawByteArray
 unsafeThawByteArray (ByteArray arr#)
   = primitive (\s# -> (# s#, MutableByteArray (unsafeCoerce# arr#) #))
 
--- | Size of the byte array.
+-- | Size of the byte array in bytes.
 sizeofByteArray :: ByteArray -> Int
 {-# INLINE sizeofByteArray #-}
 sizeofByteArray (ByteArray arr#) = I# (sizeofByteArray# arr#)
 
--- | Size of the mutable byte array.
+-- | Size of the mutable byte array in bytes.
 sizeofMutableByteArray :: MutableByteArray s -> Int
 {-# INLINE sizeofMutableByteArray #-}
 sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr#)
@@ -148,6 +154,15 @@ writeByteArray
 {-# INLINE writeByteArray #-}
 writeByteArray (MutableByteArray arr#) (I# i#) x
   = primitive_ (writeByteArray# arr# i# x)
+
+-- | Right-fold over the elements of a 'ByteArray'.
+foldrByteArray :: forall a b. (Prim a) => (a -> b -> b) -> b -> ByteArray -> b
+foldrByteArray f z arr = go 0
+  where
+    go i
+      | sizeofByteArray arr > i * sz = f (indexByteArray arr i) (go (i+1))
+      | otherwise                    = z
+    sz = sizeofByteArray arr
 
 #if __GLASGOW_HASKELL__ >= 702
 unI# :: Int -> Int#
@@ -262,3 +277,49 @@ instance Typeable s => Data (MutableByteArray s) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
   dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.MutableByteArray"
+
+instance Show ByteArray where
+  showsPrec _ ba =
+      showString "[" . go 0
+    where
+      go i
+        | i < sizeofByteArray ba = comma . showString "0x" . showHex (indexByteArray ba i :: Word8) . go (i+1)
+        | otherwise              = showChar ']'
+        where
+          comma | i == 0    = id
+                | otherwise = showString ", "
+
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp"
+  memcmp_ba :: ByteArray# -> ByteArray# -> CSize -> IO CInt
+sameByteArray :: ByteArray# -> ByteArray# -> Bool
+sameByteArray ba1 ba2 =
+    case reallyUnsafePtrEquality# (unsafeCoerce# ba1 :: ()) (unsafeCoerce# ba2 :: ()) of
+#if __GLASGOW_HASKELL__ >= 708
+      r -> isTrue# r
+#else
+      1# -> True
+      0# -> False
+#endif
+
+
+instance Eq ByteArray where
+  ba1@(ByteArray ba1#) == ba2@(ByteArray ba2#)
+    | sameByteArray ba1# ba2#                    = True
+    | sizeofByteArray ba1 /= sizeofByteArray ba2 = False
+    | otherwise =
+        case unsafeDupablePerformIO $ memcmp_ba ba1# ba2# (fromIntegral $ sizeofByteArray ba1) of
+          0 -> True
+          _ -> False
+
+instance Ord ByteArray where
+  ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)
+    | sameByteArray ba1# ba2# = EQ
+    | n1 /= n2                = n1 `compare` n2
+    | otherwise =
+        case unsafeDupablePerformIO $ memcmp_ba ba1# ba2# (fromIntegral n1) of
+          x | x >  0 -> GT
+            | x == 0 -> EQ
+            | otherwise -> LT
+    where
+      n1 = sizeofByteArray ba1
+      n2 = sizeofByteArray ba2
