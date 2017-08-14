@@ -30,7 +30,8 @@ module Data.Primitive.ByteArray (
   setByteArray, fillByteArray,
 
   -- * Information
-  sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
+  sizeofByteArray,
+  sizeofMutableByteArray, getSizeofMutableByteArray, sameMutableByteArray,
   byteArrayContents, mutableByteArrayContents
 ) where
 
@@ -124,6 +125,20 @@ resizeMutableByteArray arr n
   = do arr' <- newByteArray n
        copyMutableByteArray arr 0 arr' 0 (min (sizeofMutableByteArray arr) n)
        return arr'
+#endif
+
+-- | Get the size of a byte array in bytes. Unlike 'sizeofMutableByteArray',
+-- this function ensures sequencing in the presence of resizing.
+getSizeofMutableByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> m Int
+{-# INLINE getSizeofMutableByteArray #-}
+#if __GLASGOW_HASKELL__ >= 801
+getSizeofMutableByteArray (MutableByteArray arr#)
+  = primitive (\s# -> case getSizeofMutableByteArray# arr# s# of
+                        (# s'#, n# #) -> (# s'#, I# n# #))
+#else
+getSizeofMutableByteArray arr
+  = return (sizeofMutableByteArray arr)
 #endif
 
 -- | Convert a mutable byte array to an immutable one without copying. The
