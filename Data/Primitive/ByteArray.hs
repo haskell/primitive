@@ -17,6 +17,7 @@ module Data.Primitive.ByteArray (
 
   -- * Allocation
   newByteArray, newPinnedByteArray, newAlignedPinnedByteArray,
+  resizeMutableByteArray,
 
   -- * Element access
   readByteArray, writeByteArray, indexByteArray,
@@ -99,6 +100,31 @@ sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
 {-# INLINE sameMutableByteArray #-}
 sameMutableByteArray (MutableByteArray arr#) (MutableByteArray brr#)
   = isTrue# (sameMutableByteArray# arr# brr#)
+
+-- | Resize a mutable byte array. The new size is given in bytes.
+--
+-- This will either resize the array in-place or, if not possible, allocate the
+-- contents into a new, unpinned array and copy the original array's contents.
+--
+-- To avoid undefined behaviour, the original 'MutableByteArray' shall not be
+-- accessed anymore after a 'resizeMutableByteArray' has been performed.
+-- Moreover, no reference to the old one should be kept in order to allow
+-- garbage collection of the original 'MutableByteArray' in case a new
+-- 'MutableByteArray' had to be allocated.
+resizeMutableByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
+                 -> m (MutableByteArray (PrimState m))
+{-# INLINE resizeMutableByteArray #-}
+#if __GLASGOW_HASKELL__ >= 710
+resizeMutableByteArray (MutableByteArray arr#) (I# n#)
+  = primitive (\s# -> case resizeMutableByteArray# arr# n# s# of
+                        (# s'#, arr'# #) -> (# s'#, MutableByteArray arr'# #))
+#else
+resizeMutableByteArray arr n
+  = do arr' <- newByteArray n
+       copyMutableByteArray arr 0 arr' 0 (min (sizeofMutableByteArray arr) n)
+       return arr'
+#endif
 
 -- | Convert a mutable byte array to an immutable one without copying. The
 -- array should not be modified after the conversion.
