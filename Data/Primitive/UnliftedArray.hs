@@ -67,6 +67,10 @@ import Data.Typeable
 
 import GHC.Prim
 import GHC.Base (Int(..))
+import GHC.MVar (MVar(..))
+import GHC.IORef (IORef(..))
+import GHC.STRef (STRef(..))
+import GHC.Conc.Sync (TVar(..))
 
 import Control.Monad.Primitive
 
@@ -136,6 +140,22 @@ instance PrimUnlifted (SA.SmallMutableArray s a) where
 instance PrimUnlifted (MV.MutVar s a) where
   toArrayArray# (MV.MutVar mv#) = unsafeCoerce# mv#
   fromArrayArray# aa# = MV.MutVar (unsafeCoerce# aa#)
+
+instance PrimUnlifted (MVar a) where
+  toArrayArray# (MVar mv#) = unsafeCoerce# mv#
+  fromArrayArray# aa# = MVar (unsafeCoerce# aa#)
+
+instance PrimUnlifted (IORef a) where
+  toArrayArray# (IORef (STRef mv#)) = unsafeCoerce# mv#
+  fromArrayArray# aa# = IORef (STRef (unsafeCoerce# aa#))
+
+instance PrimUnlifted (STRef s a) where
+  toArrayArray# (STRef mv#) = unsafeCoerce# mv#
+  fromArrayArray# aa# = STRef (unsafeCoerce# aa#)
+
+instance PrimUnlifted (TVar a) where
+  toArrayArray# (TVar mv#) = unsafeCoerce# mv#
+  fromArrayArray# aa# = TVar (unsafeCoerce# aa#)
 
 -- | Creates a new 'MutableUnliftedArray'. This function is unsafe, because it
 -- allows access to the raw contents of the underlying 'ArrayArray#'.

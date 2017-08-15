@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <HsFFI.h>
+#include <Rts.h>
 
 void hsprimitive_memcpy( void *dst, ptrdiff_t doff, void *src, ptrdiff_t soff, size_t len );
 void hsprimitive_memmove( void *dst, ptrdiff_t doff, void *src, ptrdiff_t soff, size_t len );
@@ -18,5 +19,6 @@ void hsprimitive_memset_Float (HsFloat *, ptrdiff_t, size_t, HsFloat);
 void hsprimitive_memset_Double (HsDouble *, ptrdiff_t, size_t, HsDouble);
 void hsprimitive_memset_Char (HsChar *, ptrdiff_t, size_t, HsChar);
 
+int hsprimitive_is_byte_array_pinned(void* p);
 #endif
 

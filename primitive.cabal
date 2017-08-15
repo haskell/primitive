@@ -35,7 +35,10 @@ Library
         Data.Primitive.MachDeps
         Data.Primitive.Types
         Data.Primitive.Array
+        Data.Primitive.Array.Class
+        Data.Primitive.Array.Checked
         Data.Primitive.ByteArray
+        Data.Primitive.PrimArray
         Data.Primitive.SmallArray
         Data.Primitive.UnliftedArray
         Data.Primitive.Addr

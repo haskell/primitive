@@ -49,3 +49,7 @@ MEMSET(Ptr, HsPtr)
 MEMSET(Float, HsFloat)
 MEMSET(Double, HsDouble)
 MEMSET(Char, HsChar)
+
+int hsprimitive_is_byte_array_pinned(void* p){
+    return Bdescr((StgPtr)p)->flags & (BF_PINNED | BF_LARGE);
+}
