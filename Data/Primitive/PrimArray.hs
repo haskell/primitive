@@ -85,6 +85,9 @@ import GHC.Word (Word8)
 import GHC.Prim
 import Data.Primitive.Internal.Compat ( isTrue# )
 
+#if !(MIN_VERSION_base(4,8,0))
+import Data.Monoid (mappend)
+#endif
 
 -- | Primitive array tagged with element type @a@.
 --
