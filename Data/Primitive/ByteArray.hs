@@ -215,7 +215,7 @@ copyByteArrayToAddr :: PrimMonad m
               -> m ()
 {-# INLINE copyByteArrayToAddr #-}
 copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff@(I# soff#) sz@(I# n#) =
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 780
     primitive_ (copyByteArrayToAddr# src# soff# dst# n#)
 #else
   = unsafePrimToPrim
@@ -233,7 +233,7 @@ copyMutableByteArrayToAddr :: PrimMonad m
               -> m ()
 {-# INLINE copyMutableByteArrayToAddr #-}
 copyMutableByteArrayToAddr (Addr dst#) (MutableByteArray src#) soff@(I# soff#) sz@(I# n#) =
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 780
     primitive_ (copyMutableByteArrayToAddr# src# soff# dst# n#)
 #else
   = unsafePrimToPrim
@@ -251,7 +251,7 @@ copyMutableByteArrayFromAddr :: PrimMonad m
               -> m ()
 {-# INLINE copyMutableByteArrayFromAddr #-}
 copyMutableByteArrayFromAddr (MutableByteArray dst#) doff@(I# doff#) (Addr src#) sz@(I# n#) =
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 780
     primitive_ (copyAddrToByteArray# src# dst# doff# n#)
 #else
   = unsafePrimToPrim
@@ -315,7 +315,7 @@ resizeMutableByteArray mba@(MutableByteArray mba#) sz@(I# i#) = do
        )
 #else
     mba' <- newByteArray sz
-    copyMutableByteArray mba' sz mba 0 (sizeOfByteArray mba)
+    copyMutableByteArray mba' sz mba 0 (sizeofByteArray mba)
     return mba'
 #endif
 {-# INLINE resizeMutableByteArray #-}
