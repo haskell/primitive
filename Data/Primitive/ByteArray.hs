@@ -347,7 +347,9 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
   memcpy_ba :: MutableByteArray# s -> CInt
             -> ByteArray# -> CInt
             -> CSize -> IO ()
+#endif
 
+#if __GLASGOW_HASKELL__ < 780
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
   memcpy_mba_to_addr :: Addr# -> CInt
                      -> MutableByteArray# s -> CInt
