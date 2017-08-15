@@ -218,8 +218,8 @@ copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff@(I# soff#) sz@(I# n#) =
 #if __GLASGOW_HASKELL__ >= 780
     primitive_ (copyByteArrayToAddr# src# soff# dst# n#)
 #else
-  = unsafePrimToPrim
-  $ memcpy_ba_to_addr dst# 0 src# (fromIntegral soff) (fromIntegral sz)
+    unsafePrimToPrim
+        $ memcpy_ba_to_addr dst# 0 src# (fromIntegral soff) (fromIntegral sz)
 #endif
 
 -- | Copy a slice of an mutable primitive array to an address.
@@ -236,8 +236,8 @@ copyMutableByteArrayToAddr (Addr dst#) (MutableByteArray src#) soff@(I# soff#) s
 #if __GLASGOW_HASKELL__ >= 780
     primitive_ (copyMutableByteArrayToAddr# src# soff# dst# n#)
 #else
-  = unsafePrimToPrim
-  $ memcpy_mba_to_addr dst# 0 src# (fromIntegral soff) (fromIntegral sz)
+    unsafePrimToPrim
+        $ memcpy_mba_to_addr dst# 0 src# (fromIntegral soff) (fromIntegral sz)
 #endif
 
 -- | Copy a slice of an mutable primitive array from an address.
@@ -254,8 +254,8 @@ copyMutableByteArrayFromAddr (MutableByteArray dst#) doff@(I# doff#) (Addr src#)
 #if __GLASGOW_HASKELL__ >= 780
     primitive_ (copyAddrToByteArray# src# dst# doff# n#)
 #else
-  = unsafePrimToPrim
-  $ memcpy_mba_from_addr dst# (fromIntegral doff) src# 0 (fromIntegral sz)
+    unsafePrimToPrim
+        $ memcpy_mba_from_addr dst# (fromIntegral doff) src# 0 (fromIntegral sz)
 #endif
 
 -- | Copy a slice of a mutable byte array into another, potentially
