@@ -105,14 +105,14 @@ newtype MutablePrimArray s a = MutablePrimArray (MutableByteArray s)
 -- | Create a new mutable primitive array of the specified size.
 newPrimArray :: forall m a . (PrimMonad m, Prim a) => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPrimArray #-}
-newPrimArray n = MutablePrimArray `fmap` newByteArray (n*siz)
+newPrimArray n = MutablePrimArray `liftM` newByteArray (n*siz)
   where siz = sizeOf (undefined :: a)
 
 -- | Create a /pinned/ byte array of the specified size and respect the primitive type's
 -- alignment. The garbage collector is guaranteed not to move it.
 newPinnedPrimArray :: forall m a. (PrimMonad m, Prim a) => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPinnedPrimArray #-}
-newPinnedPrimArray n = MutablePrimArray `fmap` newAlignedPinnedByteArray (n*siz) align
+newPinnedPrimArray n = MutablePrimArray `liftM` newAlignedPinnedByteArray (n*siz) align
   where siz = sizeOf (undefined :: a)
         align = alignment (undefined :: a)
 
@@ -121,7 +121,7 @@ newPinnedPrimArray n = MutablePrimArray `fmap` newAlignedPinnedByteArray (n*siz)
 newAlignedPinnedPrimArray
   :: forall m a. (PrimMonad m, Prim a) => Int -> Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newAlignedPinnedPrimArray #-}
-newAlignedPinnedPrimArray n align = MutablePrimArray `fmap` newAlignedPinnedByteArray (n*siz) align
+newAlignedPinnedPrimArray n align = MutablePrimArray `liftM` newAlignedPinnedByteArray (n*siz) align
   where siz = sizeOf (undefined :: a)
 
 -- | Yield a pointer to the array's data.
@@ -181,14 +181,14 @@ sameMutablePrimArray (MutablePrimArray mbaA) (MutablePrimArray mbaB) = sameMutab
 unsafeFreezePrimArray
   :: (PrimMonad m) => MutablePrimArray (PrimState m) a -> m (PrimArray a)
 {-# INLINE unsafeFreezePrimArray #-}
-unsafeFreezePrimArray (MutablePrimArray mba) = PrimArray `fmap` unsafeFreezeByteArray mba
+unsafeFreezePrimArray (MutablePrimArray mba) = PrimArray `liftM` unsafeFreezeByteArray mba
 
 -- | Convert an immutable primitive array to a mutable one without copying. The
 -- original array should not be used after the conversion.
 unsafeThawPrimArray
   :: (PrimMonad m) => PrimArray a -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE unsafeThawPrimArray #-}
-unsafeThawPrimArray (PrimArray ba) = MutablePrimArray `fmap` unsafeThawByteArray ba
+unsafeThawPrimArray (PrimArray ba) = MutablePrimArray `liftM` unsafeThawByteArray ba
 
 -- | Size of the primitive array.
 sizeofPrimArray :: forall a . (Prim a) => PrimArray a -> Int
@@ -204,7 +204,7 @@ sizeofMutablePrimArray (MutablePrimArray mba) =
     let getSizeofMutableByteArray (MutableByteArray mba#) = primitive (\ s# ->
             let (# s'#, l# #) = getSizeofMutableByteArray# mba# s#
             in (# s'#, (I# l#) #))
-    in (`quot` siz) `fmap` getSizeofMutableByteArray mba
+    in (`quot` siz) `liftM` getSizeofMutableByteArray mba
 #else
     return (sizeofMutableByteArray mba `quot` siz)
 #endif
@@ -336,7 +336,7 @@ resizeMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
                        -> Int
                        -> m (MutablePrimArray (PrimState m) a)
 resizeMutablePrimArray (MutablePrimArray mba) sz =
-    MutablePrimArray `fmap` resizeMutableByteArray mba (sz * siz)
+    MutablePrimArray `liftM` resizeMutableByteArray mba (sz * siz)
   where siz = sizeOf (undefined :: a)
 {-# INLINE resizeMutablePrimArray #-}
 
