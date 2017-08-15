@@ -99,15 +99,13 @@ instance {-# OVERLAPPABLE #-} (Prim a, Ord a) => Ord (PrimArray a) where
     {-# INLINE compare #-}
     paA `compare` paB
         | paA `samePrimArray` paB = EQ
-        | otherwise = go 0 0
+        | otherwise = go 0
       where
         !endA = sizeofPrimArray paA
         !endB = sizeofPrimArray paB
-        go !i !j | i >= endA  = endA `compare` endB
-                 | j >= endB  = endA `compare` endB
-                 | otherwise = let o = indexPrimArray paA i `compare` indexPrimArray paB j
-                               in case o of EQ -> go (i+1) (j+1)
-                                            x  -> x
+        end = endA `min` endB
+        go !i | i >= end  = endA `compare` endB
+              | otherwise = indexPrimArray paA i `compare` indexPrimArray paB i `mappend` go (i+1)
 instance {-# OVERLAPPING #-} Ord (PrimArray Word8) where
     {-# INLINE compare #-}
     (PrimArray baA) `compare` (PrimArray baB) = baA `compare` baB

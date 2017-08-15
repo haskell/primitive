@@ -11,7 +11,7 @@
 
 {-|
 Module      : Data.Array
-Description : Fast boxed and unboxed arrays
+Description : Unified boxed and unboxed arrays
 Copyright   : (c) Winter, 2017
 License     : BSD3
 Maintainer  : libraries@haskell.org, drkoster@qq.com
@@ -22,6 +22,7 @@ Unified unboxed and boxed array operations using functional dependencies.
 
 All operations are NOT bound checked, if you need checked operations please use "Data.Array.Checked".
 It exports exactly same APIs so that you can switch between without pain.
+
 -}
 
 module Data.Primitive.Array.Class (
@@ -57,13 +58,17 @@ import Data.Primitive.SmallArray
 import Data.Primitive.UnliftedArray
 import GHC.ST
 import GHC.Prim
-import GHC.Types (isTrue#)
+import Data.Primitive.Internal.Compat ( isTrue# )
+
+#if (__GLASGOW_HASKELL__ >= 710)
+#define HAVE_SMALL_ARRAY 1
+#endif
 
 -- | Bottom value (@throw ('UndefinedElement' "Data.Array.uninitialized")@)
 -- for initialize new boxed array('Array', 'SmallArray'..).
 --
 uninitialized :: a
-uninitialized = throw (UndefinedElement "Data.Array.uninitialized")
+uninitialized = throw (UndefinedElement "Data.Primitive.Array.Class.uninitialized")
 
 -- | A typeclass to unify box & unboxed, mutable & immutable array operations.
 --
@@ -242,6 +247,7 @@ instance Arr MutableArray Array a where
         sameMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
     {-# INLINE sameArr #-}
 
+#if HAVE_SMALL_ARRAY
 instance Arr SmallMutableArray SmallArray a where
     newArr n = newSmallArray n uninitialized
     {-# INLINE newArr #-}
@@ -324,6 +330,7 @@ instance Arr SmallMutableArray SmallArray a where
     sameArr (SmallArray arr1#) (SmallArray arr2#) = isTrue# (
         sameSmallMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
     {-# INLINE sameArr #-}
+#endif
 
 instance Prim a => Arr MutablePrimArray PrimArray a where
     newArr = newPrimArray
