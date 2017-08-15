@@ -219,7 +219,7 @@ sizeofMutablePrimArray :: forall m a . (PrimMonad m, Prim a) => MutablePrimArray
 sizeofMutablePrimArray (MutablePrimArray mba) =
 #if MIN_VERSION_ghc_prim(0,5,0)
     let getSizeofMutableByteArray (MutableByteArray mba#) = primitive (\ s# ->
-            let (# s'#, l# #) = getSizeofMutableByteArray# mba# s#
+            let !(# s'#, l# #) = getSizeofMutableByteArray# mba# s#
             in (# s'#, (I# l#) #))
     in (`quot` siz) `liftM` getSizeofMutableByteArray mba
 #else

@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -332,7 +333,7 @@ resizeMutableByteArray :: PrimMonad m
 resizeMutableByteArray mba@(MutableByteArray mba#) sz@(I# i#) = do
 #if __GLASGOW_HASKELL__ >= 710
     primitive (\ s# ->
-            let (# s'#, mba'# #) = resizeMutableByteArray# mba# i# s#
+            let !(# s'#, mba'# #) = resizeMutableByteArray# mba# i# s#
             in (# s'#, (MutableByteArray mba'#) #)
        )
 #else
