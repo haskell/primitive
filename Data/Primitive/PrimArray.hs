@@ -17,27 +17,31 @@ Maintainer  : drkoster@qq.com, libraries@haskell.org
 Stability   : experimental
 Portability : non-portable
 
-This module provide primitive arrays tagged with element type, all offset, length .. ,etc. is based on
-elemment not byte, and operations are NOT bound checked.
+This module provide primitive arrays tagged with their element
+type. Offset, length, etc. are based on elements rather than bytes,
+and operations are __not__ bound checked.
 
-You can define new primitive array by defining 'Prim' instances, but since GHC heap array are word aligned,
-It's not recommand to use 'PrimArray' with a type which alignment is not submultiple of word size. Otherwise
-you have to use 'newAlignedPinnedPrimArray' to make a new array for such a type.
+You can define new primitive array by defining 'Prim' instances, but
+since GHC heap arrays are word aligned, it is recommended that users do
+not create a 'PrimArray' with a type whose alignment does not divide
+evenly into the machine word size. For such types, you have to use
+'newAlignedPinnedPrimArray' to ensure that alignment is respected.
 
-Here is an example of a RGB pixel 'Prim' instance.
+Here is an example of an RGB pixel 'Prim' instance.
 
 @
   data Pixel = Pixel Word8 Word8 Word8 -- you may want to unpack these
   instance Prim Pixel where
     sizeOf# _ = 3#
     alignment# _ = 1#
-    indexByteArray# ba# i# = Pixel (indexByteArray# ba# i#)
-                                (indexByteArray# ba# (i# +# 1#))
-                                (indexByteArray# ba# (i# +# 2#))
+    indexByteArray# ba# i# = Pixel
+      (indexByteArray# ba# i#)
+      (indexByteArray# ba# (i# +# 1#))
+      (indexByteArray# ba# (i# +# 2#))
     ...
 @
 
-Now you can use 'PrimArray Pixel' with either this module or "Data.Array/Data.Vector".
+Now you can use 'PrimArray' 'Pixel' with either this module or @Data.Array@/@Data.Vector@.
 -}
 
 
@@ -143,7 +147,7 @@ newAlignedPinnedPrimArray n align = MutablePrimArray `liftM` newAlignedPinnedByt
 
 -- | Yield a pointer to the array's data.
 -- This operation is only safe on /pinned/ primitive arrays allocated by 'newPinnedPrimArray' or
--- 'newAlignedPinnedPrimArray', and you have to make sure the 'PrimArray' can outlive the 'Ptr'.
+-- 'newAlignedPinnedPrimArray', and you have to ensure the 'PrimArray' outlives the 'Ptr'.
 --
 primArrayContents :: PrimArray a -> Ptr a
 {-# INLINE primArrayContents #-}
@@ -153,7 +157,7 @@ primArrayContents (PrimArray ba) =
 -- | Yield a pointer to the array's data.
 --
 -- This operation is only safe on /pinned/ primitive arrays allocated by 'newPinnedPrimArray' or
--- 'newAlignedPinnedPrimArray'. and you have to make sure the 'PrimArray' can outlive the 'Ptr'.
+-- 'newAlignedPinnedPrimArray'. and you have to ensure the 'PrimArray' outlives the 'Ptr'.
 --
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
