@@ -254,11 +254,9 @@ copyPrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
               -> Int                              -- ^ number of prims to copy
               -> m ()
 {-# INLINE copyPrimArrayToPtr #-}
-copyPrimArrayToPtr (Ptr addr#) (PrimArray (ByteArray ba#)) (I# soff#) (I# n#) =
-    primitive (\ s# ->
-        let s'# = copyByteArrayToAddr# ba# (soff# *# siz#) addr# (n# *# siz#) s#
-        in (# s'#, () #))
-  where siz# = sizeOf# (undefined :: a)
+copyPrimArrayToPtr (Ptr addr#) (PrimArray ba) soff sz =
+    copyByteArrayToAddr (Addr addr#) ba (soff * siz) (sz * siz)
+  where siz = sizeOf (undefined :: a)
 
 -- | Copy a slice of an mutable primitive array to an address.
 -- The offset and length are given in elements of type @a@.
@@ -270,11 +268,9 @@ copyMutablePrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
               -> Int                              -- ^ number of prims to copy
               -> m ()
 {-# INLINE copyMutablePrimArrayToPtr #-}
-copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray (MutableByteArray mba#)) (I# soff#) (I# n#) =
-    primitive (\ s# ->
-        let s'# = copyMutableByteArrayToAddr# mba# (soff# *# siz#) addr# (n# *# siz#) s#
-        in (# s'#, () #))
-  where siz# = sizeOf# (undefined :: a)
+copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba) soff sz =
+    copyMutableByteArrayToAddr (Addr addr#) mba (soff * siz) (sz * siz)
+  where siz = sizeOf (undefined :: a)
 
 -- | Copy a slice of an mutable primitive array from an address.
 -- The offset and length are given in elements of type @a@.
@@ -286,11 +282,9 @@ copyMutablePrimArrayFromPtr :: forall m a. (PrimMonad m, Prim a)
               -> Int                              -- ^ number of prims to copy
               -> m ()
 {-# INLINE copyMutablePrimArrayFromPtr #-}
-copyMutablePrimArrayFromPtr (MutablePrimArray (MutableByteArray mba#)) (I# doff#) (Ptr addr#) (I# n#) =
-    primitive (\ s# ->
-        let s'# = copyAddrToByteArray# addr# mba# (doff# *# siz#) (n# *# siz#) s#
-        in (# s'#, () #))
-  where siz# = sizeOf# (undefined :: a)
+copyMutablePrimArrayFromPtr (MutablePrimArray mba) doff (Ptr addr#) sz =
+    copyMutableByteArrayFromAddr mba (doff * siz) (Addr addr#) (sz * siz)
+  where siz = sizeOf (undefined :: a)
 
 -- | Copy a slice of a mutable primitive array into another array. The two slices
 -- may not overlap.
@@ -341,12 +335,9 @@ resizeMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
                        => MutablePrimArray (PrimState m) a
                        -> Int
                        -> m (MutablePrimArray (PrimState m) a)
-resizeMutablePrimArray (MutablePrimArray (MutableByteArray mba#)) (I# i#) =
-    primitive (\ s# ->
-            let (# s'#, mba'# #) = resizeMutableByteArray# mba# (i# *# siz#) s#
-            in (# s'#, MutablePrimArray (MutableByteArray mba'#) #)
-       )
-  where siz# = sizeOf# (undefined :: a)
+resizeMutablePrimArray (MutablePrimArray mba) sz =
+    MutablePrimArray `fmap` resizeMutableByteArray mba (sz * siz)
+  where siz = sizeOf (undefined :: a)
 {-# INLINE resizeMutablePrimArray #-}
 
 -- | Shrink a primitive array using 'shrinkMutableByteArray#'.
@@ -357,12 +348,9 @@ shrinkMutablePrimArray :: forall m a. (Prim a, PrimMonad m)
                        => MutablePrimArray (PrimState m) a
                        -> Int
                        -> m ()
-shrinkMutablePrimArray (MutablePrimArray (MutableByteArray mba#)) (I# i#) =
-    primitive (\ s# ->
-            let s'# = shrinkMutableByteArray# mba# (i# *# siz#) s#
-            in (# s'#, () #)
-       )
-  where siz# = sizeOf# (undefined :: a)
+shrinkMutablePrimArray (MutablePrimArray mba) sz =
+    shrinkMutableByteArray mba (sz * siz)
+  where siz = sizeOf (undefined :: a)
 {-# INLINE shrinkMutablePrimArray #-}
 
 -- | Check if the two immutable arrays refer to the same memory block.
@@ -379,14 +367,10 @@ prefetchPrimArray0, prefetchPrimArray1, prefetchPrimArray2, prefetchPrimArray3
 {-# INLINE prefetchPrimArray1 #-}
 {-# INLINE prefetchPrimArray2 #-}
 {-# INLINE prefetchPrimArray3 #-}
-prefetchPrimArray0 (PrimArray (ByteArray ba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchByteArray0# ba# i# s# in (# s'#, () #))
-prefetchPrimArray1 (PrimArray (ByteArray ba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchByteArray1# ba# i# s# in (# s'#, () #))
-prefetchPrimArray2 (PrimArray (ByteArray ba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchByteArray2# ba# i# s# in (# s'#, () #))
-prefetchPrimArray3 (PrimArray (ByteArray ba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchByteArray3# ba# i# s# in (# s'#, () #))
+prefetchPrimArray0 (PrimArray ba) = prefetchByteArray0 ba
+prefetchPrimArray1 (PrimArray ba) = prefetchByteArray1 ba
+prefetchPrimArray2 (PrimArray ba) = prefetchByteArray2 ba
+prefetchPrimArray3 (PrimArray ba) = prefetchByteArray3 ba
 
 
 prefetchMutablePrimArray0, prefetchMutablePrimArray1, prefetchMutablePrimArray2, prefetchMutablePrimArray3
@@ -395,14 +379,10 @@ prefetchMutablePrimArray0, prefetchMutablePrimArray1, prefetchMutablePrimArray2,
 {-# INLINE prefetchMutablePrimArray1 #-}
 {-# INLINE prefetchMutablePrimArray2 #-}
 {-# INLINE prefetchMutablePrimArray3 #-}
-prefetchMutablePrimArray0 (MutablePrimArray (MutableByteArray mba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchMutableByteArray0# mba# i# s# in (# s'#, () #))
-prefetchMutablePrimArray1 (MutablePrimArray (MutableByteArray mba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchMutableByteArray1# mba# i# s# in (# s'#, () #))
-prefetchMutablePrimArray2 (MutablePrimArray (MutableByteArray mba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchMutableByteArray2# mba# i# s# in (# s'#, () #))
-prefetchMutablePrimArray3 (MutablePrimArray (MutableByteArray mba#)) (I# i#) =
-    primitive ( \ s# -> let s'# = prefetchMutableByteArray3# mba# i# s# in (# s'#, () #))
+prefetchMutablePrimArray0 (MutablePrimArray mba) = prefetchMutableByteArray0 mba
+prefetchMutablePrimArray1 (MutablePrimArray mba) = prefetchMutableByteArray1 mba
+prefetchMutablePrimArray2 (MutablePrimArray mba) = prefetchMutableByteArray2 mba
+prefetchMutablePrimArray3 (MutablePrimArray mba) = prefetchMutableByteArray3 mba
 
 --------------------------------------------------------------------------------
 --
@@ -410,18 +390,10 @@ prefetchMutablePrimArray3 (MutablePrimArray (MutableByteArray mba#)) (I# i#) =
 --
 isPrimArrayPinned :: PrimArray a -> Bool
 {-# INLINE isPrimArrayPinned #-}
-isPrimArrayPinned (PrimArray (ByteArray ba#)) =
-    c_is_byte_array_pinned ba# > 0
+isPrimArrayPinned (PrimArray ba) = isByteArrayPinned ba
 
 -- | Check if a mutable primitive array is pinned.
 --
 isMutablePrimArrayPinned :: MutablePrimArray s a -> Bool
 {-# INLINE isMutablePrimArrayPinned #-}
-isMutablePrimArrayPinned (MutablePrimArray (MutableByteArray mba#)) =
-    c_is_mutable_byte_array_pinned mba# > 0
-
-foreign import ccall unsafe "hsprimitive_is_byte_array_pinned"
-    c_is_byte_array_pinned :: ByteArray# -> CInt
-
-foreign import ccall unsafe "hsprimitive_is_byte_array_pinned"
-    c_is_mutable_byte_array_pinned :: MutableByteArray# s -> CInt
+isMutablePrimArrayPinned (MutablePrimArray mba) = isMutableByteArrayPinned mba

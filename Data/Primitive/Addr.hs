@@ -22,7 +22,10 @@ module Data.Primitive.Addr (
   indexOffAddr, readOffAddr, writeOffAddr,
 
   -- * Block operations
-  copyAddr, moveAddr, setAddr
+  copyAddr, moveAddr, setAddr,
+
+  -- * Cast between 'Ptr'
+  castAddrToPtr, castPtrToAddr
 ) where
 
 import Control.Monad.Primitive
@@ -100,3 +103,10 @@ setAddr :: (Prim a, PrimMonad m) => Addr -> Int -> a -> m ()
 {-# INLINE setAddr #-}
 setAddr (Addr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
 
+-- | Cast 'Addr' to 'Ptr'.
+castAddrToPtr :: Addr -> Ptr a
+castAddrToPtr (Addr addr#) = Ptr addr#
+
+-- | Cast 'Addr' from 'Ptr'.
+castPtrToAddr :: Ptr a -> Addr
+castPtrToAddr (Ptr addr#) = Addr addr#
