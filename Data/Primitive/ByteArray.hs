@@ -61,6 +61,28 @@ import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 -- | Byte arrays
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
 
+instance Eq ByteArray where
+    {-# INLINE (==) #-}
+    paA@(ByteArray baA#) == paB@(ByteArray baB#) =
+        sameByteArray paA paB || (
+            let sizA = sizeofByteArray paA
+                sizB = sizeofByteArray paB
+            in sizA == sizB && c_memcmp baA# baB# (fromIntegral sizA) == 0)
+
+instance Ord ByteArray where
+    {-# INLINE compare #-}
+    paA@(ByteArray baA#) `compare` paB@(ByteArray baB#)
+        | sameByteArray paA paB = EQ
+        | otherwise =
+            let sizA = sizeofByteArray paA
+                sizB = sizeofByteArray paB
+                r = c_memcmp baA# baB# (fromIntegral $ min sizA sizB)
+            in case r `compare` 0 of
+                EQ  -> sizA `compare` sizB
+                x  -> x
+
+foreign import ccall unsafe "cstring.h memcmp" c_memcmp :: ByteArray# -> ByteArray# -> CInt -> CInt
+
 -- | Mutable byte arrays associated with a primitive state token
 data MutableByteArray s = MutableByteArray (MutableByteArray# s)
                                         deriving( Typeable )

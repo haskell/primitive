@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -74,13 +75,15 @@ module Data.Primitive.PrimArray (
 
 
 import Control.Monad.Primitive
+import Control.Monad (liftM)
 import Data.Primitive
 import Data.Typeable
 import Data.Data
-import Foreign.C.Types (CInt(..))
 import GHC.Ptr (Ptr(..))
-import GHC.Types
+import GHC.Base ( Int(..) )
+import GHC.Word (Word8)
 import GHC.Prim
+import Data.Primitive.Internal.Compat ( isTrue# )
 
 
 -- | Primitive array tagged with element type @a@.
@@ -89,13 +92,26 @@ newtype PrimArray a = PrimArray ByteArray
     deriving (Typeable, Data)
 
 instance (Prim a, Eq a) => Eq (PrimArray a) where
-    paA@(PrimArray (ByteArray baA#)) == paB@(PrimArray (ByteArray baB#)) =
-        samePrimArray paA paB || (
-            let sizA = sizeofPrimArray paA
-                sizB = sizeofPrimArray paB
-            in sizA == sizB && c_memcmp baA# baB# (fromIntegral sizA) == 0)
+    {-# INLINE (==) #-}
+    (PrimArray baA) == (PrimArray baB) = baA == baB
 
-foreign import ccall unsafe "cstring.h memcmp" c_memcmp :: ByteArray# -> ByteArray# -> CInt -> CInt
+instance {-# OVERLAPPABLE #-} (Prim a, Ord a) => Ord (PrimArray a) where
+    {-# INLINE compare #-}
+    paA `compare` paB
+        | paA `samePrimArray` paB = EQ
+        | otherwise = go 0 0
+      where
+        !endA = sizeofPrimArray paA
+        !endB = sizeofPrimArray paB
+        go !i !j | i >= endA  = endA `compare` endB
+                 | j >= endB  = endA `compare` endB
+                 | otherwise = let o = indexPrimArray paA i `compare` indexPrimArray paB j
+                               in case o of EQ -> go (i+1) (j+1)
+                                            x  -> x
+instance {-# OVERLAPPING #-} Ord (PrimArray Word8) where
+    {-# INLINE compare #-}
+    (PrimArray baA) `compare` (PrimArray baB) = baA `compare` baB
+
 
 -- | Mutable primitive array tagged with element type @a@.
 --
