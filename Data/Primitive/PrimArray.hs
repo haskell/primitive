@@ -41,7 +41,8 @@ Here is an example of an RGB pixel 'Prim' instance.
     ...
 @
 
-Now you can use 'PrimArray' 'Pixel' with either this module or @Data.Array@/@Data.Vector@.
+Now you can use 'PrimArray Pixel' with either this module or
+"Data.Primitive.Array.Class/Data.Primitive.Array.Checked".
 -}
 
 

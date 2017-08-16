@@ -338,7 +338,7 @@ resizeMutableByteArray mba@(MutableByteArray mba#) sz@(I# i#) = do
        )
 #else
     mba' <- newByteArray sz
-    copyMutableByteArray mba' sz mba 0 (sizeofMutableByteArray mba)
+    copyMutableByteArray mba' 0 mba 0 (min sz (sizeofMutableByteArray mba))
     return mba'
 #endif
 {-# INLINE resizeMutableByteArray #-}

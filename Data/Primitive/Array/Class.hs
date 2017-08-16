@@ -75,15 +75,15 @@ uninitialized = throw (UndefinedElement "Data.Primitive.Array.Class.uninitialize
 -- Most of these functions simply wrap their primitive counterpart. If there are no primitive ones,
 -- the method is polyfilled using other operations to get the same semantics.
 --
--- One exception is that 'shrinkMutableArr' only performs resizing on 'PrimArray' because
--- the RTS only supports shrinking byte arrays. On other array types, 'shrinkMutableArr' will do nothing.
---
 class Arr (marr :: * -> * -> *) (arr :: * -> * ) a | arr -> marr, marr -> arr where
 
     -- | Make a new array with given size.
     --
+    -- It's not safe to access uninitialized element.
     -- For boxed arrays, all elements are @uninitialized@, a thunk that throws
     -- an error if it is forced. For primitive array, elements are uninitialized memory.
+    -- For unlifted array , elements are the refrerence to itself.
+    --
     newArr :: (PrimMonad m, PrimState m ~ s) => Int -> m (marr s a)
 
     -- | Make a new array and fill it with an initial value.
@@ -140,8 +140,10 @@ class Arr (marr :: * -> * -> *) (arr :: * -> * ) a | arr -> marr, marr -> arr wh
     -- | Resize a mutable array to the given size.
     resizeMutableArr :: (PrimMonad m, PrimState m ~ s) => marr s a -> Int -> m (marr s a)
 
-    -- | Shrink a mutable array to the given size. This operation only works on primitive arrays.
-    -- For boxed arrays, this is a no-op, e.g. 'sizeOfMutableArr' will not change.
+    -- | Shrink a mutable array to the given size.
+    --
+    -- This operation is not guaranteed to have effects, e.g. 'sizeOfMutableArr' will not change.
+    -- It's mainly used to optimize GC of arrays which contain unused elements.
     shrinkMutableArr :: (PrimMonad m, PrimState m ~ s) => marr s a -> Int -> m ()
 
     -- | Check to see if the two mutable arrays refer to the same memory.

@@ -70,7 +70,7 @@ import GHC.Ptr (Ptr(..))
 
 check :: String -> Bool -> a -> a
 check _      True  x = x
-check errMsg False _ = throw (IndexOutOfBounds $ "Data.Array.Checked." ++ errMsg)
+check errMsg False _ = throw (IndexOutOfBounds $ "Data.Primitive.Array.Checked." ++ errMsg)
 {-# INLINE check #-}
 
 newArr :: (A.Arr marr arr a, PrimMonad m, PrimState m ~ s) => Int -> m (marr s a)
