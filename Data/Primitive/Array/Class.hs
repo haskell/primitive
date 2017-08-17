@@ -319,11 +319,13 @@ instance Arr SmallMutableArray SmallArray a where
     shrinkMutableArr _ _ = return ()
     {-# INLINE shrinkMutableArr #-}
 
-    sameMutableArr (SmallMutableArray smarr1#) (SmallMutableArray smarr2#) = isTrue#
 #if HAVE_SMALL_ARRAY
+    sameMutableArr (SmallMutableArray smarr1#) (SmallMutableArray smarr2#) = isTrue#
         (sameSmallMutableArray# smarr1# smarr2#)
 #else
-        (sameMutableArray# smarr1# smarr2#)
+    sameMutableArr (SmallMutableArray (MutableArray smarr1#))
+                   (SmallMutableArray (MutableArray smarr2#)) = isTrue#
+                        (sameMutableArray# smarr1# smarr2#)
 #endif
     {-# INLINE sameMutableArr #-}
 
@@ -332,10 +334,11 @@ instance Arr SmallMutableArray SmallArray a where
     sizeofMutableArr = return . sizeofSmallMutableArray
     {-# INLINE sizeofMutableArr #-}
 
-    sameArr (SmallArray arr1#) (SmallArray arr2#) = isTrue#
 #if HAVE_SMALL_ARRAY
+    sameArr (SmallArray arr1#) (SmallArray arr2#) = isTrue#
         (sameSmallMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
 #else
+    sameArr (SmallArray (Array arr1#)) (SmallArray (Array arr2#)) = isTrue#
         (sameMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
 #endif
     {-# INLINE sameArr #-}
