@@ -142,7 +142,7 @@ class Arr (marr :: * -> * -> *) (arr :: * -> * ) a | arr -> marr, marr -> arr wh
 
     -- | Shrink a mutable array to the given size.
     --
-    -- This operation is not guaranteed to have effects, e.g. 'sizeOfMutableArr' will not change.
+    -- This operation is not guaranteed to have effects, e.g. 'sizeOfMutableArr' may not change.
     -- It's mainly used to optimize GC of arrays which contain unused elements.
     shrinkMutableArr :: (PrimMonad m, PrimState m ~ s) => marr s a -> Int -> m ()
 

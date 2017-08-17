@@ -84,11 +84,13 @@ import Control.Monad (liftM)
 import Data.Primitive
 import Data.Typeable
 import Data.Data
-import GHC.Ptr (Ptr(..))
-import GHC.Base ( Int(..) )
-import GHC.Word (Word8)
 import GHC.Prim
 import Data.Primitive.Internal.Compat ( isTrue# )
+import GHC.Base (Int(..), Char(..))
+import GHC.Float (Float(..), Double(..))
+import GHC.Word (Word(..), Word8(..), Word16(..), Word32(..), Word64(..))
+import GHC.Int (Int8(..), Int16(..), Int32(..), Int64(..))
+import GHC.Ptr (Ptr(..), FunPtr(..))
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (mappend)
@@ -101,23 +103,70 @@ newtype PrimArray a = PrimArray ByteArray
 
 instance (Prim a, Eq a) => Eq (PrimArray a) where
     {-# INLINE (==) #-}
-    (PrimArray baA) == (PrimArray baB) = baA == baB
+    (==) = eqPrimArray
 
-instance {-# OVERLAPPABLE #-} (Prim a, Ord a) => Ord (PrimArray a) where
-    {-# INLINE compare #-}
-    paA `compare` paB
-        | paA `samePrimArray` paB = EQ
-        | otherwise = go 0
-      where
-        !endA = sizeofPrimArray paA
-        !endB = sizeofPrimArray paB
-        end = endA `min` endB
-        go !i | i >= end  = endA `compare` endB
-              | otherwise = indexPrimArray paA i `compare` indexPrimArray paB i `mappend` go (i+1)
-instance {-# OVERLAPPING #-} Ord (PrimArray Word8) where
-    {-# INLINE compare #-}
-    (PrimArray baA) `compare` (PrimArray baB) = baA `compare` baB
+eqPrimArray :: (Prim a, Eq a) => PrimArray a -> PrimArray a -> Bool
+{-# INLINE [1] eqPrimArray #-}
+eqPrimArray paA paB
+    | paA `samePrimArray` paB = True
+    | otherwise =
+        let !sizA = sizeofPrimArray paA
+            !sizB = sizeofPrimArray paB
+        in sizA == sizB && go 0 sizA
+  where
+    go !i !siz | i >= siz  = True
+               | otherwise = indexPrimArray paA i == indexPrimArray paB i && go (i+1) siz
 
+#define SPEC_EQ_RULES(T) \
+    eqPrimArray/**/T :: PrimArray T -> PrimArray T -> Bool; \
+    {-# INLINE eqPrimArray/**/T #-}; \
+    {-# RULES "eqPrimArray/T" eqPrimArray = eqPrimArray/**/T #-}; \
+    eqPrimArray/**/T (PrimArray baA) (PrimArray baB) = baA == baB
+
+SPEC_EQ_RULES(Char)
+SPEC_EQ_RULES(Double)
+SPEC_EQ_RULES(Float)
+SPEC_EQ_RULES(Int)
+SPEC_EQ_RULES(Int8)
+SPEC_EQ_RULES(Int16)
+SPEC_EQ_RULES(Int32)
+SPEC_EQ_RULES(Int64)
+SPEC_EQ_RULES(Word)
+SPEC_EQ_RULES(Word8)
+SPEC_EQ_RULES(Word16)
+SPEC_EQ_RULES(Word32)
+SPEC_EQ_RULES(Word64)
+SPEC_EQ_RULES(Addr)
+
+#define SPEC_EQ_RULES_S(S, T) \
+    eqPrimArray/**/S :: PrimArray T -> PrimArray T -> Bool; \
+    {-# INLINE eqPrimArray/**/S #-}; \
+    {-# RULES "eqPrimArray/S" eqPrimArray = eqPrimArray/**/S #-}; \
+    eqPrimArray/**/S (PrimArray baA) (PrimArray baB) = baA == baB
+
+SPEC_EQ_RULES_S(Ptr, (Ptr a))
+SPEC_EQ_RULES_S(FunPtr, (FunPtr a))
+
+instance (Prim a, Ord a) => Ord (PrimArray a) where
+    {-# INLINE compare #-}
+    compare = comparePrimArray
+
+comparePrimArray :: (Prim a, Ord a) => PrimArray a -> PrimArray a -> Ordering
+{-# INLINE [1] comparePrimArray #-}
+{-# RULES "comparePrimArray/Word8" comparePrimArray = comparePrimArrayWord8 #-}
+comparePrimArray paA paB
+    | paA `samePrimArray` paB = EQ
+    | otherwise = go 0
+  where
+    !sizA = sizeofPrimArray paA
+    !sizB = sizeofPrimArray paB
+    siz = sizA `min` sizB
+    go !i | i >= siz  = sizA `compare` sizB
+          | otherwise = indexPrimArray paA i `compare` indexPrimArray paB i `mappend` go (i+1)
+
+comparePrimArrayWord8 :: PrimArray Word8 -> PrimArray Word8 -> Ordering
+{-# INLINE comparePrimArrayWord8 #-}
+comparePrimArrayWord8 (PrimArray baA) (PrimArray baB) = baA `compare` baB
 
 -- | Mutable primitive array tagged with element type @a@.
 --

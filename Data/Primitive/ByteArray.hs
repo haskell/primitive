@@ -75,8 +75,8 @@ instance Ord ByteArray where
     paA@(ByteArray baA#) `compare` paB@(ByteArray baB#)
         | sameByteArray paA paB = EQ
         | otherwise =
-            let sizA = sizeofByteArray paA
-                sizB = sizeofByteArray paB
+            let !sizA = sizeofByteArray paA
+                !sizB = sizeofByteArray paB
                 r = c_memcmp baA# baB# (fromIntegral $ min sizA sizB)
             in case r `compare` 0 of
                 EQ  -> sizA `compare` sizB
