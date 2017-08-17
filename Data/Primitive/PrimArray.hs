@@ -86,7 +86,7 @@ import Data.Typeable
 import Data.Data
 import GHC.Prim
 import Data.Primitive.Internal.Compat ( isTrue# )
-import GHC.Base (Int(..), Char(..))
+import GHC.Base (Int(..))
 import GHC.Float (Float(..), Double(..))
 import GHC.Word (Word(..), Word8(..), Word16(..), Word32(..), Word64(..))
 import GHC.Int (Int8(..), Int16(..), Int32(..), Int64(..))
@@ -117,35 +117,30 @@ eqPrimArray paA paB
     go !i !siz | i >= siz  = True
                | otherwise = indexPrimArray paA i == indexPrimArray paB i && go (i+1) siz
 
-#define SPEC_EQ_RULES(T) \
-    eqPrimArray/**/T :: PrimArray T -> PrimArray T -> Bool; \
-    {-# INLINE eqPrimArray/**/T #-}; \
-    {-# RULES "eqPrimArray/T" eqPrimArray = eqPrimArray/**/T #-}; \
-    eqPrimArray/**/T (PrimArray baA) (PrimArray baB) = baA == baB
+-- the first argument is only used to control the type to make the
+-- rewrite rules more simple.
+eqBytes :: a -> PrimArray a -> PrimArray a -> Bool
+{-# INLINE eqBytes #-}
+eqBytes _ (PrimArray baA) (PrimArray baB) = baA == baB
 
-SPEC_EQ_RULES(Char)
-SPEC_EQ_RULES(Double)
-SPEC_EQ_RULES(Float)
-SPEC_EQ_RULES(Int)
-SPEC_EQ_RULES(Int8)
-SPEC_EQ_RULES(Int16)
-SPEC_EQ_RULES(Int32)
-SPEC_EQ_RULES(Int64)
-SPEC_EQ_RULES(Word)
-SPEC_EQ_RULES(Word8)
-SPEC_EQ_RULES(Word16)
-SPEC_EQ_RULES(Word32)
-SPEC_EQ_RULES(Word64)
-SPEC_EQ_RULES(Addr)
+{-# RULES "eqPrimArray/Word"   eqPrimArray = eqBytes (0 :: Word) #-};
+{-# RULES "eqPrimArray/Int"    eqPrimArray = eqBytes (0 :: Int) #-};
+{-# RULES "eqPrimArray/Float"  eqPrimArray = eqBytes (0 :: Float) #-};
+{-# RULES "eqPrimArray/Double" eqPrimArray = eqBytes (0 :: Double) #-};
+{-# RULES "eqPrimArray/Char"   eqPrimArray = eqBytes 'x' #-};
 
-#define SPEC_EQ_RULES_S(S, T) \
-    eqPrimArray/**/S :: PrimArray T -> PrimArray T -> Bool; \
-    {-# INLINE eqPrimArray/**/S #-}; \
-    {-# RULES "eqPrimArray/S" eqPrimArray = eqPrimArray/**/S #-}; \
-    eqPrimArray/**/S (PrimArray baA) (PrimArray baB) = baA == baB
+{-# RULES "eqPrimArray/Word8"  eqPrimArray = eqBytes (0 :: Word8) #-};
+{-# RULES "eqPrimArray/Word16" eqPrimArray = eqBytes (0 :: Word16) #-};
+{-# RULES "eqPrimArray/Word32" eqPrimArray = eqBytes (0 :: Word32) #-};
+{-# RULES "eqPrimArray/Word64" eqPrimArray = eqBytes (0 :: Word64) #-};
+{-# RULES "eqPrimArray/Int8"   eqPrimArray = eqBytes (0 :: Int8) #-};
+{-# RULES "eqPrimArray/Int16"  eqPrimArray = eqBytes (0 :: Int16) #-};
+{-# RULES "eqPrimArray/Int32"  eqPrimArray = eqBytes (0 :: Int32) #-};
+{-# RULES "eqPrimArray/Int64"  eqPrimArray = eqBytes (0 :: Int64) #-};
 
-SPEC_EQ_RULES_S(Ptr, (Ptr a))
-SPEC_EQ_RULES_S(FunPtr, (FunPtr a))
+{-# RULES "eqPrimArray/Addr"   eqPrimArray = eqBytes (undefined :: Addr) #-};
+{-# RULES "eqPrimArray/Ptr"    eqPrimArray = eqBytes (undefined :: Ptr a) #-};
+{-# RULES "eqPrimArray/FunPtr" eqPrimArray = eqBytes (undefined :: FunPtr a) #-};
 
 instance (Prim a, Ord a) => Ord (PrimArray a) where
     {-# INLINE compare #-}
