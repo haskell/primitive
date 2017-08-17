@@ -51,8 +51,8 @@ Library
   Build-Depends: base >= 4.5 && < 4.11
                , ghc-prim >= 0.2 && < 0.6
                , transformers >= 0.2 && < 0.6
-
-  Ghc-Options: -O2 -Wall
+  Build-tools: cpphs >= 1.19
+  Ghc-Options: -O2 -Wall -pgmP cpphs -optP --cpp
 
   Include-Dirs: cbits
   Install-Includes: primitive-memops.h
