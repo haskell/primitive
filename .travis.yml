@@ -51,6 +51,7 @@ install:
           $HOME/.cabal/packages/hackage.haskell.org/00-index.tar;
    fi
  - travis_retry cabal update -v
+ - cabal install cpphs
  - sed -i 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
  - cabal new-build ${TEST} ${BENCH} --dep
 
