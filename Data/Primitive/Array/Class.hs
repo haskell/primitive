@@ -427,8 +427,8 @@ instance PrimUnlifted a => Arr MutableUnliftedArray UnliftedArray a where
     unsafeFreezeArr = unsafeFreezeUnliftedArray
     {-# INLINE unsafeFreezeArr #-}
     unsafeThawArr (UnliftedArray arr#) = primitive ( \ s0# ->
-            let (# s1#, marr# #) = unsafeThawArray# (unsafeCoerce# arr#) s0#  -- ArrayArray# and Array# use the same representation
-            in (# s1#, MutableUnliftedArray (unsafeCoerce# marr#) #)          -- so this works
+            let !(# s1#, marr# #) = unsafeThawArray# (unsafeCoerce# arr#) s0#   -- ArrayArray# and Array# use the same representation
+            in (# s1#, MutableUnliftedArray (unsafeCoerce# marr#) #)            -- so this works
         )
     {-# INLINE unsafeThawArr #-}
 
