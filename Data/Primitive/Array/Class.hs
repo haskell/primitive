@@ -73,7 +73,7 @@ uninitialized = throw (UndefinedElement "Data.Primitive.Array.Class.uninitialize
 -- | A typeclass to unify box & unboxed, mutable & immutable array operations.
 --
 -- Most of these functions simply wrap their primitive counterpart. If there are no primitive ones,
--- the method is polyfilled using other operations to get the same semantics.
+-- the method is emulated using other operations to get the same semantics.
 --
 class Arr (marr :: * -> * -> *) (arr :: * -> * ) a | arr -> marr, marr -> arr where
 
@@ -82,7 +82,7 @@ class Arr (marr :: * -> * -> *) (arr :: * -> * ) a | arr -> marr, marr -> arr wh
     -- It's not safe to access uninitialized element.
     -- For boxed arrays, all elements are @uninitialized@, a thunk that throws
     -- an error if it is forced. For primitive array, elements are uninitialized memory.
-    -- For unlifted array , elements are the refrerence to itself.
+    -- For unlifted array , elements are the reference to itself.
     --
     newArr :: (PrimMonad m, PrimState m ~ s) => Int -> m (marr s a)
 
