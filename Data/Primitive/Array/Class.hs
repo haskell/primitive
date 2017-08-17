@@ -248,7 +248,6 @@ instance Arr MutableArray Array a where
         sameMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
     {-# INLINE sameArr #-}
 
-#if HAVE_SMALL_ARRAY
 instance Arr SmallMutableArray SmallArray a where
     newArr n = newSmallArray n uninitialized
     {-# INLINE newArr #-}
@@ -320,18 +319,26 @@ instance Arr SmallMutableArray SmallArray a where
     shrinkMutableArr _ _ = return ()
     {-# INLINE shrinkMutableArr #-}
 
-    sameMutableArr (SmallMutableArray smarr1#) (SmallMutableArray smarr2#) =
-        isTrue# (sameSmallMutableArray# smarr1# smarr2#)
+    sameMutableArr (SmallMutableArray smarr1#) (SmallMutableArray smarr2#) = isTrue#
+#if HAVE_SMALL_ARRAY
+        (sameSmallMutableArray# smarr1# smarr2#)
+#else
+        (sameMutableArray# smarr1# smarr2#)
+#endif
     {-# INLINE sameMutableArr #-}
+
     sizeofArr = sizeofSmallArray
     {-# INLINE sizeofArr #-}
     sizeofMutableArr = return . sizeofSmallMutableArray
     {-# INLINE sizeofMutableArr #-}
 
-    sameArr (SmallArray arr1#) (SmallArray arr2#) = isTrue# (
-        sameSmallMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
-    {-# INLINE sameArr #-}
+    sameArr (SmallArray arr1#) (SmallArray arr2#) = isTrue#
+#if HAVE_SMALL_ARRAY
+        (sameSmallMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
+#else
+        (sameMutableArray# (unsafeCoerce# arr1#) (unsafeCoerce# arr2#))
 #endif
+    {-# INLINE sameArr #-}
 
 instance Prim a => Arr MutablePrimArray PrimArray a where
     newArr = newPrimArray
