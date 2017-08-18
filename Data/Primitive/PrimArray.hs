@@ -68,7 +68,7 @@ module Data.Primitive.PrimArray (
   sizeofPrimArray, sizeofMutablePrimArray, sameMutablePrimArray,
   primArrayContents, mutablePrimArrayContents, withPrimArrayContents, withMutablePrimArrayContents,
   isPrimArrayPinned, isMutablePrimArrayPinned,
-  samePrimArray,
+  samePrimArray, memcmpPrimArray,
 
   -- * Prefetch
   -- | Check <http://hackage.haskell.org/package/ghc-prim-0.3.1.0/docs/GHC-Prim.html#Prefetch> for more information.
@@ -117,30 +117,37 @@ eqPrimArray paA paB
     go !i !siz | i >= siz  = True
                | otherwise = indexPrimArray paA i == indexPrimArray paB i && go (i+1) siz
 
--- the first argument is only used to control the type to make the
--- rewrite rules more simple.
-eqBytes :: a -> PrimArray a -> PrimArray a -> Bool
-{-# INLINE eqBytes #-}
-eqBytes _ (PrimArray baA) (PrimArray baB) = baA == baB
+-- | Byte wise comparison using @memcmp@.
+--
+-- This function can be used to speed up 'PrimArray' 's 'Eq' instance by comparing array
+-- using memcmp, all built-in 'Prim' types enabled optimization already, and if your
+-- custom 'Prim' type can be compared byte wise, you can use rewrite rules to override
+-- default 'Eq' instance which use looping by default. e.g.
+--
+-- @\{\-\# RULES "eqPrimArray/Foo"   eqPrimArray = memcmpPrimArray (0 :: Foo) \#\-\}@
+--
+memcmpPrimArray :: a -> PrimArray a -> PrimArray a -> Bool
+{-# INLINE memcmpPrimArray #-}
+memcmpPrimArray _ (PrimArray baA) (PrimArray baB) = baA == baB
 
-{-# RULES "eqPrimArray/Word"   eqPrimArray = eqBytes (0 :: Word) #-};
-{-# RULES "eqPrimArray/Int"    eqPrimArray = eqBytes (0 :: Int) #-};
-{-# RULES "eqPrimArray/Float"  eqPrimArray = eqBytes (0 :: Float) #-};
-{-# RULES "eqPrimArray/Double" eqPrimArray = eqBytes (0 :: Double) #-};
-{-# RULES "eqPrimArray/Char"   eqPrimArray = eqBytes 'x' #-};
+{-# RULES "eqPrimArray/Word"   eqPrimArray = memcmpPrimArray (undefined :: Word) #-}
+{-# RULES "eqPrimArray/Int"    eqPrimArray = memcmpPrimArray (undefined :: Int) #-}
+{-# RULES "eqPrimArray/Float"  eqPrimArray = memcmpPrimArray (undefined :: Float) #-}
+{-# RULES "eqPrimArray/Double" eqPrimArray = memcmpPrimArray (undefined :: Double) #-}
+{-# RULES "eqPrimArray/Char"   eqPrimArray = memcmpPrimArray (undefined :: Char) #-}
 
-{-# RULES "eqPrimArray/Word8"  eqPrimArray = eqBytes (0 :: Word8) #-};
-{-# RULES "eqPrimArray/Word16" eqPrimArray = eqBytes (0 :: Word16) #-};
-{-# RULES "eqPrimArray/Word32" eqPrimArray = eqBytes (0 :: Word32) #-};
-{-# RULES "eqPrimArray/Word64" eqPrimArray = eqBytes (0 :: Word64) #-};
-{-# RULES "eqPrimArray/Int8"   eqPrimArray = eqBytes (0 :: Int8) #-};
-{-# RULES "eqPrimArray/Int16"  eqPrimArray = eqBytes (0 :: Int16) #-};
-{-# RULES "eqPrimArray/Int32"  eqPrimArray = eqBytes (0 :: Int32) #-};
-{-# RULES "eqPrimArray/Int64"  eqPrimArray = eqBytes (0 :: Int64) #-};
+{-# RULES "eqPrimArray/Word8"  eqPrimArray = memcmpPrimArray (undefined :: Word8) #-}
+{-# RULES "eqPrimArray/Word16" eqPrimArray = memcmpPrimArray (undefined :: Word16) #-}
+{-# RULES "eqPrimArray/Word32" eqPrimArray = memcmpPrimArray (undefined :: Word32) #-}
+{-# RULES "eqPrimArray/Word64" eqPrimArray = memcmpPrimArray (undefined :: Word64) #-}
+{-# RULES "eqPrimArray/Int8"   eqPrimArray = memcmpPrimArray (undefined :: Int8) #-}
+{-# RULES "eqPrimArray/Int16"  eqPrimArray = memcmpPrimArray (undefined :: Int16) #-}
+{-# RULES "eqPrimArray/Int32"  eqPrimArray = memcmpPrimArray (undefined :: Int32) #-}
+{-# RULES "eqPrimArray/Int64"  eqPrimArray = memcmpPrimArray (undefined :: Int64) #-}
 
-{-# RULES "eqPrimArray/Addr"   eqPrimArray = eqBytes (undefined :: Addr) #-};
-{-# RULES "eqPrimArray/Ptr"    eqPrimArray = eqBytes (undefined :: Ptr a) #-};
-{-# RULES "eqPrimArray/FunPtr" eqPrimArray = eqBytes (undefined :: FunPtr a) #-};
+{-# RULES "eqPrimArray/Addr"   eqPrimArray = memcmpPrimArray (undefined :: Addr) #-}
+{-# RULES "eqPrimArray/Ptr"    eqPrimArray = memcmpPrimArray (undefined :: Ptr a) #-}
+{-# RULES "eqPrimArray/FunPtr" eqPrimArray = memcmpPrimArray (undefined :: FunPtr a) #-}
 
 instance (Prim a, Ord a) => Ord (PrimArray a) where
     {-# INLINE compare #-}
