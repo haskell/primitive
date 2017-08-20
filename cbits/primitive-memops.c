@@ -35,6 +35,11 @@ void hsprimitive_memset_ ## TYPE (Hs ## TYPE *p, ptrdiff_t off, size_t n, ATYPE 
   }                                                                          \
 }
 
+int hsprimitive_memcmp( HsWord8 *s1, HsWord8 *s2, size_t n )
+{
+  return memcmp( s1, s2, n );
+}
+
 void hsprimitive_memset_Word8 (HsWord8 *p, ptrdiff_t off, size_t n, HsWord x)
 {
   memset( (char *)(p+off), x, n );

@@ -13,6 +13,7 @@
 
 module Data.Primitive.Types (
   Prim(..),
+  sizeOf, alignment,
 
   Addr(..),
 ) where
@@ -107,6 +108,14 @@ class Prim a where
   -- | Fill a memory block given by an address, an offset and a length.
   -- The offset and length are in elements of type @a@ rather than in bytes.
   setOffAddr# :: Addr# -> Int# -> Int# -> a -> State# s -> State# s
+
+-- | Size of values of type @a@. The argument is not used.
+sizeOf :: Prim a => a -> Int
+sizeOf x = I# (sizeOf# x)
+
+-- | Alignment of values of type @a@. The argument is not used.
+alignment :: Prim a => a -> Int
+alignment x = I# (alignment# x)
 
 #define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, set_arr, idx_addr, rd_addr, wr_addr, set_addr) \
 instance Prim (ty) where {                                      \
