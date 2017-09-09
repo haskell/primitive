@@ -77,6 +77,9 @@ import Data.Data
 import Data.Foldable
 import Data.Functor.Identity
 import Data.Monoid
+#if MIN_VERSION_base(4,9,0) && !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup
+#endif
 import Text.ParserCombinators.ReadPrec
 import Text.Read
 import Text.Read.Lex
@@ -575,9 +578,16 @@ instance MonadZip SmallArray where
 instance MonadFix SmallArray where
   mfix f = fromList . mfix $ toList . f
 
+#if MIN_VERSION_base(4,9,0)
+instance Semigroup (SmallArray a) where
+  (<>) = (<|>)
+#endif
+
 instance Monoid (SmallArray a) where
   mempty = empty
+#if !(MIN_VERSION_base(4,11,0))
   mappend = (<|>)
+#endif
   mconcat sas = createSmallArray n (die "mconcat" "impossible") $ \sma ->
     fix ? 0 ? sas $ \go off l -> case l of
       [] -> return ()
