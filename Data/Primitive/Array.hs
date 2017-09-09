@@ -52,6 +52,9 @@ import Data.Foldable (Foldable(..), toList)
 import Data.Traversable (Traversable(..))
 import Data.Monoid
 #endif
+#if MIN_VERSION_base(4,9,0)
+import Data.Semigroup
+#endif
 
 import Text.ParserCombinators.ReadP
 
@@ -272,7 +275,7 @@ cloneArray :: Array a -- ^ source array
            -> Array a
 {-# INLINE cloneArray #-}
 #if __GLASGOW_HASKELL__ >= 702
-cloneArray (Array arr#) (I# off#) (I# len#) 
+cloneArray (Array arr#) (I# off#) (I# len#)
   = case cloneArray# arr# off# len# of arr'# -> Array arr'#
 #else
 cloneArray arr off len = runST $ do
@@ -528,9 +531,16 @@ instance MonadZip Array where
 instance MonadFix Array where
   mfix f = let l = mfix (toList . f) in fromListN (length l) l
 
+#if MIN_VERSION_base(4,9,0)
+instance Semigroup (Array a) where
+  (<>) = (<|>)
+#endif
+
 instance Monoid (Array a) where
   mempty = empty
+#if !(MIN_VERSION_base(4,11,0))
   mappend = (<|>)
+#endif
   mconcat l = createArray sz (die "mconcat" "impossible") $ \ma ->
     let go !_  [    ] = return ()
         go off (a:as) =
