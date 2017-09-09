@@ -465,14 +465,23 @@ sameByteArray (ByteArray ba1#) (ByteArray ba2#) =
 isByteArrayPinned :: ByteArray -> Bool
 {-# INLINE isByteArrayPinned #-}
 isByteArrayPinned (ByteArray ba#) =
+#if MIN_VERSION_ghc_prim(0,5,1)
+    isTrue# (isByteArrayPinned# ba#)
+#else
     c_is_byte_array_pinned ba# > 0
+#endif
+
 
 -- | Check if a mutable byte array is pinned.
 --
 isMutableByteArrayPinned :: MutableByteArray s -> Bool
 {-# INLINE isMutableByteArrayPinned #-}
 isMutableByteArrayPinned (MutableByteArray mba#) =
+#if MIN_VERSION_ghc_prim(0,5,1)
+    isTrue# (isMutableByteArrayPinned# mba#)
+#else
     c_is_mutable_byte_array_pinned mba# > 0
+#endif
 
 foreign import ccall unsafe "hsprimitive_is_byte_array_pinned"
     c_is_byte_array_pinned :: ByteArray# -> CInt
