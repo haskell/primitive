@@ -34,6 +34,7 @@ import qualified GHC.Exts as Exts
 import GHC.Exts (fromListN, fromList)
 #endif
 
+import qualified Data.Foldable as F
 import Data.Typeable ( Typeable )
 import Data.Data
   (Data(..), DataType, mkDataType, Constr, mkConstr, Fixity(..), constrIndex)
@@ -534,6 +535,7 @@ instance MonadFix Array where
 #if MIN_VERSION_base(4,9,0)
 instance Semigroup (Array a) where
   (<>) = (<|>)
+  sconcat = mconcat . F.toList
 #endif
 
 instance Monoid (Array a) where
