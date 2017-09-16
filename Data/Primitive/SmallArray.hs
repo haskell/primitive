@@ -581,6 +581,7 @@ instance MonadFix SmallArray where
 #if MIN_VERSION_base(4,9,0)
 instance Sem.Semigroup (SmallArray a) where
   (<>) = (<|>)
+  sconcat = mconcat . toList
 #endif
 
 instance Monoid (SmallArray a) where
