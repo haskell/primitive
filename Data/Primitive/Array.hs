@@ -34,7 +34,6 @@ import qualified GHC.Exts as Exts
 import GHC.Exts (fromListN, fromList)
 #endif
 
-import qualified Data.Foldable as F
 import Data.Typeable ( Typeable )
 import Data.Data
   (Data(..), DataType, mkDataType, Constr, mkConstr, Fixity(..), constrIndex)
@@ -54,6 +53,7 @@ import Data.Traversable (Traversable(..))
 import Data.Monoid
 #endif
 #if MIN_VERSION_base(4,9,0)
+import qualified Data.Foldable as F
 import Data.Semigroup
 #endif
 
