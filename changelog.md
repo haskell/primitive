@@ -3,6 +3,11 @@
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
    `transformers`
 
+ * Add `Eq`, `Ord`, `Show`, and `IsList` instances for `ByteArray`
+
+ * Add `Semigroup` instances for `Array` and `SmallArray`. This allows
+   `primitive` to build on GHC 8.4 and later.
+
 ## Changes in version 0.6.2.0
 
  * Drop support for GHCs before 7.4
