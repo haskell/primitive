@@ -1,4 +1,4 @@
-## Changes in version next
+## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
    `transformers`
