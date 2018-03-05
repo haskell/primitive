@@ -65,6 +65,10 @@ import qualified Data.Semigroup as SG
 import qualified Data.Foldable as F
 #endif
 
+#if !(MIN_VERSION_base(4,8,0))
+import Data.Monoid (Monoid(..))
+#endif
+
 -- | Byte arrays
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
 
