@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
 
 import Control.Monad
 import Control.Monad.Primitive
@@ -57,8 +57,10 @@ testByteArray = do
         fail $ "ByteArray Monoid mappend not associative"
     unless (mconcat [arr1,arr2,arr3,arr4,arr5] == (arr1 <> arr2 <> arr3 <> arr4 <> arr5)) $
         fail $ "ByteArray Monoid mconcat incorrect"
+#if MIN_VERSION_base(4,9,0)
     unless (stimes (3 :: Int) arr4 == (arr4 <> arr4 <> arr4)) $
         fail $ "ByteArray Semigroup stimes incorrect"
+#endif
 
 mkByteArray :: Prim a => [a] -> ByteArray
 mkByteArray xs = runST $ do
