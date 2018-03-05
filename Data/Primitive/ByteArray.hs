@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -59,6 +59,11 @@ import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Numeric
 import System.IO.Unsafe
+
+#if MIN_VERSION_base(4,9,0)
+import qualified Data.Semigroup as SG
+import qualified Data.Foldable as F
+#endif
 
 -- | Byte arrays
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
@@ -335,6 +340,62 @@ instance Ord ByteArray where
     where
       n1 = sizeofByteArray ba1
       n2 = sizeofByteArray ba2
+
+appendByteArray :: ByteArray -> ByteArray -> ByteArray
+appendByteArray a b = runST $ do
+  marr <- newByteArray (sizeofByteArray a + sizeofByteArray b)
+  copyByteArray marr 0 a 0 (sizeofByteArray a)
+  copyByteArray marr (sizeofByteArray a) b 0 (sizeofByteArray b)
+  unsafeFreezeByteArray marr
+
+concatByteArray :: [ByteArray] -> ByteArray
+concatByteArray arrs = runST $ do
+  let len = calcLength arrs 0
+  marr <- newByteArray len
+  pasteByteArrays marr 0 arrs
+  unsafeFreezeByteArray marr
+
+pasteByteArrays :: MutableByteArray s -> Int -> [ByteArray] -> ST s ()
+pasteByteArrays !_ !_ [] = return ()
+pasteByteArrays !marr !ix (x : xs) = do
+  copyByteArray marr ix x 0 (sizeofByteArray x)
+  pasteByteArrays marr (ix + sizeofByteArray x) xs
+
+calcLength :: [ByteArray] -> Int -> Int
+calcLength [] !n = n
+calcLength (x : xs) !n = calcLength xs (sizeofByteArray x + n)
+
+emptyByteArray :: ByteArray
+emptyByteArray = runST (newByteArray 0 >>= unsafeFreezeByteArray)
+
+replicateByteArray :: Int -> ByteArray -> ByteArray
+replicateByteArray n arr = runST $ do
+  marr <- newByteArray (n * sizeofByteArray arr)
+  let go i = if i < n
+        then do
+          copyByteArray marr (i * sizeofByteArray arr) arr 0 (sizeofByteArray arr)
+          go (i + 1)
+        else return ()
+  go 0
+  unsafeFreezeByteArray marr
+
+#if MIN_VERSION_base(4,9,0)
+instance SG.Semigroup ByteArray where
+  (<>) = appendByteArray
+  sconcat = mconcat . F.toList
+  stimes i arr
+    | itgr < 1 = emptyByteArray
+    | itgr <= (fromIntegral (maxBound :: Int)) = replicateByteArray (fromIntegral itgr) arr
+    | otherwise = error "Data.Primitive.ByteArray#stimes: cannot allocate the requested amount of memory"
+    where itgr = toInteger i :: Integer
+#endif
+
+instance Monoid ByteArray where
+  mempty = emptyByteArray
+#if !(MIN_VERSION_base(4,11,0))
+  mappend = appendByteArray
+#endif
+  mconcat = concatByteArray
 
 #if __GLASGOW_HASKELL__ >= 708
 instance Exts.IsList ByteArray where
