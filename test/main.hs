@@ -8,11 +8,13 @@ import Data.Primitive
 import Data.Primitive.Array
 import Data.Primitive.ByteArray
 import Data.Primitive.Types
-import Data.Semigroup (stimes)
 import Data.Word
 import GHC.Int
 import GHC.IO
 import GHC.Prim
+#if MIN_VERSION_base(4,9,0)
+import Data.Semigroup (stimes)
+#endif
 
 -- Since we only have two test cases right now, I'm going to avoid the
 -- issue of choosing a test framework for the moment. This also keeps the
