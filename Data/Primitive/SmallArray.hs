@@ -76,7 +76,9 @@ import Control.Monad.Zip
 import Data.Data
 import Data.Foldable
 import Data.Functor.Identity
+#if !(MIN_VERSION_base(4,11,0))
 import Data.Monoid
+#endif
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Sem
 #endif
