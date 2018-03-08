@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 -- |
 -- Module      : Control.Monad.Primitive
