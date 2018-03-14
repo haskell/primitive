@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, CPP #-}
 
 -- |
 -- Module      : Data.Primitive.Addr
@@ -22,11 +22,16 @@ module Data.Primitive.Addr (
   indexOffAddr, readOffAddr, writeOffAddr,
 
   -- * Block operations
-  copyAddr, moveAddr, setAddr
+  copyAddr,
+#if __GLASGOW_HASKELL__ >= 702
+  copyAddrToByteArray,
+#endif
+  moveAddr, setAddr
 ) where
 
 import Control.Monad.Primitive
 import Data.Primitive.Types
+import Data.Primitive.ByteArray
 
 import GHC.Base ( Int(..) )
 import GHC.Prim
@@ -83,6 +88,20 @@ copyAddr :: PrimMonad m => Addr         -- ^ destination address
 {-# INLINE copyAddr #-}
 copyAddr (Addr dst#) (Addr src#) n
   = unsafePrimToPrim $ copyBytes (Ptr dst#) (Ptr src#) n
+
+#if __GLASGOW_HASKELL__ >= 702
+-- | Copy the given number of bytes from the 'Addr' to the 'MutableByteArray'.
+--   The areas may not overlap.
+copyAddrToByteArray :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ destination
+  -> Int -- ^ offset into the destination array
+  -> Addr -- ^ source
+  -> Int -- ^ number of bytes to copy
+  -> m ()
+{-# INLINE copyAddrToByteArray #-}
+copyAddrToByteArray (MutableByteArray marr) (I# off) (Addr addr) (I# len) =
+  primitive_ $ copyAddrToByteArray# addr marr off len
+#endif
 
 -- | Copy the given number of bytes from the second 'Addr' to the first. The
 -- areas may overlap.

@@ -30,7 +30,11 @@ module Data.Primitive.ByteArray (
   unsafeFreezeByteArray, unsafeThawByteArray,
 
   -- * Block operations
-  copyByteArray, copyMutableByteArray, moveByteArray,
+  copyByteArray, copyMutableByteArray,
+#if __GLASGOW_HASKELL__ >= 702
+  copyByteArrayToAddr, copyMutableByteArrayToAddr,
+#endif
+  moveByteArray,
   setByteArray, fillByteArray,
 
   -- * Information
@@ -229,6 +233,33 @@ copyMutableByteArray (MutableByteArray dst#) doff
   = unsafePrimToPrim
   $ memcpy_mba dst# (fromIntegral doff) src# (fromIntegral soff)
                     (fromIntegral sz)
+#endif
+
+
+#if __GLASGOW_HASKELL__ >= 702
+copyByteArrayToAddr
+  :: PrimMonad m
+  => Addr -- ^ destination
+  -> ByteArray -- ^ source array
+  -> Int -- ^ offset into source array
+  -> Int -- ^ number of bytes to copy
+  -> m ()
+{-# INLINE copyByteArrayToAddr #-}
+copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff sz
+  = primitive_ (copyByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
+#endif
+
+#if __GLASGOW_HASKELL__ >= 702
+copyMutableByteArrayToAddr
+  :: PrimMonad m
+  => Addr -- ^ destination
+  -> MutableByteArray (PrimState m) -- ^ source array
+  -> Int -- ^ offset into source array
+  -> Int -- ^ number of bytes to copy
+  -> m ()
+{-# INLINE copyMutableByteArrayToAddr #-}
+copyMutableByteArrayToAddr (Addr dst#) (MutableByteArray src#) soff sz
+  = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
 #endif
 
 -- | Copy a slice of a mutable byte array into another, potentially
