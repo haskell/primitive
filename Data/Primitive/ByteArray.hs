@@ -238,7 +238,8 @@ copyMutableByteArray (MutableByteArray dst#) doff
 
 #if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a byte array to an unmanaged address. These must not
---   overlap.
+--   overlap. This function is only available when compiling with GHC 7.8
+--   or newer.
 copyByteArrayToAddr
   :: PrimMonad m
   => Addr -- ^ destination
@@ -253,7 +254,8 @@ copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff sz
 
 #if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a mutable byte array to an unmanaged address. These must
---   not overlap.
+--   not overlap. This function is only available when compiling with GHC 7.8
+--   or newer.
 copyMutableByteArrayToAddr
   :: PrimMonad m
   => Addr -- ^ destination

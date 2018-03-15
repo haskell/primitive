@@ -91,7 +91,8 @@ copyAddr (Addr dst#) (Addr src#) n
 
 #if __GLASGOW_HASKELL__ >= 708
 -- | Copy the given number of bytes from the 'Addr' to the 'MutableByteArray'.
---   The areas may not overlap.
+--   The areas may not overlap. This function is only available when compiling
+--   with GHC 7.8 or newer.
 copyAddrToByteArray :: PrimMonad m
   => MutableByteArray (PrimState m) -- ^ destination
   -> Int -- ^ offset into the destination array
