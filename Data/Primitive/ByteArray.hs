@@ -31,7 +31,7 @@ module Data.Primitive.ByteArray (
 
   -- * Block operations
   copyByteArray, copyMutableByteArray,
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 708
   copyByteArrayToAddr, copyMutableByteArrayToAddr,
 #endif
   moveByteArray,
@@ -236,7 +236,7 @@ copyMutableByteArray (MutableByteArray dst#) doff
 #endif
 
 
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a byte array to an unmanaged address. These must not
 --   overlap.
 copyByteArrayToAddr
@@ -251,7 +251,7 @@ copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff sz
   = primitive_ (copyByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
 #endif
 
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a mutable byte array to an unmanaged address. These must
 --   not overlap.
 copyMutableByteArrayToAddr

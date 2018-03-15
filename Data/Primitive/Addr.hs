@@ -23,7 +23,7 @@ module Data.Primitive.Addr (
 
   -- * Block operations
   copyAddr,
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 708
   copyAddrToByteArray,
 #endif
   moveAddr, setAddr
@@ -89,7 +89,7 @@ copyAddr :: PrimMonad m => Addr         -- ^ destination address
 copyAddr (Addr dst#) (Addr src#) n
   = unsafePrimToPrim $ copyBytes (Ptr dst#) (Ptr src#) n
 
-#if __GLASGOW_HASKELL__ >= 702
+#if __GLASGOW_HASKELL__ >= 708
 -- | Copy the given number of bytes from the 'Addr' to the 'MutableByteArray'.
 --   The areas may not overlap.
 copyAddrToByteArray :: PrimMonad m
