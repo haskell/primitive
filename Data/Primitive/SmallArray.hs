@@ -6,6 +6,7 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- |
 -- Module : Data.Primitive.SmallArray
@@ -225,6 +226,15 @@ indexSmallArray (SmallArray a) = indexArray a
 #endif
 {-# INLINE indexSmallArray #-}
 
+#if HAVE_SMALL_ARRAY
+-- | Read a value from the immutable array at the given index, returning
+-- the result in an unboxed unary tuple. This is currently used to implement
+-- folds.
+indexSmallArray## :: SmallArray a -> Int -> (# a #)
+indexSmallArray## (SmallArray ary) (I# i) = indexSmallArray# ary i
+{-# INLINE indexSmallArray## #-}
+#endif
+
 -- | Create a copy of a slice of an immutable array.
 cloneSmallArray
   :: SmallArray a -- ^ source
@@ -424,53 +434,96 @@ instance Ord a => Ord (SmallArray a) where
    where l = length sl `min` length sr
 
 instance Foldable SmallArray where
-  foldr f z sa = fix ? 0 $ \go i ->
-    if i < length sa
-      then f (indexSmallArray sa i) (go $ i+1)
-      else z
+  -- Note: we perform the array lookups eagerly so we won't
+  -- create thunks to perform lookups even if GHC can't see
+  -- that the folding function is strict.
+  foldr f = \z !ary ->
+    let
+      !sz = sizeofSmallArray ary
+      go i
+        | i == sz = z
+        | (# x #) <- indexSmallArray## ary i
+        = f x (go (i+1))
+    in go 0
   {-# INLINE foldr #-}
-
-  foldr' f z sa = fix ? z ? length sa - 1 $ \go acc i ->
-    if i < 0
-      then acc
-      else go (f (indexSmallArray sa i) acc) (i-1)
-  {-# INLINE foldr' #-}
-
-  foldl f z sa = fix ? length sa - 1 $ \go i ->
-    if i < 0
-      then z
-      else f (go $ i-1) $ indexSmallArray sa i
+  foldl f = \z !ary ->
+    let
+      go i
+        | i < 0 = z
+        | (# x #) <- indexSmallArray## ary i
+        = f (go (i-1)) x
+    in go (sizeofSmallArray ary - 1)
   {-# INLINE foldl #-}
-
-  foldl' f z sa = fix ? z ? 0 $ \go acc i ->
-    if i < length sa
-      then go (f acc $ indexSmallArray sa i) (i+1)
-      else acc
-  {-# INLINE foldl' #-}
-
-  foldr1 f sa
-    | sz == 0   = die "foldr1" "empty list"
-    | otherwise = fix ? 0 $ \go i ->
-        if i < sz-1
-          then f (indexSmallArray sa i) (go $ i+1)
-          else indexSmallArray sa $ sz-1
-   where sz = sizeofSmallArray sa
+  foldr1 f = \ !ary ->
+    let
+      !sz = sizeofSmallArray ary - 1
+      go i =
+        case indexSmallArray## ary i of
+          (# x #) | i == sz -> x
+                  | otherwise -> f x (go (i+1))
+    in if sz < 0
+       then die "foldr1" "Empty SmallArray"
+       else go 0
   {-# INLINE foldr1 #-}
-
-  foldl1 f sa
-    | sz == 0   = die "foldl1" "empty list"
-    | otherwise = fix ? sz-1 $ \go i ->
-        if i < 1
-        then indexSmallArray sa 0
-        else f (go $ i-1) (indexSmallArray sa i)
-   where sz = sizeofSmallArray sa
+  foldl1 f = \ !ary ->
+    let
+      !sz = sizeofSmallArray ary - 1
+      go i =
+        case indexSmallArray## ary i of
+          (# x #) | i == 0 -> x
+                  | otherwise -> f x (go (i - 1))
+    in if sz < 0
+       then die "foldl1" "Empty SmallArray"
+       else go sz
   {-# INLINE foldl1 #-}
-
-  null sa = sizeofSmallArray sa == 0
+#if MIN_VERSION_base(4,6,0)
+  foldr' f = \z !ary ->
+    let
+      go i !acc
+        | i == -1 = acc
+        | (# x #) <- indexSmallArray## ary i
+        = go (i-1) (f x acc)
+    in go (sizeofSmallArray ary - 1) z
+  {-# INLINE foldr' #-}
+  foldl' f = \z !ary ->
+    let
+      !sz = sizeofSmallArray ary
+      go i !acc
+        | i == sz = acc
+        | (# x #) <- indexSmallArray## ary i
+        = go (i+1) (f acc x)
+    in go 0 z
+  {-# INLINE foldl' #-}
+#endif
+#if MIN_VERSION_base(4,8,0)
+  null a = sizeofSmallArray a == 0
   {-# INLINE null #-}
-
   length = sizeofSmallArray
   {-# INLINE length #-}
+  maximum ary | sz == 0   = die "maximum" "Empty SmallArray"
+              | (# frst #) <- indexSmallArray## ary 0
+              = go 1 frst
+   where
+     sz = sizeofSmallArray ary
+     go i !e
+       | i == sz = e
+       | (# x #) <- indexSmallArray## ary i
+       = go (i+1) (max e x)
+  {-# INLINE maximum #-}
+  minimum ary | sz == 0   = die "minimum" "Empty SmallArray"
+              | (# frst #) <- indexSmallArray## ary 0
+              = go 1 frst
+   where sz = sizeofSmallArray ary
+         go i !e
+           | i == sz = e
+           | (# x #) <- indexSmallArray## ary i
+           = go (i+1) (min e x)
+  {-# INLINE minimum #-}
+  sum = foldl' (+) 0
+  {-# INLINE sum #-}
+  product = foldl' (*) 1
+  {-# INLINE product #-}
+#endif
 
 instance Traversable SmallArray where
   traverse f sa = fromListN l <$> traverse (f . indexSmallArray sa) [0..l-1]
