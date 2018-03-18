@@ -61,23 +61,14 @@ import Text.ParserCombinators.ReadP
 
 -- | Boxed arrays
 data Array a = Array
-             { array# :: Array# a
-#if (__GLASGOW_HASKELL__ < 702)
-             , sizeofArray :: {-# UNPACK #-} !Int
-#endif
-             }
+  { array# :: Array# a }
   deriving ( Typeable )
 
 -- | Mutable boxed arrays associated with a primitive state token.
 data MutableArray s a = MutableArray
-                      { marray# :: MutableArray# s a
-#if (__GLASGOW_HASKELL__ < 702)
-                      , sizeofMutableArray :: {-# UNPACK #-} !Int
-#endif
-                      }
+  { marray# :: MutableArray# s a }
   deriving ( Typeable )
 
-#if (__GLASGOW_HASKELL__ >= 702)
 sizeofArray :: Array a -> Int
 sizeofArray a = I# (sizeofArray# (array# a))
 {-# INLINE sizeofArray #-}
@@ -85,7 +76,6 @@ sizeofArray a = I# (sizeofArray# (array# a))
 sizeofMutableArray :: MutableArray s a -> Int
 sizeofMutableArray a = I# (sizeofMutableArray# (marray# a))
 {-# INLINE sizeofMutableArray #-}
-#endif
 
 -- | Create a new mutable array of the specified size and initialise all
 -- elements with the given value.
@@ -95,9 +85,6 @@ newArray (I# n#) x = primitive
    (\s# -> case newArray# n# x s# of
              (# s'#, arr# #) ->
                let ma = MutableArray arr#
-#if (__GLASGOW_HASKELL__ < 702)
-                          (I# n#)
-#endif
                in (# s'# , ma #))
 
 -- | Read a value from the array at the given index.
@@ -161,16 +148,9 @@ freezeArray
   -> Int                          -- ^ length
   -> m (Array a)
 {-# INLINE freezeArray #-}
-#if (__GLASGOW_HASKELL__ >= 702)
 freezeArray (MutableArray ma#) (I# off#) (I# len#) =
   primitive $ \s -> case freezeArray# ma# off# len# s of
     (# s', a# #) -> (# s', Array a# #)
-#else
-freezeArray src off len = do
-  dst <- newArray len (die "freezeArray" "impossible")
-  copyMutableArray dst 0 src off len
-  unsafeFreezeArray dst
-#endif
 
 -- | Convert a mutable array to an immutable one without copying. The
 -- array should not be modified after the conversion.
@@ -180,9 +160,6 @@ unsafeFreezeArray arr
   = primitive (\s# -> case unsafeFreezeArray# (marray# arr) s# of
                         (# s'#, arr'# #) ->
                           let a = Array arr'#
-#if (__GLASGOW_HASKELL__ < 702)
-                                    (sizeofMutableArray arr)
-#endif
                           in (# s'#, a #))
 
 -- | Create a mutable array from a slice of an immutable array.
@@ -196,16 +173,9 @@ thawArray
   -> Int     -- ^ length
   -> m (MutableArray (PrimState m) a)
 {-# INLINE thawArray #-}
-#if (__GLASGOW_HASKELL__ >= 702)
 thawArray (Array a#) (I# off#) (I# len#) =
   primitive $ \s -> case thawArray# a# off# len# s of
     (# s', ma# #) -> (# s', MutableArray ma# #)
-#else
-thawArray src off len = do
-  dst <- newArray len (die "thawArray" "impossible")
-  copyArray dst 0 src off len
-  return dst
-#endif
 
 -- | Convert an immutable array to an mutable one without copying. The
 -- immutable array should not be used after the conversion.
@@ -215,9 +185,6 @@ unsafeThawArray a
   = primitive (\s# -> case unsafeThawArray# (array# a) s# of
                         (# s'#, arr'# #) ->
                           let ma = MutableArray arr'#
-#if (__GLASGOW_HASKELL__ < 702)
-                                     (sizeofArray a)
-#endif
                           in (# s'#, ma #))
 
 -- | Check whether the two arrays refer to the same memory block.
@@ -282,15 +249,8 @@ cloneArray :: Array a -- ^ source array
            -> Int     -- ^ number of elements to copy
            -> Array a
 {-# INLINE cloneArray #-}
-#if __GLASGOW_HASKELL__ >= 702
 cloneArray (Array arr#) (I# off#) (I# len#)
   = case cloneArray# arr# off# len# of arr'# -> Array arr'#
-#else
-cloneArray arr off len = runST $ do
-    marr2 <- newArray len $ die "cloneArray" "impossible"
-    copyArray marr2 0 arr off len
-    unsafeFreezeArray marr2
-#endif
 
 -- | Return a newly allocated MutableArray. with the specified subrange of
 -- the provided MutableArray. The provided MutableArray should contain the
@@ -301,21 +261,9 @@ cloneMutableArray :: PrimMonad m
         -> Int                          -- ^ number of elements to copy
         -> m (MutableArray (PrimState m) a)
 {-# INLINE cloneMutableArray #-}
-#if __GLASGOW_HASKELL__ >= 702
 cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
    (\s# -> case cloneMutableArray# arr# off# len# s# of
              (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
-#else
-cloneMutableArray marr off len = do
-        marr2 <- newArray len $ die "cloneMutableArray" "impossible"
-        let go !i !j c
-                | c >= len = return marr2
-                | otherwise = do
-                    b <- readArray marr i
-                    writeArray marr2 j b
-                    go (i+1) (j+1) (c+1)
-        go off 0 0
-#endif
 
 emptyArray :: Array a
 emptyArray =
