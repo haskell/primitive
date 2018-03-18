@@ -525,9 +525,35 @@ instance Foldable SmallArray where
   {-# INLINE product #-}
 #endif
 
+newtype STA a = STA {_runSTA :: forall s. SmallMutableArray# s a -> ST s (SmallArray a)}
+
+runSTA :: Int -> STA a -> SmallArray a
+runSTA !sz = \ (STA m) -> runST $ newSmallArray_ sz >>=
+                        \ (SmallMutableArray ar#) -> m ar#
+{-# INLINE runSTA #-}
+
+newSmallArray_ :: Int -> ST s (SmallMutableArray s a)
+newSmallArray_ !n = newSmallArray n badTraverseValue
+
+badTraverseValue :: a
+badTraverseValue = die "traverse" "bad indexing"
+{-# NOINLINE badTraverseValue #-}
+
 instance Traversable SmallArray where
-  traverse f sa = fromListN l <$> traverse (f . indexSmallArray sa) [0..l-1]
-   where l = length sa
+  traverse f = \ !ary ->
+    let
+      !len = sizeofSmallArray ary
+      go !i
+        | i == len
+        = pure $ STA $ \mary -> unsafeFreezeSmallArray (SmallMutableArray mary)
+        | (# x #) <- indexSmallArray## ary i
+        = liftA2 (\b (STA m) -> STA $ \mary ->
+                    writeSmallArray (SmallMutableArray mary) i b >> m mary)
+                 (f x) (go (i + 1))
+    in if len == 0
+       then pure emptySmallArray
+       else runSTA len <$> go 0
+  {-# INLINE traverse #-}
 
 instance Functor SmallArray where
   fmap f sa = createSmallArray (length sa) (die "fmap" "impossible") $ \smb ->

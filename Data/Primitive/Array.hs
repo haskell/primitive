@@ -444,10 +444,33 @@ instance Foldable Array where
   {-# INLINE product #-}
 #endif
 
+newtype STA a = STA {_runSTA :: forall s. MutableArray# s a -> ST s (Array a)}
+
+runSTA :: Int -> STA a -> Array a
+runSTA !sz = \ (STA m) -> runST $ newArray_ sz >>= \ ar -> m (marray# ar)
+{-# INLINE runSTA #-}
+
+newArray_ :: Int -> ST s (MutableArray s a)
+newArray_ !n = newArray n badTraverseValue
+
+badTraverseValue :: a
+badTraverseValue = die "traverse" "bad indexing"
+{-# NOINLINE badTraverseValue #-}
+
 instance Traversable Array where
-  traverse f a =
-    fromListN (sizeofArray a)
-      <$> traverse (f . indexArray a) [0 .. sizeofArray a - 1]
+  traverse f = \ !ary ->
+    let
+      !len = sizeofArray ary
+      go !i
+        | i == len = pure $ STA $ \mary -> unsafeFreezeArray (MutableArray mary)
+        | (# x #) <- indexArray## ary i
+        = liftA2 (\b (STA m) -> STA $ \mary ->
+                    writeArray (MutableArray mary) i b >> m mary)
+                 (f x) (go (i + 1))
+    in if len == 0
+       then pure emptyArray
+       else runSTA len <$> go 0
+  {-# INLINE traverse #-}
 
 #if MIN_VERSION_base(4,7,0)
 instance Exts.IsList (Array a) where
