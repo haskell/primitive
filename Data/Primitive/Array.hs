@@ -115,6 +115,13 @@ indexArray :: Array a -> Int -> a
 {-# INLINE indexArray #-}
 indexArray arr (I# i#) = case indexArray# (array# arr) i# of (# x #) -> x
 
+-- | Read a value from the immutable array at the given index, returning
+-- the result in an unboxed unary tuple. This is currently used to implement
+-- folds.
+indexArray## :: Array a -> Int -> (# a #)
+indexArray## arr (I# i) = indexArray# (array# arr) i
+{-# INLINE indexArray## #-}
+
 -- | Monadically read a value from the immutable array at the given index.
 -- This allows us to be strict in the array while remaining lazy in the read
 -- element which is very useful for collective operations. Suppose we want to
@@ -346,60 +353,90 @@ instance Ord a => Ord (Array a) where
      | otherwise = compare (sizeofArray a1) (sizeofArray a2)
 
 instance Foldable Array where
-  foldr f z a = go 0
-   where go i | i < sizeofArray a = f (indexArray a i) (go $ i+1)
-              | otherwise         = z
+  -- Note: we perform the array lookups eagerly so we won't
+  -- create thunks to perform lookups even if GHC can't see
+  -- that the folding function is strict.
+  foldr f = \z !ary ->
+    let
+      !sz = sizeofArray ary
+      go i
+        | i == sz = z
+        | (# x #) <- indexArray## ary i
+        = f x (go (i+1))
+    in go 0
   {-# INLINE foldr #-}
-  foldl f z a = go (sizeofArray a - 1)
-   where go i | i < 0     = z
-              | otherwise = f (go $ i-1) (indexArray a i)
+  foldl f = \z !ary ->
+    let
+      go i
+        | i < 0 = z
+        | (# x #) <- indexArray## ary i
+        = f (go (i-1)) x
+    in go (sizeofArray ary - 1)
   {-# INLINE foldl #-}
-  foldr1 f a | sz < 0    = die "foldr1" "empty array"
-             | otherwise = go 0
-   where sz = sizeofArray a - 1
-         z = indexArray a sz
-         go i | i < sz    = f (indexArray a i) (go $ i+1)
-              | otherwise = z
+  foldr1 f = \ !ary ->
+    let
+      !sz = sizeofArray ary - 1
+      go i =
+        case indexArray## ary i of
+          (# x #) | i == sz -> x
+                  | otherwise -> f x (go (i+1))
+    in if sz < 0
+       then die "foldr1" "empty array"
+       else go 0
   {-# INLINE foldr1 #-}
-  foldl1 f a | sz == 0   = die "foldl1" "empty array"
-             | otherwise = go $ sz-1
-   where sz = sizeofArray a
-         z = indexArray a 0
-         go i | i < 1     = f (go $ i-1) (indexArray a i)
-              | otherwise = z
+  foldl1 f = \ !ary ->
+    let
+      !sz = sizeofArray ary - 1
+      go i =
+        case indexArray## ary i of
+          (# x #) | i == 0 -> x
+                  | otherwise -> f x (go (i - 1))
+    in if sz < 0
+       then die "foldl1" "empty array"
+       else go sz
   {-# INLINE foldl1 #-}
 #if MIN_VERSION_base(4,6,0)
-  foldr' f z a = go (sizeofArray a - 1) z
-   where go i !acc | i < 0     = acc
-                   | otherwise = go (i-1) (f (indexArray a i) acc)
+  foldr' f = \z !ary ->
+    let
+      go i !acc
+        | i == -1 = acc
+        | (# x #) <- indexArray## ary i
+        = go (i-1) (f x acc)
+    in go (sizeofArray ary - 1) z
   {-# INLINE foldr' #-}
-  foldl' f z a = go 0 z
-   where go i !acc | i < sizeofArray a = go (i+1) (f acc $ indexArray a i)
-                   | otherwise         = acc
+  foldl' f = \z !ary ->
+    let
+      !sz = sizeofArray ary
+      go i !acc
+        | i == sz = acc
+        | (# x #) <- indexArray## ary i
+        = go (i+1) (f acc x)
+    in go 0 z
   {-# INLINE foldl' #-}
 #endif
 #if MIN_VERSION_base(4,8,0)
-  toList a = Exts.build $ \c z -> let
-      sz = sizeofArray a
-      go i | i < sz    = c (indexArray a i) (go $ i+1)
-           | otherwise = z
-    in go 0
-  {-# INLINE toList #-}
   null a = sizeofArray a == 0
   {-# INLINE null #-}
   length = sizeofArray
   {-# INLINE length #-}
-  maximum a | sz == 0   = die "maximum" "empty array"
-            | otherwise = go 1 (indexArray a 0)
-   where sz = sizeofArray a
-         go i !e | i < sz    = go (i+1) (max e $ indexArray a i)
-                 | otherwise = e
+  maximum ary | sz == 0   = die "maximum" "empty array"
+              | (# frst #) <- indexArray## ary 0
+              = go 1 frst
+   where
+     sz = sizeofArray ary
+     go i !e
+       | i == sz = e
+       | (# x #) <- indexArray## ary i
+       = go (i+1) (max e x)
   {-# INLINE maximum #-}
-  minimum a | sz == 0   = die "minimum" "empty array"
-            | otherwise = go 1 (indexArray a 0)
-   where sz = sizeofArray a
-         go i !e | i < sz    = go (i+1) (min e $ indexArray a i)
-                 | otherwise = e
+  minimum ary | sz == 0   = die "minimum" "empty array"
+              | (# frst #) <- indexArray## ary 0
+              = go 1 frst
+   where sz = sizeofArray ary
+         go i !e
+           | i == sz = e
+           | (# x #) <- indexArray## ary i
+           = go (i+1) (min e x)
   {-# INLINE minimum #-}
   sum = foldl' (+) 0
   {-# INLINE sum #-}
