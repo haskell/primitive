@@ -15,6 +15,9 @@ Build-Type:     Simple
 Description:    This package provides various primitive memory-related operations.
 
 Extra-Source-Files: changelog.md
+                    test/*.hs
+                    test/LICENSE
+                    test/primitive-tests.cabal
 
 Tested-With:
   GHC == 7.4.2,
@@ -62,16 +65,6 @@ Library
       cc-options: -ftree-vectorize
   if arch(i386) || arch(x86_64)
       cc-options: -msse2
-
-test-suite test
-  Default-Language: Haskell2010
-  hs-source-dirs: test
-  main-is: main.hs
-  type: exitcode-stdio-1.0
-  build-depends: base
-               , ghc-prim
-               , primitive
-  ghc-options: -O2
 
 source-repository head
   type:     git

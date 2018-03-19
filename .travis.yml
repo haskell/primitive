@@ -93,15 +93,16 @@ install:
       cabal new-update head.hackage -v
     fi
   - grep -Ev -- '^\s*--' ${HOME}/.cabal/config | grep -Ev '^\s*$'
-  - "printf 'packages: \".\"\\n' > cabal.project"
+  - "printf 'packages: \".\" \"./test\"\\n' > cabal.project"
   - cat cabal.project
   - if [ -f "./configure.ac" ]; then
       (cd "." && autoreconf -i);
     fi
+  - if [ -f "./test/configure.ac" ]; then
+      (cd "./test" && autoreconf -i);
+    fi
   - rm -f cabal.project.freeze
-  - cabal new-build -w ${HC} ${TEST} ${BENCH} --project-file="cabal.project" --dep -j2 all
-  - cabal new-build -w ${HC} --disable-tests --disable-benchmarks --project-file="cabal.project" --dep -j2 all
-  - rm -rf "."/.ghc.environment.* "."/dist
+  - rm -rf .ghc.environment.* "."/dist "./test"/dist
   - DISTDIR=$(mktemp -d /tmp/dist-test.XXXX)
 
 # Here starts the actual work to be performed for the package under test;
@@ -109,10 +110,11 @@ install:
 script:
   # test that source-distributions can be generated
   - (cd "." && cabal sdist)
-  - mv "."/dist/primitive-*.tar.gz ${DISTDIR}/
+  - (cd "./test" && cabal sdist)
+  - mv "."/dist/primitive-*.tar.gz "./test"/dist/primitive-tests-*.tar.gz ${DISTDIR}/
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -name '*.tar.gz' -exec tar -xvf '{}' \;
-  - "printf 'packages: primitive-*/*.cabal\\n' > cabal.project"
+  - "printf 'packages: primitive-*/*.cabal primitive-tests-*/*.cabal\\n' > cabal.project"
   - cat cabal.project
   # this builds all libraries and executables (without tests/benchmarks)
   - cabal new-build -w ${HC} --disable-tests --disable-benchmarks all
@@ -121,12 +123,12 @@ script:
   - if $INSTALLED; then echo cabal new-build -w ${HC} --disable-tests --disable-benchmarks $(${HCPKG} list --global --simple-output --names-only | sed 's/\([a-zA-Z0-9-]\{1,\}\) */--constraint="\1 installed" /g') all | sh; else echo "Not building with installed constraints"; fi
 
   # build & run tests, build benchmarks
-  - cabal new-build -w ${HC} ${TEST} ${BENCH} all
+  - cabal new-build -w ${HC} ${TEST} ${BENCH} -j2 all
   - if [ "x$TEST" = "x--enable-tests" ]; then cabal new-test -w ${HC} ${TEST} ${BENCH} all; fi
 
   # cabal check
-  #   Commented out due to https://github.com/haskell/cabal/issues/4551
-  # - (cd primitive-* && cabal check)
+  - (cd primitive-* && cabal check)
+  - (cd primitive-tests-* && cabal check)
 
   # haddock
   - rm -rf ./dist-newstyle
