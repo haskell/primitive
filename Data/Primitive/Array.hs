@@ -474,9 +474,9 @@ fromList l = fromListN (length l) l
 instance Functor Array where
   fmap f a =
     createArray (sizeofArray a) (die "fmap" "impossible") $ \mb ->
-      let go i | i < sizeofArray a = return ()
-               | otherwise         = writeArray mb i (f $ indexArray a i)
-                                  >> go (i+1)
+      let go i | i == sizeofArray a = return ()
+               | otherwise          = writeArray mb i (f $ indexArray a i)
+                                      >> go (i+1)
        in go 0
 #if MIN_VERSION_base(4,8,0)
   e <$ a = runST $ newArray (sizeofArray a) e >>= unsafeFreezeArray
@@ -521,17 +521,20 @@ instance Alternative Array where
 instance Monad Array where
   return = pure
   (>>) = (*>)
-  a >>= f = push 0 [] (sizeofArray a - 1)
-   where
-   push !sz bs i
-     | i < 0 = build sz bs
-     | otherwise = let b = f $ indexArray a i
-                    in push (sz + sizeofArray b) (b:bs) (i+1)
 
-   build sz stk = createArray sz (die ">>=" "impossible") $ \mb ->
-     let go off (b:bs) = copyArray mb off b 0 (sizeofArray b) >> go (off + sizeofArray b) bs
-         go _   [    ] = return ()
-      in go 0 stk
+  ary >>= f = collect 0 [] (la-1)
+   where
+   la = sizeofArray ary
+   collect sz stk i
+     | i < 0 = createArray sz (die ">>=" "impossible") $ fill 0 stk
+     | otherwise = let sb = f $ indexArray ary i in
+         collect (sz + sizeofArray sb) (sb:stk) (i-1)
+
+   fill _   [      ] _   = return ()
+   fill off (sb:sbs) smb =
+     copyArray smb off sb 0 (sizeofArray sb)
+       *> fill (off + sizeofArray sb) sbs smb
+
   fail _ = empty
 
 instance MonadPlus Array where
