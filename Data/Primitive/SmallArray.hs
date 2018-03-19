@@ -54,6 +54,7 @@ module Data.Primitive.SmallArray
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
+  , unsafeTraverseSmallArray
   ) where
 
 
@@ -71,9 +72,7 @@ import Control.Monad
 import Control.Monad.Fix
 import Control.Monad.Primitive
 import Control.Monad.ST
-#if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
-#endif
 import Data.Data
 import Data.Foldable
 import Data.Functor.Identity
@@ -108,9 +107,7 @@ newtype SmallArray a = SmallArray (Array a) deriving
   , Alternative
   , Monad
   , MonadPlus
-#if MIN_VERSION_base(4,4,0)
   , MonadZip
-#endif
   , MonadFix
   , Monoid
   , Typeable
@@ -390,6 +387,37 @@ sizeofSmallMutableArray (SmallMutableArray ma) = sizeofMutableArray ma
 #endif
 {-# INLINE sizeofSmallMutableArray #-}
 
+-- | This is the fastest, most straightforward way to traverse
+-- an array, but it only works correctly with a sufficiently
+-- "affine" 'PrimMonad' instance. In particular, it must only produce
+-- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- monads, for example, will not work right at all.
+unsafeTraverseSmallArray
+  :: PrimMonad m
+  => (a -> m b)
+  -> SmallArray a
+  -> m (SmallArray b)
+#if HAVE_SMALL_ARRAY
+unsafeTraverseSmallArray f = \ !ary ->
+  let
+    !sz = sizeofSmallArray ary
+    go !i !mary
+      | i == sz
+      = unsafeFreezeSmallArray mary
+      | otherwise
+      = do
+          a <- indexSmallArrayM ary i
+          b <- f a
+          writeSmallArray mary i b
+          go (i + 1) mary
+  in do
+    mary <- newSmallArray sz badTraverseValue
+    go 0 mary
+#else
+unsafeTraverseSmallArray f (SmallArray ar) = SmallArray `liftM` unsafeTraverseArray f ar
+#endif
+{-# INLINE unsafeTraverseSmallArray #-}
+
 #if HAVE_SMALL_ARRAY
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.SmallArray." ++ fun ++ ": " ++ problem
@@ -476,7 +504,6 @@ instance Foldable SmallArray where
        then die "foldl1" "Empty SmallArray"
        else go sz
   {-# INLINE foldl1 #-}
-#if MIN_VERSION_base(4,6,0)
   foldr' f = \z !ary ->
     let
       go i !acc
@@ -494,8 +521,6 @@ instance Foldable SmallArray where
         = go (i+1) (f acc x)
     in go 0 z
   {-# INLINE foldl' #-}
-#endif
-#if MIN_VERSION_base(4,8,0)
   null a = sizeofSmallArray a == 0
   {-# INLINE null #-}
   length = sizeofSmallArray
@@ -523,7 +548,6 @@ instance Foldable SmallArray where
   {-# INLINE sum #-}
   product = foldl' (*) 1
   {-# INLINE product #-}
-#endif
 
 newtype STA a = STA {_runSTA :: forall s. SmallMutableArray# s a -> ST s (SmallArray a)}
 
@@ -540,20 +564,35 @@ badTraverseValue = die "traverse" "bad indexing"
 {-# NOINLINE badTraverseValue #-}
 
 instance Traversable SmallArray where
-  traverse f = \ !ary ->
-    let
-      !len = sizeofSmallArray ary
-      go !i
-        | i == len
-        = pure $ STA $ \mary -> unsafeFreezeSmallArray (SmallMutableArray mary)
-        | (# x #) <- indexSmallArray## ary i
-        = liftA2 (\b (STA m) -> STA $ \mary ->
-                    writeSmallArray (SmallMutableArray mary) i b >> m mary)
-                 (f x) (go (i + 1))
-    in if len == 0
-       then pure emptySmallArray
-       else runSTA len <$> go 0
+  traverse f = traverseSmallArray f
   {-# INLINE traverse #-}
+
+traverseSmallArray
+  :: Applicative f
+  => (a -> f b) -> SmallArray a -> f (SmallArray b)
+traverseSmallArray f = \ !ary ->
+  let
+    !len = sizeofSmallArray ary
+    go !i
+      | i == len
+      = pure $ STA $ \mary -> unsafeFreezeSmallArray (SmallMutableArray mary)
+      | (# x #) <- indexSmallArray## ary i
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writeSmallArray (SmallMutableArray mary) i b >> m mary)
+               (f x) (go (i + 1))
+  in if len == 0
+     then pure emptySmallArray
+     else runSTA len <$> go 0
+{-# INLINE [1] traverseSmallArray #-}
+
+{-# RULES
+"traverse/ST" forall (f :: a -> ST s b). traverseSmallArray f = unsafeTraverseSmallArray f
+"traverse/IO" forall (f :: a -> IO b). traverseSmallArray f = unsafeTraverseSmallArray f
+"traverse/Id" forall (f :: a -> Identity b). traverseSmallArray f =
+   (coerce :: (SmallArray a -> SmallArray (Identity b))
+           -> SmallArray a -> Identity (SmallArray b)) (fmap f)
+ #-}
+
 
 instance Functor SmallArray where
   fmap f sa = createSmallArray (length sa) (die "fmap" "impossible") $ \smb ->

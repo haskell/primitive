@@ -22,7 +22,8 @@ module Data.Primitive.Array (
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
-  fromListN, fromList
+  fromListN, fromList,
+  unsafeTraverseArray
 ) where
 
 import Control.Monad.Primitive
@@ -55,6 +56,9 @@ import Data.Monoid
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Foldable as F
 import Data.Semigroup
+#endif
+#if MIN_VERSION_base(4,8,0)
+import Data.Functor.Identity
 #endif
 
 import Text.ParserCombinators.ReadP
@@ -406,19 +410,68 @@ badTraverseValue = die "traverse" "bad indexing"
 {-# NOINLINE badTraverseValue #-}
 
 instance Traversable Array where
-  traverse f = \ !ary ->
-    let
-      !len = sizeofArray ary
-      go !i
-        | i == len = pure $ STA $ \mary -> unsafeFreezeArray (MutableArray mary)
-        | (# x #) <- indexArray## ary i
-        = liftA2 (\b (STA m) -> STA $ \mary ->
-                    writeArray (MutableArray mary) i b >> m mary)
-                 (f x) (go (i + 1))
-    in if len == 0
-       then pure emptyArray
-       else runSTA len <$> go 0
+  traverse f = traverseArray f
   {-# INLINE traverse #-}
+
+traverseArray
+  :: Applicative f
+  => (a -> f b)
+  -> Array a
+  -> f (Array b)
+traverseArray f = \ !ary ->
+  let
+    !len = sizeofArray ary
+    go !i
+      | i == len = pure $ STA $ \mary -> unsafeFreezeArray (MutableArray mary)
+      | (# x #) <- indexArray## ary i
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writeArray (MutableArray mary) i b >> m mary)
+               (f x) (go (i + 1))
+  in if len == 0
+     then pure emptyArray
+     else runSTA len <$> go 0
+{-# INLINE [1] traverseArray #-}
+
+{-# RULES
+"traverse/ST" forall (f :: a -> ST s b). traverseArray f =
+   unsafeTraverseArray f
+"traverse/IO" forall (f :: a -> IO b). traverseArray f =
+   unsafeTraverseArray f
+ #-}
+#if MIN_VERSION_base(4,8,0)
+{-# RULES
+"traverse/Id" forall (f :: a -> Identity b). traverseArray f =
+   (coerce :: (Array a -> Array (Identity b))
+           -> Array a -> Identity (Array b)) (fmap f)
+ #-}
+#endif
+
+-- | This is the fastest, most straightforward way to traverse
+-- an array, but it only works correctly with a sufficiently
+-- "affine" 'PrimMonad' instance. In particular, it must only produce
+-- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- monads, for example, will not work right at all.
+unsafeTraverseArray
+  :: PrimMonad m
+  => (a -> m b)
+  -> Array a
+  -> m (Array b)
+unsafeTraverseArray f = \ !ary ->
+  let
+    !sz = sizeofArray ary
+    go !i !mary
+      | i == sz
+      = unsafeFreezeArray mary
+      | otherwise
+      = do
+          a <- indexArrayM ary i
+          b <- f a
+          writeArray mary i b
+          go (i + 1) mary
+  in do
+    mary <- newArray sz badTraverseValue
+    go 0 mary
+{-# INLINE unsafeTraverseArray #-}
 
 #if MIN_VERSION_base(4,7,0)
 instance Exts.IsList (Array a) where
