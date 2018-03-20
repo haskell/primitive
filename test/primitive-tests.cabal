@@ -31,6 +31,10 @@ test-suite test
   build-depends: base >= 4.5 && < 4.12
                , ghc-prim
                , primitive
+               , QuickCheck
+               , tasty
+               , tasty-quickcheck
+               , quickcheck-classes >= 0.4
   ghc-options: -O2
 
 source-repository head

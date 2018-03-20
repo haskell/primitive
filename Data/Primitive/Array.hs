@@ -59,6 +59,8 @@ import Data.Semigroup
 
 import Text.ParserCombinators.ReadP
 
+import Data.Functor.Classes (Eq1(..),Show1(..))
+
 -- | Boxed arrays
 data Array a = Array
              { array# :: Array# a
@@ -341,6 +343,11 @@ instance Eq a => Eq (Array a) where
    where loop i | i < 0     = True
                 | otherwise = indexArray a1 i == indexArray a2 i && loop (i-1)
 
+instance Eq1 Array where
+  liftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
+   where loop i | i < 0     = True
+                | otherwise = p (indexArray a1 i) (indexArray a2 i) && loop (i-1)
+
 instance Eq (MutableArray s a) where
   ma1 == ma2 = isTrue# (sameMutableArray# (marray# ma1) (marray# ma2))
 
@@ -591,6 +598,11 @@ instance Show a => Show (Array a) where
   showsPrec p a = showParen (p > 10) $
     showString "fromListN " . shows (sizeofArray a) . showString " "
       . shows (toList a)
+
+instance Show1 Array where
+  liftShowsPrec elemShowsPrec elemListShowsPrec p a = showParen (p > 10) $
+    showString "fromListN " . shows (sizeofArray a) . showString " "
+      . liftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList a)
 
 instance Read a => Read (Array a) where
   readsPrec p = readParen (p > 10) . readP_to_S $ do

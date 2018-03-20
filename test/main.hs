@@ -1,4 +1,8 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 import Control.Monad
 import Control.Monad.Primitive
@@ -9,6 +13,7 @@ import Data.Primitive.Array
 import Data.Primitive.ByteArray
 import Data.Primitive.Types
 import Data.Word
+import Data.Proxy (Proxy(..))
 import GHC.Int
 import GHC.IO
 import GHC.Prim
@@ -16,14 +21,33 @@ import GHC.Prim
 import Data.Semigroup (stimes)
 #endif
 
--- Since we only have two test cases right now, I'm going to avoid the
--- issue of choosing a test framework for the moment. This also keeps the
--- package as a whole light on dependencies.
+import Test.Tasty (defaultMain,testGroup,TestTree)
+import Test.QuickCheck (Arbitrary,Arbitrary1,Gen)
+import qualified Test.Tasty.QuickCheck as TQC
+import qualified Test.QuickCheck as QC
+import qualified Test.QuickCheck.Classes as QCC
+import qualified Data.List as L
 
 main :: IO ()
 main = do
-    testArray
-    testByteArray
+  testArray
+  testByteArray
+  defaultMain $ testGroup "Array"
+    [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (Array Int)))
+    , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
+    , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
+    , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
+    , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
+    , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
+    , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 Array))
+    , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 Array))
+    ]
+
+-- on GHC 7.4, Proxy is not polykinded, so we need this instead.
+data Proxy1 (f :: * -> *) = Proxy1
+
+lawsToTest :: QCC.Laws -> TestTree
+lawsToTest (QCC.Laws name pairs) = testGroup name (map (uncurry TQC.testProperty) pairs)
 
 testArray :: IO ()
 testArray = do
@@ -69,3 +93,23 @@ mkByteArray xs = runST $ do
     marr <- newByteArray (length xs * sizeOf (head xs))
     sequence $ zipWith (writeByteArray marr) [0..] xs
     unsafeFreezeByteArray marr
+
+instance Arbitrary1 Array where
+  liftArbitrary elemGen = fmap fromList (QC.liftArbitrary elemGen)
+
+instance Arbitrary a => Arbitrary (Array a) where
+  arbitrary = fmap fromList QC.arbitrary
+
+instance Arbitrary ByteArray where
+  arbitrary = do
+    xs <- QC.arbitrary :: Gen [Word8]
+    return $ runST $ do
+      a <- newByteArray (L.length xs)
+      iforM_ xs $ \ix x -> do
+        writeByteArray a ix x
+      unsafeFreezeByteArray a
+
+iforM_ :: Monad m => [a] -> (Int -> a -> m b) -> m ()
+iforM_ xs0 f = go 0 xs0 where
+  go !_ [] = return ()
+  go !ix (x : xs) = f ix x >> go (ix + 1) xs
