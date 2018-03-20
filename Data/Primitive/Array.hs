@@ -22,7 +22,8 @@ module Data.Primitive.Array (
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
-  fromListN, fromList
+  fromListN, fromList,
+  unsafeTraverseArray
 ) where
 
 import Control.Monad.Primitive
@@ -56,28 +57,22 @@ import Data.Monoid
 import qualified Data.Foldable as F
 import Data.Semigroup
 #endif
+#if MIN_VERSION_base(4,8,0)
+import Data.Functor.Identity
+#endif
 
 import Text.ParserCombinators.ReadP
 
 -- | Boxed arrays
 data Array a = Array
-             { array# :: Array# a
-#if (__GLASGOW_HASKELL__ < 702)
-             , sizeofArray :: {-# UNPACK #-} !Int
-#endif
-             }
+  { array# :: Array# a }
   deriving ( Typeable )
 
 -- | Mutable boxed arrays associated with a primitive state token.
 data MutableArray s a = MutableArray
-                      { marray# :: MutableArray# s a
-#if (__GLASGOW_HASKELL__ < 702)
-                      , sizeofMutableArray :: {-# UNPACK #-} !Int
-#endif
-                      }
+  { marray# :: MutableArray# s a }
   deriving ( Typeable )
 
-#if (__GLASGOW_HASKELL__ >= 702)
 sizeofArray :: Array a -> Int
 sizeofArray a = I# (sizeofArray# (array# a))
 {-# INLINE sizeofArray #-}
@@ -85,7 +80,6 @@ sizeofArray a = I# (sizeofArray# (array# a))
 sizeofMutableArray :: MutableArray s a -> Int
 sizeofMutableArray a = I# (sizeofMutableArray# (marray# a))
 {-# INLINE sizeofMutableArray #-}
-#endif
 
 -- | Create a new mutable array of the specified size and initialise all
 -- elements with the given value.
@@ -95,9 +89,6 @@ newArray (I# n#) x = primitive
    (\s# -> case newArray# n# x s# of
              (# s'#, arr# #) ->
                let ma = MutableArray arr#
-#if (__GLASGOW_HASKELL__ < 702)
-                          (I# n#)
-#endif
                in (# s'# , ma #))
 
 -- | Read a value from the array at the given index.
@@ -161,16 +152,9 @@ freezeArray
   -> Int                          -- ^ length
   -> m (Array a)
 {-# INLINE freezeArray #-}
-#if (__GLASGOW_HASKELL__ >= 702)
 freezeArray (MutableArray ma#) (I# off#) (I# len#) =
   primitive $ \s -> case freezeArray# ma# off# len# s of
     (# s', a# #) -> (# s', Array a# #)
-#else
-freezeArray src off len = do
-  dst <- newArray len (die "freezeArray" "impossible")
-  copyMutableArray dst 0 src off len
-  unsafeFreezeArray dst
-#endif
 
 -- | Convert a mutable array to an immutable one without copying. The
 -- array should not be modified after the conversion.
@@ -180,9 +164,6 @@ unsafeFreezeArray arr
   = primitive (\s# -> case unsafeFreezeArray# (marray# arr) s# of
                         (# s'#, arr'# #) ->
                           let a = Array arr'#
-#if (__GLASGOW_HASKELL__ < 702)
-                                    (sizeofMutableArray arr)
-#endif
                           in (# s'#, a #))
 
 -- | Create a mutable array from a slice of an immutable array.
@@ -196,16 +177,9 @@ thawArray
   -> Int     -- ^ length
   -> m (MutableArray (PrimState m) a)
 {-# INLINE thawArray #-}
-#if (__GLASGOW_HASKELL__ >= 702)
 thawArray (Array a#) (I# off#) (I# len#) =
   primitive $ \s -> case thawArray# a# off# len# s of
     (# s', ma# #) -> (# s', MutableArray ma# #)
-#else
-thawArray src off len = do
-  dst <- newArray len (die "thawArray" "impossible")
-  copyArray dst 0 src off len
-  return dst
-#endif
 
 -- | Convert an immutable array to an mutable one without copying. The
 -- immutable array should not be used after the conversion.
@@ -215,9 +189,6 @@ unsafeThawArray a
   = primitive (\s# -> case unsafeThawArray# (array# a) s# of
                         (# s'#, arr'# #) ->
                           let ma = MutableArray arr'#
-#if (__GLASGOW_HASKELL__ < 702)
-                                     (sizeofArray a)
-#endif
                           in (# s'#, ma #))
 
 -- | Check whether the two arrays refer to the same memory block.
@@ -282,15 +253,8 @@ cloneArray :: Array a -- ^ source array
            -> Int     -- ^ number of elements to copy
            -> Array a
 {-# INLINE cloneArray #-}
-#if __GLASGOW_HASKELL__ >= 702
 cloneArray (Array arr#) (I# off#) (I# len#)
   = case cloneArray# arr# off# len# of arr'# -> Array arr'#
-#else
-cloneArray arr off len = runST $ do
-    marr2 <- newArray len $ die "cloneArray" "impossible"
-    copyArray marr2 0 arr off len
-    unsafeFreezeArray marr2
-#endif
 
 -- | Return a newly allocated MutableArray. with the specified subrange of
 -- the provided MutableArray. The provided MutableArray should contain the
@@ -301,21 +265,9 @@ cloneMutableArray :: PrimMonad m
         -> Int                          -- ^ number of elements to copy
         -> m (MutableArray (PrimState m) a)
 {-# INLINE cloneMutableArray #-}
-#if __GLASGOW_HASKELL__ >= 702
 cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
    (\s# -> case cloneMutableArray# arr# off# len# s# of
              (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
-#else
-cloneMutableArray marr off len = do
-        marr2 <- newArray len $ die "cloneMutableArray" "impossible"
-        let go !i !j c
-                | c >= len = return marr2
-                | otherwise = do
-                    b <- readArray marr i
-                    writeArray marr2 j b
-                    go (i+1) (j+1) (c+1)
-        go off 0 0
-#endif
 
 emptyArray :: Array a
 emptyArray =
@@ -444,10 +396,82 @@ instance Foldable Array where
   {-# INLINE product #-}
 #endif
 
+newtype STA a = STA {_runSTA :: forall s. MutableArray# s a -> ST s (Array a)}
+
+runSTA :: Int -> STA a -> Array a
+runSTA !sz = \ (STA m) -> runST $ newArray_ sz >>= \ ar -> m (marray# ar)
+{-# INLINE runSTA #-}
+
+newArray_ :: Int -> ST s (MutableArray s a)
+newArray_ !n = newArray n badTraverseValue
+
+badTraverseValue :: a
+badTraverseValue = die "traverse" "bad indexing"
+{-# NOINLINE badTraverseValue #-}
+
 instance Traversable Array where
-  traverse f a =
-    fromListN (sizeofArray a)
-      <$> traverse (f . indexArray a) [0 .. sizeofArray a - 1]
+  traverse f = traverseArray f
+  {-# INLINE traverse #-}
+
+traverseArray
+  :: Applicative f
+  => (a -> f b)
+  -> Array a
+  -> f (Array b)
+traverseArray f = \ !ary ->
+  let
+    !len = sizeofArray ary
+    go !i
+      | i == len = pure $ STA $ \mary -> unsafeFreezeArray (MutableArray mary)
+      | (# x #) <- indexArray## ary i
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writeArray (MutableArray mary) i b >> m mary)
+               (f x) (go (i + 1))
+  in if len == 0
+     then pure emptyArray
+     else runSTA len <$> go 0
+{-# INLINE [1] traverseArray #-}
+
+{-# RULES
+"traverse/ST" forall (f :: a -> ST s b). traverseArray f =
+   unsafeTraverseArray f
+"traverse/IO" forall (f :: a -> IO b). traverseArray f =
+   unsafeTraverseArray f
+ #-}
+#if MIN_VERSION_base(4,8,0)
+{-# RULES
+"traverse/Id" forall (f :: a -> Identity b). traverseArray f =
+   (coerce :: (Array a -> Array (Identity b))
+           -> Array a -> Identity (Array b)) (fmap f)
+ #-}
+#endif
+
+-- | This is the fastest, most straightforward way to traverse
+-- an array, but it only works correctly with a sufficiently
+-- "affine" 'PrimMonad' instance. In particular, it must only produce
+-- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- monads, for example, will not work right at all.
+unsafeTraverseArray
+  :: PrimMonad m
+  => (a -> m b)
+  -> Array a
+  -> m (Array b)
+unsafeTraverseArray f = \ !ary ->
+  let
+    !sz = sizeofArray ary
+    go !i !mary
+      | i == sz
+      = unsafeFreezeArray mary
+      | otherwise
+      = do
+          a <- indexArrayM ary i
+          b <- f a
+          writeArray mary i b
+          go (i + 1) mary
+  in do
+    mary <- newArray sz badTraverseValue
+    go 0 mary
+{-# INLINE unsafeTraverseArray #-}
 
 #if MIN_VERSION_base(4,7,0)
 instance Exts.IsList (Array a) where
