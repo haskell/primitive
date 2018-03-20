@@ -43,7 +43,7 @@ import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Control.Monad.ST(ST,runST)
 
 import Control.Applicative
-import Control.Monad (MonadPlus(..))
+import Control.Monad (MonadPlus(..), when)
 import Control.Monad.Fix
 #if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
@@ -291,7 +291,9 @@ die fun problem = error $ "Data.Primitive.Array." ++ fun ++ ": " ++ problem
 instance Eq a => Eq (Array a) where
   a1 == a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
    where loop i | i < 0     = True
-                | otherwise = indexArray a1 i == indexArray a2 i && loop (i-1)
+                | (# x1 #) <- indexArray## a1 i
+                , (# x2 #) <- indexArray## a2 i
+                = x1 == x2 && loop (i-1)
 
 instance Eq (MutableArray s a) where
   ma1 == ma2 = isTrue# (sameMutableArray# (marray# ma1) (marray# ma2))
@@ -301,7 +303,10 @@ instance Ord a => Ord (Array a) where
    where
    mn = sizeofArray a1 `min` sizeofArray a2
    loop i
-     | i < mn    = compare (indexArray a1 i) (indexArray a2 i) `mappend` loop (i+1)
+     | i < mn
+     , (# x1 #) <- indexArray## a1 i
+     , (# x2 #) <- indexArray## a2 i
+     = compare x1 x2 `mappend` loop (i+1)
      | otherwise = compare (sizeofArray a1) (sizeofArray a2)
 
 instance Foldable Array where
@@ -498,9 +503,11 @@ fromList l = fromListN (length l) l
 instance Functor Array where
   fmap f a =
     createArray (sizeofArray a) (die "fmap" "impossible") $ \mb ->
-      let go i | i < sizeofArray a = return ()
-               | otherwise         = writeArray mb i (f $ indexArray a i)
-                                  >> go (i+1)
+      let go i | i == sizeofArray a
+               = return ()
+               | otherwise
+               = do x <- indexArrayM a i
+                    writeArray mb i (f x) >> go (i+1)
        in go 0
 #if MIN_VERSION_base(4,8,0)
   e <$ a = runST $ newArray (sizeofArray a) e >>= unsafeFreezeArray
@@ -510,12 +517,15 @@ instance Applicative Array where
   pure x = runST $ newArray 1 x >>= unsafeFreezeArray
   ab <*> a = runST $ do
     mb <- newArray (szab*sza) $ die "<*>" "impossible"
-    let go1 i
-          | i < szab  = go2 (i*sza) (indexArray ab i) 0 >> go1 (i+1)
-          | otherwise = return ()
-        go2 off f j
-          | j < sza   = writeArray mb (off + j) (f $ indexArray a j)
-          | otherwise = return ()
+    let go1 i = when (i < szab) $
+            do
+              f <- indexArrayM ab i
+              go2 (i*sza) f 0
+              go1 (i+1)
+        go2 off f j = when (j < sza) $
+            do
+              x <- indexArrayM a j
+              writeArray mb (off + j) (f x)
     go1 0
     unsafeFreezeArray mb
    where szab = sizeofArray ab ; sza = sizeofArray a
@@ -527,7 +537,9 @@ instance Applicative Array where
   a <* b = createArray (sza*szb) (die "<*" "impossible") $ \ma ->
     let fill off i e | i < szb   = writeArray ma (off+i) e >> fill off (i+1) e
                      | otherwise = return ()
-        go i | i < sza   = fill (i*szb) 0 (indexArray a i) >> go (i+1)
+        go i | i < sza
+             = do x <- indexArrayM a i
+                  fill (i*szb) 0 x >> go (i+1)
              | otherwise = return ()
      in go 0
    where sza = sizeofArray a ; szb = sizeofArray b
@@ -542,20 +554,36 @@ instance Alternative Array where
   many a | sizeofArray a == 0 = pure []
          | otherwise = die "many" "infinite arrays are not well defined"
 
+data ArrayStack a
+  = PushArray !(Array a) !(ArrayStack a)
+  | EmptyStack
+-- See the note in SmallArray about how we might improve this.
+
 instance Monad Array where
   return = pure
   (>>) = (*>)
-  a >>= f = push 0 [] (sizeofArray a - 1)
-   where
-   push !sz bs i
-     | i < 0 = build sz bs
-     | otherwise = let b = f $ indexArray a i
-                    in push (sz + sizeofArray b) (b:bs) (i+1)
 
-   build sz stk = createArray sz (die ">>=" "impossible") $ \mb ->
-     let go off (b:bs) = copyArray mb off b 0 (sizeofArray b) >> go (off + sizeofArray b) bs
-         go _   [    ] = return ()
-      in go 0 stk
+  ary >>= f = collect 0 EmptyStack (la-1)
+   where
+   la = sizeofArray ary
+   collect sz stk i
+     | i < 0 = createArray sz (die ">>=" "impossible") $ fill 0 stk
+     | (# x #) <- indexArray## ary i
+     , let sb = f x
+           lsb = sizeofArray sb
+       -- If we don't perform this check, we could end up allocating
+       -- a stack full of empty arrays if someone is filtering most
+       -- things out. So we refrain from pushing empty arrays.
+     = if lsb == 0
+       then collect sz stk (i - 1)
+       else collect (sz + lsb) (PushArray sb stk) (i-1)
+
+   fill _   EmptyStack         _   = return ()
+   fill off (PushArray sb sbs) smb
+     | let lsb = sizeofArray sb
+     = copyArray smb off sb 0 (lsb)
+         *> fill (off + lsb) sbs smb
+
   fail _ = empty
 
 instance MonadPlus Array where
@@ -564,10 +592,13 @@ instance MonadPlus Array where
 
 zipW :: String -> (a -> b -> c) -> Array a -> Array b -> Array c
 zipW s f aa ab = createArray mn (die s "impossible") $ \mc ->
-  let go i
-        | i < mn    = writeArray mc i (f (indexArray aa i) (indexArray ab i))
-                   >> go (i+1)
-        | otherwise = return ()
+  let go i | i < mn
+           = do
+               x <- indexArrayM aa i
+               y <- indexArrayM ab i
+               writeArray mc i (f x y)
+               go (i+1)
+           | otherwise = return ()
    in go 0
  where mn = sizeofArray aa `min` sizeofArray ab
 {-# INLINE zipW #-}
@@ -581,7 +612,7 @@ instance MonadZip Array where
     ma <- newArray sz (die "munzip" "impossible")
     mb <- newArray sz (die "munzip" "impossible")
     let go i | i < sz = do
-          let (a, b) = indexArray aab i
+          (a, b) <- indexArrayM aab i
           writeArray ma i a
           writeArray mb i b
           go (i+1)
@@ -591,7 +622,14 @@ instance MonadZip Array where
 #endif
 
 instance MonadFix Array where
-  mfix f = let l = mfix (toList . f) in fromListN (length l) l
+  mfix f = createArray (sizeofArray (f err))
+                       (die "mfix" "impossible") $ flip fix 0 $
+    \r !i !mary -> when (i < sz) $ do
+                      writeArray mary i (fix (\xi -> f xi `indexArray` i))
+                      r (i + 1) mary
+    where
+      sz = sizeofArray (f err)
+      err = error "mfix for Data.Primitive.Array applied to strict function."
 
 #if MIN_VERSION_base(4,9,0)
 instance Semigroup (Array a) where

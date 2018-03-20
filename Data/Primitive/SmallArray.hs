@@ -74,7 +74,7 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Control.Monad.Zip
 import Data.Data
-import Data.Foldable
+import Data.Foldable as Foldable
 import Data.Functor.Identity
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Monoid
@@ -118,7 +118,7 @@ instance IsList (SmallArray a) where
   type Item (SmallArray a) = a
   fromListN n l = SmallArray (fromListN n l)
   fromList l = SmallArray (fromList l)
-  toList (SmallArray a) = toList a
+  toList a = Foldable.toList a
 #endif
 #endif
 
@@ -447,19 +447,27 @@ instance Eq a => Eq (SmallArray a) where
   sa1 == sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
    where
    loop i
-     | i < 0     = True
-     | otherwise = indexSmallArray sa1 i == indexSmallArray sa2 i && loop (i-1)
+     | i < 0
+     = True
+     | (# x #) <- indexSmallArray## sa1 i
+     , (# y #) <- indexSmallArray## sa2 i
+     = x == y && loop (i-1)
 
 instance Eq (SmallMutableArray s a) where
   SmallMutableArray sma1# == SmallMutableArray sma2# =
     isTrue# (sameSmallMutableArray# sma1# sma2#)
 
 instance Ord a => Ord (SmallArray a) where
-  compare sl sr = fix ? 0 $ \go i ->
-    if i < l
-      then compare (indexSmallArray sl i) (indexSmallArray sr i) <> go (i+1)
-      else compare (length sl) (length sr)
-   where l = length sl `min` length sr
+  compare a1 a2 = loop 0
+   where
+   mn = length a1 `min` length a2
+   loop i
+     | i < mn
+     , (# x1 #) <- indexSmallArray## a1 i
+     , (# x2 #) <- indexSmallArray## a2 i
+     = compare x1 x2 `mappend` loop (i+1)
+     | otherwise = compare (length a1) (length a2)
+
 
 instance Foldable SmallArray where
   -- Note: we perform the array lookups eagerly so we won't
@@ -597,8 +605,9 @@ traverseSmallArray f = \ !ary ->
 instance Functor SmallArray where
   fmap f sa = createSmallArray (length sa) (die "fmap" "impossible") $ \smb ->
     fix ? 0 $ \go i ->
-      when (i < length sa) $
-        writeSmallArray smb i (f $ indexSmallArray sa i) *> go (i+1)
+      when (i < length sa) $ do
+        x <- indexSmallArrayM sa i
+        writeSmallArray smb i (f x) *> go (i+1)
   {-# INLINE fmap #-}
 
   x <$ sa = createSmallArray (length sa) x noOp
@@ -613,22 +622,23 @@ instance Applicative SmallArray where
    where
    la = length sa ; lb = length sb
 
-  sa <* sb = createSmallArray (la*lb) (indexSmallArray sa $ la-1) $ \sma ->
-    fix ? 0 $ \outer i -> when (i < la-1) $ do
-      let a = indexSmallArray sa i
-      fix ? 0 $ \inner j ->
-        when (j < lb) $
-          writeSmallArray sma (la*i + j) a *> inner (j+1)
-      outer $ i+1
-   where
-   la = length sa ; lb = length sb
+  a <* b = createSmallArray (sza*szb) (die "<*" "impossible") $ \ma ->
+    let fill off i e = when (i < szb) $
+                         writeSmallArray ma (off+i) e >> fill off (i+1) e
+        go i = when (i < sza) $ do
+                 x <- indexSmallArrayM a i
+                 fill (i*szb) 0 x
+                 go (i+1)
+     in go 0
+   where sza = sizeofSmallArray a ; szb = sizeofSmallArray b
 
   sf <*> sx = createSmallArray (lf*lx) (die "<*>" "impossible") $ \smb ->
     fix ? 0 $ \outer i -> when (i < lf) $ do
-      let f = indexSmallArray sf i
+      f <- indexSmallArrayM sf i
       fix ? 0 $ \inner j ->
-        when (j < lx) $
-          writeSmallArray smb (lf*i + j) (f $ indexSmallArray sx j)
+        when (j < lx) $ do
+          x <- indexSmallArrayM sx j
+          writeSmallArray smb (lf*i + j) (f x)
             *> inner (j+1)
       outer $ i+1
    where
@@ -648,20 +658,41 @@ instance Alternative SmallArray where
   some sa | null sa   = emptySmallArray
           | otherwise = die "some" "infinite arrays are not well defined"
 
+data ArrayStack a
+  = PushArray !(SmallArray a) !(ArrayStack a)
+  | EmptyStack
+-- TODO: This isn't terribly efficient. It would be better to wrap
+-- ArrayStack with a type like
+--
+-- data NES s a = NES !Int !(SmallMutableArray s a) !(ArrayStack a)
+--
+-- We'd copy incoming arrays into the mutable array until we would
+-- overflow it. Then we'd freeze it, push it on the stack, and continue.
+-- Any sufficiently large incoming arrays would go straight on the stack.
+-- Such a scheme would make the stack much more compact in the case
+-- of many small arrays.
+
 instance Monad SmallArray where
   return = pure
   (>>) = (*>)
 
-  sa >>= f = collect 0 [] (la-1)
+  sa >>= f = collect 0 EmptyStack (la-1)
    where
    la = length sa
    collect sz stk i
      | i < 0 = createSmallArray sz (die ">>=" "impossible") $ fill 0 stk
-     | otherwise = let sb = f $ indexSmallArray sa i in
-         collect (sz + length sb) (sb:stk) (i-1)
+     | (# x #) <- indexSmallArray## sa i
+     , let sb = f x
+           lsb = length sb
+       -- If we don't perform this check, we could end up allocating
+       -- a stack full of empty arrays if someone is filtering most
+       -- things out. So we refrain from pushing empty arrays.
+     = if lsb == 0
+       then collect sz stk (i-1)
+       else collect (sz + lsb) (PushArray sb stk) (i-1)
 
-   fill _   [      ] _   = return ()
-   fill off (sb:sbs) smb =
+   fill _ EmptyStack _ = return ()
+   fill off (PushArray sb sbs) smb =
      copySmallArray smb off sb 0 (length sb)
        *> fill (off + length sb) sbs smb
 
@@ -674,9 +705,11 @@ instance MonadPlus SmallArray where
 zipW :: String -> (a -> b -> c) -> SmallArray a -> SmallArray b -> SmallArray c
 zipW nm = \f sa sb -> let mn = length sa `min` length sb in
   createSmallArray mn (die nm "impossible") $ \mc ->
-    fix ? 0 $ \go i -> when (i < mn) $
-      writeSmallArray mc i (f (indexSmallArray sa i) (indexSmallArray sb i))
-        *> go (i+1)
+    fix ? 0 $ \go i -> when (i < mn) $ do
+      x <- indexSmallArrayM sa i
+      y <- indexSmallArrayM sb i
+      writeSmallArray mc i (f x y)
+      go (i+1)
 {-# INLINE zipW #-}
 
 instance MonadZip SmallArray where
@@ -696,7 +729,14 @@ instance MonadZip SmallArray where
         <*> unsafeFreezeSmallArray smb
 
 instance MonadFix SmallArray where
-  mfix f = fromList . mfix $ toList . f
+  mfix f = createSmallArray (sizeofSmallArray (f err))
+                            (die "mfix" "impossible") $ flip fix 0 $
+    \r !i !mary -> when (i < sz) $ do
+                      writeSmallArray mary i (fix (\xi -> f xi `indexSmallArray` i))
+                      r (i + 1) mary
+    where
+      sz = sizeofSmallArray (f err)
+      err = error "mfix for Data.Primitive.SmallArray applied to strict function."
 
 #if MIN_VERSION_base(4,9,0)
 instance Sem.Semigroup (SmallArray a) where
@@ -723,7 +763,7 @@ instance IsList (SmallArray a) where
         [] -> pure ()
         x:xs -> writeSmallArray sma i x *> go (i+1) xs
   fromList l = fromListN (length l) l
-  toList sa = indexSmallArray sa <$> [0 .. length sa - 1]
+  toList = Foldable.toList
 
 instance Show a => Show (SmallArray a) where
   showsPrec p sa = showParen (p > 10) $
