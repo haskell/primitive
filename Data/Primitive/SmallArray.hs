@@ -54,8 +54,6 @@ module Data.Primitive.SmallArray
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
-  , fromListN
-  , fromList
   , unsafeTraverseSmallArray
   ) where
 
