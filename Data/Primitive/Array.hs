@@ -546,6 +546,7 @@ instance Applicative Array where
             do
               x <- indexArrayM a j
               writeArray mb (off + j) (f x)
+              go2 off f (j + 1)
     go1 0
     unsafeFreezeArray mb
    where szab = sizeofArray ab ; sza = sizeofArray a
