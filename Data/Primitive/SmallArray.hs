@@ -76,7 +76,7 @@ import Control.Monad.Zip
 import Data.Data
 import Data.Foldable as Foldable
 import Data.Functor.Identity
-#if !(MIN_VERSION_base(4,11,0))
+#if !(MIN_VERSION_base(4,10,0))
 import Data.Monoid
 #endif
 #if MIN_VERSION_base(4,9,0)
@@ -757,13 +757,29 @@ instance Monoid (SmallArray a) where
 
 instance IsList (SmallArray a) where
   type Item (SmallArray a) = a
+
   fromListN n l =
-    createSmallArray n (die "fromListN" "mismatched size and list") $ \sma ->
-      fix ? 0 ? l $ \go i li -> case li of
-        [] -> pure ()
-        x:xs -> writeSmallArray sma i x *> go (i+1) xs
+    createSmallArray n fromListN_too_short $ \mi ->
+      let
+        go x r i
+          | i < n = writeSmallArray mi i x >> r (i + 1)
+          | otherwise = fromListN_too_long
+        stop i = unless (i == n) fromListN_too_short
+      in foldr go stop l 0
+  -- Ideally, we should probably start with an explicit recursive
+  -- version and rewrite to and from a foldr-based one for fusion.
+  -- That could reduce code size somewhat in the non-fusing case.
+  {-# INLINE fromListN #-}
+
+  -- Should fromList use array doubling and shrinking?
   fromList l = fromListN (length l) l
   toList = Foldable.toList
+
+fromListN_too_long, fromListN_too_short :: a
+fromListN_too_long = die "fromListN" "list too long"
+{-# NOINLINE fromListN_too_long #-}
+fromListN_too_short = die "fromListN" "list too short"
+{-# NOINLINE fromListN_too_short #-}
 
 instance Show a => Show (SmallArray a) where
   showsPrec p sa = showParen (p > 10) $

@@ -43,7 +43,7 @@ import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Control.Monad.ST(ST,runST)
 
 import Control.Applicative
-import Control.Monad (MonadPlus(..), when)
+import Control.Monad (MonadPlus(..), when, unless)
 import Control.Monad.Fix
 #if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
@@ -59,6 +59,9 @@ import Data.Semigroup
 #endif
 #if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity
+#endif
+#if !(MIN_VERSION_base(4,8,0))
+import Prelude hiding (foldr)
 #endif
 
 import Text.ParserCombinators.ReadP
@@ -482,23 +485,42 @@ unsafeTraverseArray f = \ !ary ->
 instance Exts.IsList (Array a) where
   type Item (Array a) = a
   fromListN n l =
-    createArray n (die "fromListN" "mismatched size and list") $ \mi ->
-      let go i (x:xs) = writeArray mi i x >> go (i+1) xs
-          go _ [    ] = return ()
-       in go 0 l
+    createArray n fromListN_too_short $ \mi ->
+      let
+        go x r i
+          | i < n = writeArray mi i x >> r (i + 1)
+          | otherwise = fromListN_too_long
+        stop i = unless (i == n) fromListN_too_short
+      in foldr go stop l 0
+  -- Ideally, we should probably start with an explicit recursive
+  -- version and rewrite to and from a foldr-based one for fusion.
+  -- That could reduce code size somewhat in the non-fusing case.
+  {-# INLINE fromListN #-}
+
+  -- Should fromList use array doubling and shrinking?
   fromList l = Exts.fromListN (length l) l
   toList = toList
 #else
 fromListN :: Int -> [a] -> Array a
 fromListN n l =
-  createArray n (die "fromListN" "mismatched size and list") $ \mi ->
-    let go i (x:xs) = writeArray mi i x >> go (i+1) xs
-        go _ [    ] = return ()
+  createArray n fromListN_too_short $ \mi ->
+    let go i (x:xs)
+          | i < n = writeArray mi i x >> go (i+1) xs
+          | otherwise = die fromListN_too_long
+        go i []
+          | i == n = return ()
+          | otherwise = fromListN_too_short
      in go 0 l
 
 fromList :: [a] -> Array a
 fromList l = fromListN (length l) l
 #endif
+
+fromListN_too_long, fromListN_too_short :: a
+fromListN_too_long = die "fromListN" "list too long"
+{-# NOINLINE fromListN_too_long #-}
+fromListN_too_short = die "fromListN" "list too short"
+{-# NOINLINE fromListN_too_short #-}
 
 instance Functor Array where
   fmap f a =
