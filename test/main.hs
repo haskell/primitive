@@ -61,7 +61,9 @@ main = do
     , testGroup "ByteArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
+#if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
+#endif
       ]
     ]
 
