@@ -12,6 +12,7 @@ import Data.Primitive
 import Data.Primitive.Array
 import Data.Primitive.ByteArray
 import Data.Primitive.Types
+import Data.Primitive.SmallArray
 import Data.Word
 import Data.Proxy (Proxy(..))
 import GHC.Int
@@ -32,15 +33,32 @@ main :: IO ()
 main = do
   testArray
   testByteArray
-  defaultMain $ testGroup "Array"
-    [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (Array Int)))
-    , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
-    , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
-    , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
-    , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
-    , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
-    , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 Array))
-    , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 Array))
+  defaultMain $ testGroup "properties"
+    [ testGroup "Array"
+      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
+      , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
+      , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 Array))
+      , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 Array))
+      ]
+    , testGroup "SmallArray"
+      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
+      , lawsToTest (QCC.ordLaws (Proxy :: Proxy (SmallArray Int)))
+      , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (SmallArray Int)))
+      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
+      , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
+      , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 SmallArray))
+      , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 SmallArray))
+      , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 SmallArray))
+      ]
+    , testGroup "ByteArray"
+      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
+      , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
+      , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
+      ]
     ]
 
 -- on GHC 7.4, Proxy is not polykinded, so we need this instead.
@@ -100,6 +118,12 @@ instance Arbitrary1 Array where
 instance Arbitrary a => Arbitrary (Array a) where
   arbitrary = fmap fromList QC.arbitrary
 
+instance Arbitrary1 SmallArray where
+  liftArbitrary elemGen = fmap fromList (QC.liftArbitrary elemGen)
+
+instance Arbitrary a => Arbitrary (SmallArray a) where
+  arbitrary = fmap fromList QC.arbitrary
+
 instance Arbitrary ByteArray where
   arbitrary = do
     xs <- QC.arbitrary :: Gen [Word8]
@@ -108,6 +132,7 @@ instance Arbitrary ByteArray where
       iforM_ xs $ \ix x -> do
         writeByteArray a ix x
       unsafeFreezeByteArray a
+
 
 iforM_ :: Monad m => [a] -> (Int -> a -> m b) -> m ()
 iforM_ xs0 f = go 0 xs0 where

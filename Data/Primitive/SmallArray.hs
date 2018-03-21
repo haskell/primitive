@@ -91,6 +91,8 @@ import Data.Primitive.Array
 import Data.Traversable
 #endif
 
+import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..))
+
 #if HAVE_SMALL_ARRAY
 data SmallArray a = SmallArray (SmallArray# a)
   deriving Typeable
@@ -111,6 +113,9 @@ newtype SmallArray a = SmallArray (Array a) deriving
   , MonadFix
   , Monoid
   , Typeable
+  , Eq1
+  , Ord1
+  , Show1
   )
 
 #if MIN_VERSION_base(4,7,0)
@@ -443,31 +448,50 @@ infixl 1 ?
 noOp :: a -> ST s ()
 noOp = const $ pure ()
 
+smallArrayLiftEq :: (a -> b -> Bool) -> SmallArray a -> SmallArray b -> Bool
+smallArrayLiftEq p sa1 sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
+  where
+  loop i
+    | i < 0
+    = True
+    | (# x #) <- indexSmallArray## sa1 i
+    , (# y #) <- indexSmallArray## sa2 i
+    = p x y && loop (i-1)
+
+instance Eq1 SmallArray where
+#if MIN_VERSION_base(4,9,0)
+  liftEq = smallArrayLiftEq
+#else
+  eq1 = smallArrayLiftEq (==)
+#endif
+
 instance Eq a => Eq (SmallArray a) where
-  sa1 == sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
-   where
-   loop i
-     | i < 0
-     = True
-     | (# x #) <- indexSmallArray## sa1 i
-     , (# y #) <- indexSmallArray## sa2 i
-     = x == y && loop (i-1)
+  sa1 == sa2 = smallArrayLiftEq (==) sa1 sa2
 
 instance Eq (SmallMutableArray s a) where
   SmallMutableArray sma1# == SmallMutableArray sma2# =
     isTrue# (sameSmallMutableArray# sma1# sma2#)
 
-instance Ord a => Ord (SmallArray a) where
-  compare a1 a2 = loop 0
-   where
-   mn = length a1 `min` length a2
-   loop i
-     | i < mn
-     , (# x1 #) <- indexSmallArray## a1 i
-     , (# x2 #) <- indexSmallArray## a2 i
-     = compare x1 x2 `mappend` loop (i+1)
-     | otherwise = compare (length a1) (length a2)
+smallArrayLiftCompare :: (a -> b -> Ordering) -> SmallArray a -> SmallArray b -> Ordering
+smallArrayLiftCompare elemCompare a1 a2 = loop 0
+  where
+  mn = length a1 `min` length a2
+  loop i
+    | i < mn
+    , (# x1 #) <- indexSmallArray## a1 i
+    , (# x2 #) <- indexSmallArray## a2 i
+    = elemCompare x1 x2 `mappend` loop (i+1)
+    | otherwise = compare (length a1) (length a2)
 
+instance Ord1 SmallArray where
+#if MIN_VERSION_base(4,9,0)
+  liftCompare = smallArrayLiftCompare
+#else
+  compare1 = smallArrayLiftCompare compare
+#endif
+
+instance Ord a => Ord (SmallArray a) where
+  compare sa1 sa2 = smallArrayLiftCompare compare sa1 sa2
 
 instance Foldable SmallArray where
   -- Note: we perform the array lookups eagerly so we won't
@@ -765,10 +789,24 @@ instance IsList (SmallArray a) where
   fromList l = fromListN (length l) l
   toList = Foldable.toList
 
+smallArrayLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> SmallArray a -> ShowS
+smallArrayLiftShowsPrec elemShowsPrec elemListShowsPrec p sa = showParen (p > 10) $
+  showString "fromListN " . shows (length sa) . showString " "
+    . listLiftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList sa)
+
+-- this need to be included for older ghcs
+listLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> [a] -> ShowS
+listLiftShowsPrec _ sl _ = sl
+
 instance Show a => Show (SmallArray a) where
-  showsPrec p sa = showParen (p > 10) $
-    showString "fromListN " . shows (length sa) . showString " "
-      . shows (toList sa)
+  showsPrec p sa = smallArrayLiftShowsPrec showsPrec showList p sa
+
+instance Show1 SmallArray where
+#if MIN_VERSION_base(4,9,0)
+  liftShowsPrec = smallArrayLiftShowsPrec
+#else
+  showsPrec1 = smallArrayLiftShowsPrec showsPrec showList
+#endif
 
 instance Read a => Read (SmallArray a) where
   readPrec = parens . prec 10 $ do
