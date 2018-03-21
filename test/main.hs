@@ -4,7 +4,9 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 
+import Control.Applicative
 import Control.Monad
+import Control.Monad.Fix (fix)
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.Monoid
@@ -125,10 +127,10 @@ instance Arbitrary a => Arbitrary (Array a) where
   arbitrary = fmap fromList QC.arbitrary
 
 instance Arbitrary1 SmallArray where
-  liftArbitrary elemGen = fmap fromList (QC.liftArbitrary elemGen)
+  liftArbitrary elemGen = fmap smallArrayFromList (QC.liftArbitrary elemGen)
 
 instance Arbitrary a => Arbitrary (SmallArray a) where
-  arbitrary = fmap fromList QC.arbitrary
+  arbitrary = fmap smallArrayFromList QC.arbitrary
 
 instance Arbitrary ByteArray where
   arbitrary = do
@@ -144,3 +146,19 @@ iforM_ :: Monad m => [a] -> (Int -> a -> m b) -> m ()
 iforM_ xs0 f = go 0 xs0 where
   go !_ [] = return ()
   go !ix (x : xs) = f ix x >> go (ix + 1) xs
+
+infixl 1 ?
+(?) :: (a -> b -> c) -> (b -> a -> c)
+(?) = flip
+{-# INLINE (?) #-}
+
+smallArrayFromListN :: Int -> [a] -> SmallArray a
+smallArrayFromListN n l = runST $ do
+  sma <- newSmallArray n (error "primitive:test, smallArrayFromListN, mismatched size and list")
+  fix ? 0 ? l $ \go i li -> case li of
+    [] -> pure ()
+    x:xs -> writeSmallArray sma i x *> go (i+1) xs
+  unsafeFreezeSmallArray sma
+
+smallArrayFromList :: [a] -> SmallArray a
+smallArrayFromList l = smallArrayFromListN (length l) l
