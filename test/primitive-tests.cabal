@@ -34,6 +34,7 @@ test-suite test
                , QuickCheck
                , tasty
                , tasty-quickcheck
+	       , tagged
                , quickcheck-classes == 0.4.1
   ghc-options: -O2
 
