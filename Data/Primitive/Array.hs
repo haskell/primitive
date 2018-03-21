@@ -63,7 +63,7 @@ import Data.Functor.Identity
 
 import Text.ParserCombinators.ReadP
 
-import Data.Functor.Classes (Eq1(..),Show1(..))
+import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..))
 
 -- | Boxed arrays
 data Array a = Array
@@ -300,7 +300,9 @@ instance Eq a => Eq (Array a) where
 instance Eq1 Array where
   liftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
    where loop i | i < 0     = True
-                | otherwise = p (indexArray a1 i) (indexArray a2 i) && loop (i-1)
+                | (# x1 #) <- indexArray## a1 i
+                , (# x2 #) <- indexArray## a2 i
+                , otherwise = p x1 x2 && loop (i-1)
 
 instance Eq (MutableArray s a) where
   ma1 == ma2 = isTrue# (sameMutableArray# (marray# ma1) (marray# ma2))
@@ -314,6 +316,17 @@ instance Ord a => Ord (Array a) where
      , (# x1 #) <- indexArray## a1 i
      , (# x2 #) <- indexArray## a2 i
      = compare x1 x2 `mappend` loop (i+1)
+     | otherwise = compare (sizeofArray a1) (sizeofArray a2)
+
+instance Ord1 Array where
+  liftCompare elemCompare a1 a2 = loop 0
+   where
+   mn = sizeofArray a1 `min` sizeofArray a2
+   loop i
+     | i < mn
+     , (# x1 #) <- indexArray## a1 i
+     , (# x2 #) <- indexArray## a2 i
+     = elemCompare x1 x2 `mappend` loop (i+1)
      | otherwise = compare (sizeofArray a1) (sizeofArray a2)
 
 instance Foldable Array where
