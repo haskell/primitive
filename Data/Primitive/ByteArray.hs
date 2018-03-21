@@ -44,7 +44,6 @@ module Data.Primitive.ByteArray (
 
 import Control.Monad.Primitive
 import Control.Monad.ST
-import Control.Monad ( zipWithM_ )
 import Data.Primitive.Types
 
 import Foreign.C.Types
@@ -181,12 +180,16 @@ foldrByteArray f z arr = go 0
     go i
       | sizeofByteArray arr > i * sz = f (indexByteArray arr i) (go (i+1))
       | otherwise                    = z
-    sz = sizeofByteArray arr
+    sz = sizeOf (undefined :: a)
 
 fromListN :: Prim a => Int -> [a] -> ByteArray
-fromListN n xs = runST $ do
-    marr <- newByteArray (n * sizeOf (head xs))
-    zipWithM_ (writeByteArray marr) [0..n] xs
+fromListN n ys = runST $ do
+    marr <- newByteArray (n * sizeOf (head ys))
+    let go !_ [] = return ()
+        go !ix (x : xs) = do
+          writeByteArray marr ix x
+          go (ix + 1) xs
+    go 0 ys
     unsafeFreezeByteArray marr
 
 #if __GLASGOW_HASKELL__ >= 702
