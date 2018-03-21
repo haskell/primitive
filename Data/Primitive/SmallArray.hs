@@ -459,7 +459,7 @@ smallArrayLiftEq p sa1 sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
     = p x y && loop (i-1)
 
 instance Eq1 SmallArray where
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = smallArrayLiftEq
 #else
   eq1 = smallArrayLiftEq (==)
@@ -484,7 +484,7 @@ smallArrayLiftCompare elemCompare a1 a2 = loop 0
     | otherwise = compare (length a1) (length a2)
 
 instance Ord1 SmallArray where
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = smallArrayLiftCompare
 #else
   compare1 = smallArrayLiftCompare compare
@@ -806,7 +806,7 @@ instance Show a => Show (SmallArray a) where
   showsPrec p sa = smallArrayLiftShowsPrec showsPrec showList p sa
 
 instance Show1 SmallArray where
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftShowsPrec = smallArrayLiftShowsPrec
 #else
   showsPrec1 = smallArrayLiftShowsPrec showsPrec showList

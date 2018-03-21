@@ -38,7 +38,9 @@ main = do
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
+#if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
+#endif
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 Array))
@@ -48,7 +50,9 @@ main = do
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (SmallArray Int)))
+#if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
+#endif
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 SmallArray))

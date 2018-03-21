@@ -301,7 +301,7 @@ instance Eq a => Eq (Array a) where
   a1 == a2 = arrayLiftEq (==) a1 a2
 
 instance Eq1 Array where
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = arrayLiftEq
 #else
   eq1 = arrayLiftEq (==)
@@ -325,7 +325,7 @@ instance Ord a => Ord (Array a) where
   compare a1 a2 = arrayLiftCompare compare a1 a2
 
 instance Ord1 Array where
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = arrayLiftCompare
 #else
   compare1 = arrayLiftCompare compare
@@ -685,7 +685,7 @@ instance Show a => Show (Array a) where
   showsPrec p a = arrayLiftShowsPrec showsPrec showList p a
 
 instance Show1 Array where
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftShowsPrec = arrayLiftShowsPrec
 #else
   showsPrec1 = arrayLiftShowsPrec showsPrec showList
