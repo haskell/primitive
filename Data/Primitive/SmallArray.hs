@@ -656,17 +656,21 @@ instance Applicative SmallArray where
      in go 0
    where sza = sizeofSmallArray a ; szb = sizeofSmallArray b
 
-  sf <*> sx = createSmallArray (lf*lx) (die "<*>" "impossible") $ \smb ->
-    fix ? 0 $ \outer i -> when (i < lf) $ do
-      f <- indexSmallArrayM sf i
-      fix ? 0 $ \inner j ->
-        when (j < lx) $ do
-          x <- indexSmallArrayM sx j
-          writeSmallArray smb (lf*i + j) (f x)
-            *> inner (j+1)
-      outer $ i+1
-   where
-   lf = length sf ; lx = length sx
+  ab <*> a = runST $ do
+    mb <- newSmallArray (szab*sza) $ die "<*>" "impossible"
+    let go1 i = when (i < szab) $
+            do
+              f <- indexSmallArrayM ab i
+              go2 (i*sza) f 0
+              go1 (i+1)
+        go2 off f j = when (j < sza) $
+            do
+              x <- indexSmallArrayM a j
+              writeSmallArray mb (off + j) (f x)
+              go2 off f (j + 1)
+    go1 0
+    unsafeFreezeSmallArray mb
+   where szab = sizeofSmallArray ab ; sza = sizeofSmallArray a
 
 instance Alternative SmallArray where
   empty = emptySmallArray
