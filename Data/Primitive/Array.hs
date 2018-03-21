@@ -22,7 +22,8 @@ module Data.Primitive.Array (
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
-  fromListN, fromList
+  fromListN, fromList,
+  unsafeTraverseArray
 ) where
 
 import Control.Monad.Primitive
@@ -42,7 +43,7 @@ import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Control.Monad.ST(ST,runST)
 
 import Control.Applicative
-import Control.Monad (MonadPlus(..))
+import Control.Monad (MonadPlus(..), when)
 import Control.Monad.Fix
 #if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
@@ -56,6 +57,9 @@ import Data.Monoid
 import qualified Data.Foldable as F
 import Data.Semigroup
 #endif
+#if MIN_VERSION_base(4,8,0)
+import Data.Functor.Identity
+#endif
 
 import Text.ParserCombinators.ReadP
 
@@ -63,23 +67,14 @@ import Data.Functor.Classes (Eq1(..),Show1(..))
 
 -- | Boxed arrays
 data Array a = Array
-             { array# :: Array# a
-#if (__GLASGOW_HASKELL__ < 702)
-             , sizeofArray :: {-# UNPACK #-} !Int
-#endif
-             }
+  { array# :: Array# a }
   deriving ( Typeable )
 
 -- | Mutable boxed arrays associated with a primitive state token.
 data MutableArray s a = MutableArray
-                      { marray# :: MutableArray# s a
-#if (__GLASGOW_HASKELL__ < 702)
-                      , sizeofMutableArray :: {-# UNPACK #-} !Int
-#endif
-                      }
+  { marray# :: MutableArray# s a }
   deriving ( Typeable )
 
-#if (__GLASGOW_HASKELL__ >= 702)
 sizeofArray :: Array a -> Int
 sizeofArray a = I# (sizeofArray# (array# a))
 {-# INLINE sizeofArray #-}
@@ -87,7 +82,6 @@ sizeofArray a = I# (sizeofArray# (array# a))
 sizeofMutableArray :: MutableArray s a -> Int
 sizeofMutableArray a = I# (sizeofMutableArray# (marray# a))
 {-# INLINE sizeofMutableArray #-}
-#endif
 
 -- | Create a new mutable array of the specified size and initialise all
 -- elements with the given value.
@@ -97,9 +91,6 @@ newArray (I# n#) x = primitive
    (\s# -> case newArray# n# x s# of
              (# s'#, arr# #) ->
                let ma = MutableArray arr#
-#if (__GLASGOW_HASKELL__ < 702)
-                          (I# n#)
-#endif
                in (# s'# , ma #))
 
 -- | Read a value from the array at the given index.
@@ -163,16 +154,9 @@ freezeArray
   -> Int                          -- ^ length
   -> m (Array a)
 {-# INLINE freezeArray #-}
-#if (__GLASGOW_HASKELL__ >= 702)
 freezeArray (MutableArray ma#) (I# off#) (I# len#) =
   primitive $ \s -> case freezeArray# ma# off# len# s of
     (# s', a# #) -> (# s', Array a# #)
-#else
-freezeArray src off len = do
-  dst <- newArray len (die "freezeArray" "impossible")
-  copyMutableArray dst 0 src off len
-  unsafeFreezeArray dst
-#endif
 
 -- | Convert a mutable array to an immutable one without copying. The
 -- array should not be modified after the conversion.
@@ -182,9 +166,6 @@ unsafeFreezeArray arr
   = primitive (\s# -> case unsafeFreezeArray# (marray# arr) s# of
                         (# s'#, arr'# #) ->
                           let a = Array arr'#
-#if (__GLASGOW_HASKELL__ < 702)
-                                    (sizeofMutableArray arr)
-#endif
                           in (# s'#, a #))
 
 -- | Create a mutable array from a slice of an immutable array.
@@ -198,16 +179,9 @@ thawArray
   -> Int     -- ^ length
   -> m (MutableArray (PrimState m) a)
 {-# INLINE thawArray #-}
-#if (__GLASGOW_HASKELL__ >= 702)
 thawArray (Array a#) (I# off#) (I# len#) =
   primitive $ \s -> case thawArray# a# off# len# s of
     (# s', ma# #) -> (# s', MutableArray ma# #)
-#else
-thawArray src off len = do
-  dst <- newArray len (die "thawArray" "impossible")
-  copyArray dst 0 src off len
-  return dst
-#endif
 
 -- | Convert an immutable array to an mutable one without copying. The
 -- immutable array should not be used after the conversion.
@@ -217,9 +191,6 @@ unsafeThawArray a
   = primitive (\s# -> case unsafeThawArray# (array# a) s# of
                         (# s'#, arr'# #) ->
                           let ma = MutableArray arr'#
-#if (__GLASGOW_HASKELL__ < 702)
-                                     (sizeofArray a)
-#endif
                           in (# s'#, ma #))
 
 -- | Check whether the two arrays refer to the same memory block.
@@ -284,15 +255,8 @@ cloneArray :: Array a -- ^ source array
            -> Int     -- ^ number of elements to copy
            -> Array a
 {-# INLINE cloneArray #-}
-#if __GLASGOW_HASKELL__ >= 702
 cloneArray (Array arr#) (I# off#) (I# len#)
   = case cloneArray# arr# off# len# of arr'# -> Array arr'#
-#else
-cloneArray arr off len = runST $ do
-    marr2 <- newArray len $ die "cloneArray" "impossible"
-    copyArray marr2 0 arr off len
-    unsafeFreezeArray marr2
-#endif
 
 -- | Return a newly allocated MutableArray. with the specified subrange of
 -- the provided MutableArray. The provided MutableArray should contain the
@@ -303,21 +267,9 @@ cloneMutableArray :: PrimMonad m
         -> Int                          -- ^ number of elements to copy
         -> m (MutableArray (PrimState m) a)
 {-# INLINE cloneMutableArray #-}
-#if __GLASGOW_HASKELL__ >= 702
 cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
    (\s# -> case cloneMutableArray# arr# off# len# s# of
              (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
-#else
-cloneMutableArray marr off len = do
-        marr2 <- newArray len $ die "cloneMutableArray" "impossible"
-        let go !i !j c
-                | c >= len = return marr2
-                | otherwise = do
-                    b <- readArray marr i
-                    writeArray marr2 j b
-                    go (i+1) (j+1) (c+1)
-        go off 0 0
-#endif
 
 emptyArray :: Array a
 emptyArray =
@@ -341,7 +293,9 @@ die fun problem = error $ "Data.Primitive.Array." ++ fun ++ ": " ++ problem
 instance Eq a => Eq (Array a) where
   a1 == a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
    where loop i | i < 0     = True
-                | otherwise = indexArray a1 i == indexArray a2 i && loop (i-1)
+                | (# x1 #) <- indexArray## a1 i
+                , (# x2 #) <- indexArray## a2 i
+                = x1 == x2 && loop (i-1)
 
 instance Eq1 Array where
   liftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
@@ -356,7 +310,10 @@ instance Ord a => Ord (Array a) where
    where
    mn = sizeofArray a1 `min` sizeofArray a2
    loop i
-     | i < mn    = compare (indexArray a1 i) (indexArray a2 i) `mappend` loop (i+1)
+     | i < mn
+     , (# x1 #) <- indexArray## a1 i
+     , (# x2 #) <- indexArray## a2 i
+     = compare x1 x2 `mappend` loop (i+1)
      | otherwise = compare (sizeofArray a1) (sizeofArray a2)
 
 instance Foldable Array where
@@ -451,10 +408,82 @@ instance Foldable Array where
   {-# INLINE product #-}
 #endif
 
+newtype STA a = STA {_runSTA :: forall s. MutableArray# s a -> ST s (Array a)}
+
+runSTA :: Int -> STA a -> Array a
+runSTA !sz = \ (STA m) -> runST $ newArray_ sz >>= \ ar -> m (marray# ar)
+{-# INLINE runSTA #-}
+
+newArray_ :: Int -> ST s (MutableArray s a)
+newArray_ !n = newArray n badTraverseValue
+
+badTraverseValue :: a
+badTraverseValue = die "traverse" "bad indexing"
+{-# NOINLINE badTraverseValue #-}
+
 instance Traversable Array where
-  traverse f a =
-    fromListN (sizeofArray a)
-      <$> traverse (f . indexArray a) [0 .. sizeofArray a - 1]
+  traverse f = traverseArray f
+  {-# INLINE traverse #-}
+
+traverseArray
+  :: Applicative f
+  => (a -> f b)
+  -> Array a
+  -> f (Array b)
+traverseArray f = \ !ary ->
+  let
+    !len = sizeofArray ary
+    go !i
+      | i == len = pure $ STA $ \mary -> unsafeFreezeArray (MutableArray mary)
+      | (# x #) <- indexArray## ary i
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writeArray (MutableArray mary) i b >> m mary)
+               (f x) (go (i + 1))
+  in if len == 0
+     then pure emptyArray
+     else runSTA len <$> go 0
+{-# INLINE [1] traverseArray #-}
+
+{-# RULES
+"traverse/ST" forall (f :: a -> ST s b). traverseArray f =
+   unsafeTraverseArray f
+"traverse/IO" forall (f :: a -> IO b). traverseArray f =
+   unsafeTraverseArray f
+ #-}
+#if MIN_VERSION_base(4,8,0)
+{-# RULES
+"traverse/Id" forall (f :: a -> Identity b). traverseArray f =
+   (coerce :: (Array a -> Array (Identity b))
+           -> Array a -> Identity (Array b)) (fmap f)
+ #-}
+#endif
+
+-- | This is the fastest, most straightforward way to traverse
+-- an array, but it only works correctly with a sufficiently
+-- "affine" 'PrimMonad' instance. In particular, it must only produce
+-- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- monads, for example, will not work right at all.
+unsafeTraverseArray
+  :: PrimMonad m
+  => (a -> m b)
+  -> Array a
+  -> m (Array b)
+unsafeTraverseArray f = \ !ary ->
+  let
+    !sz = sizeofArray ary
+    go !i !mary
+      | i == sz
+      = unsafeFreezeArray mary
+      | otherwise
+      = do
+          a <- indexArrayM ary i
+          b <- f a
+          writeArray mary i b
+          go (i + 1) mary
+  in do
+    mary <- newArray sz badTraverseValue
+    go 0 mary
+{-# INLINE unsafeTraverseArray #-}
 
 #if MIN_VERSION_base(4,7,0)
 instance Exts.IsList (Array a) where
@@ -481,9 +510,11 @@ fromList l = fromListN (length l) l
 instance Functor Array where
   fmap f a =
     createArray (sizeofArray a) (die "fmap" "impossible") $ \mb ->
-      let go i | i < sizeofArray a = return ()
-               | otherwise         = writeArray mb i (f $ indexArray a i)
-                                  >> go (i+1)
+      let go i | i == sizeofArray a
+               = return ()
+               | otherwise
+               = do x <- indexArrayM a i
+                    writeArray mb i (f x) >> go (i+1)
        in go 0
 #if MIN_VERSION_base(4,8,0)
   e <$ a = runST $ newArray (sizeofArray a) e >>= unsafeFreezeArray
@@ -493,12 +524,15 @@ instance Applicative Array where
   pure x = runST $ newArray 1 x >>= unsafeFreezeArray
   ab <*> a = runST $ do
     mb <- newArray (szab*sza) $ die "<*>" "impossible"
-    let go1 i
-          | i < szab  = go2 (i*sza) (indexArray ab i) 0 >> go1 (i+1)
-          | otherwise = return ()
-        go2 off f j
-          | j < sza   = writeArray mb (off + j) (f $ indexArray a j)
-          | otherwise = return ()
+    let go1 i = when (i < szab) $
+            do
+              f <- indexArrayM ab i
+              go2 (i*sza) f 0
+              go1 (i+1)
+        go2 off f j = when (j < sza) $
+            do
+              x <- indexArrayM a j
+              writeArray mb (off + j) (f x)
     go1 0
     unsafeFreezeArray mb
    where szab = sizeofArray ab ; sza = sizeofArray a
@@ -510,7 +544,9 @@ instance Applicative Array where
   a <* b = createArray (sza*szb) (die "<*" "impossible") $ \ma ->
     let fill off i e | i < szb   = writeArray ma (off+i) e >> fill off (i+1) e
                      | otherwise = return ()
-        go i | i < sza   = fill (i*szb) 0 (indexArray a i) >> go (i+1)
+        go i | i < sza
+             = do x <- indexArrayM a i
+                  fill (i*szb) 0 x >> go (i+1)
              | otherwise = return ()
      in go 0
    where sza = sizeofArray a ; szb = sizeofArray b
@@ -525,20 +561,36 @@ instance Alternative Array where
   many a | sizeofArray a == 0 = pure []
          | otherwise = die "many" "infinite arrays are not well defined"
 
+data ArrayStack a
+  = PushArray !(Array a) !(ArrayStack a)
+  | EmptyStack
+-- See the note in SmallArray about how we might improve this.
+
 instance Monad Array where
   return = pure
   (>>) = (*>)
-  a >>= f = push 0 [] (sizeofArray a - 1)
-   where
-   push !sz bs i
-     | i < 0 = build sz bs
-     | otherwise = let b = f $ indexArray a i
-                    in push (sz + sizeofArray b) (b:bs) (i+1)
 
-   build sz stk = createArray sz (die ">>=" "impossible") $ \mb ->
-     let go off (b:bs) = copyArray mb off b 0 (sizeofArray b) >> go (off + sizeofArray b) bs
-         go _   [    ] = return ()
-      in go 0 stk
+  ary >>= f = collect 0 EmptyStack (la-1)
+   where
+   la = sizeofArray ary
+   collect sz stk i
+     | i < 0 = createArray sz (die ">>=" "impossible") $ fill 0 stk
+     | (# x #) <- indexArray## ary i
+     , let sb = f x
+           lsb = sizeofArray sb
+       -- If we don't perform this check, we could end up allocating
+       -- a stack full of empty arrays if someone is filtering most
+       -- things out. So we refrain from pushing empty arrays.
+     = if lsb == 0
+       then collect sz stk (i - 1)
+       else collect (sz + lsb) (PushArray sb stk) (i-1)
+
+   fill _   EmptyStack         _   = return ()
+   fill off (PushArray sb sbs) smb
+     | let lsb = sizeofArray sb
+     = copyArray smb off sb 0 (lsb)
+         *> fill (off + lsb) sbs smb
+
   fail _ = empty
 
 instance MonadPlus Array where
@@ -547,10 +599,13 @@ instance MonadPlus Array where
 
 zipW :: String -> (a -> b -> c) -> Array a -> Array b -> Array c
 zipW s f aa ab = createArray mn (die s "impossible") $ \mc ->
-  let go i
-        | i < mn    = writeArray mc i (f (indexArray aa i) (indexArray ab i))
-                   >> go (i+1)
-        | otherwise = return ()
+  let go i | i < mn
+           = do
+               x <- indexArrayM aa i
+               y <- indexArrayM ab i
+               writeArray mc i (f x y)
+               go (i+1)
+           | otherwise = return ()
    in go 0
  where mn = sizeofArray aa `min` sizeofArray ab
 {-# INLINE zipW #-}
@@ -564,7 +619,7 @@ instance MonadZip Array where
     ma <- newArray sz (die "munzip" "impossible")
     mb <- newArray sz (die "munzip" "impossible")
     let go i | i < sz = do
-          let (a, b) = indexArray aab i
+          (a, b) <- indexArrayM aab i
           writeArray ma i a
           writeArray mb i b
           go (i+1)
@@ -574,7 +629,14 @@ instance MonadZip Array where
 #endif
 
 instance MonadFix Array where
-  mfix f = let l = mfix (toList . f) in fromListN (length l) l
+  mfix f = createArray (sizeofArray (f err))
+                       (die "mfix" "impossible") $ flip fix 0 $
+    \r !i !mary -> when (i < sz) $ do
+                      writeArray mary i (fix (\xi -> f xi `indexArray` i))
+                      r (i + 1) mary
+    where
+      sz = sizeofArray (f err)
+      err = error "mfix for Data.Primitive.Array applied to strict function."
 
 #if MIN_VERSION_base(4,9,0)
 instance Semigroup (Array a) where
