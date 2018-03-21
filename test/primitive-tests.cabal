@@ -34,7 +34,7 @@ test-suite test
                , QuickCheck
                , tasty
                , tasty-quickcheck
-               , quickcheck-classes >= 0.4
+               , quickcheck-classes == 0.4.1
   ghc-options: -O2
 
 source-repository head

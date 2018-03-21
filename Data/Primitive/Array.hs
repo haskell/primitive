@@ -290,44 +290,46 @@ createArray n x f = runST $ do
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.Array." ++ fun ++ ": " ++ problem
 
+arrayLiftEq :: (a -> b -> Bool) -> Array a -> Array b -> Bool
+arrayLiftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
+  where loop i | i < 0     = True
+               | (# x1 #) <- indexArray## a1 i
+               , (# x2 #) <- indexArray## a2 i
+               , otherwise = p x1 x2 && loop (i-1)
+
 instance Eq a => Eq (Array a) where
-  a1 == a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
-   where loop i | i < 0     = True
-                | (# x1 #) <- indexArray## a1 i
-                , (# x2 #) <- indexArray## a2 i
-                = x1 == x2 && loop (i-1)
+  a1 == a2 = arrayLiftEq (==) a1 a2
 
 instance Eq1 Array where
-  liftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 - 1)
-   where loop i | i < 0     = True
-                | (# x1 #) <- indexArray## a1 i
-                , (# x2 #) <- indexArray## a2 i
-                , otherwise = p x1 x2 && loop (i-1)
+#if MIN_VERSION_base(4,9,0)
+  liftEq = arrayLiftEq
+#else
+  eq1 = arrayLiftEq (==)
+#endif
 
 instance Eq (MutableArray s a) where
   ma1 == ma2 = isTrue# (sameMutableArray# (marray# ma1) (marray# ma2))
 
+arrayLiftCompare :: (a -> b -> Ordering) -> Array a -> Array b -> Ordering
+arrayLiftCompare elemCompare a1 a2 = loop 0
+  where
+  mn = sizeofArray a1 `min` sizeofArray a2
+  loop i
+    | i < mn
+    , (# x1 #) <- indexArray## a1 i
+    , (# x2 #) <- indexArray## a2 i
+    = elemCompare x1 x2 `mappend` loop (i+1)
+    | otherwise = compare (sizeofArray a1) (sizeofArray a2)
+
 instance Ord a => Ord (Array a) where
-  compare a1 a2 = loop 0
-   where
-   mn = sizeofArray a1 `min` sizeofArray a2
-   loop i
-     | i < mn
-     , (# x1 #) <- indexArray## a1 i
-     , (# x2 #) <- indexArray## a2 i
-     = compare x1 x2 `mappend` loop (i+1)
-     | otherwise = compare (sizeofArray a1) (sizeofArray a2)
+  compare a1 a2 = arrayLiftCompare compare a1 a2
 
 instance Ord1 Array where
-  liftCompare elemCompare a1 a2 = loop 0
-   where
-   mn = sizeofArray a1 `min` sizeofArray a2
-   loop i
-     | i < mn
-     , (# x1 #) <- indexArray## a1 i
-     , (# x2 #) <- indexArray## a2 i
-     = elemCompare x1 x2 `mappend` loop (i+1)
-     | otherwise = compare (sizeofArray a1) (sizeofArray a2)
+#if MIN_VERSION_base(4,9,0)
+  liftCompare = arrayLiftCompare
+#else
+  compare1 = arrayLiftCompare compare
+#endif
 
 instance Foldable Array where
   -- Note: we perform the array lookups eagerly so we won't
@@ -670,15 +672,24 @@ instance Monoid (Array a) where
      in go 0 l
    where sz = sum . fmap sizeofArray $ l
 
+arrayLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> Array a -> ShowS
+arrayLiftShowsPrec elemShowsPrec elemListShowsPrec p a = showParen (p > 10) $
+  showString "fromListN " . shows (sizeofArray a) . showString " "
+    . listLiftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList a)
+
+-- this need to be included for older ghcs
+listLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> [a] -> ShowS
+listLiftShowsPrec _ sl _ = sl
+
 instance Show a => Show (Array a) where
-  showsPrec p a = showParen (p > 10) $
-    showString "fromListN " . shows (sizeofArray a) . showString " "
-      . shows (toList a)
+  showsPrec p a = arrayLiftShowsPrec showsPrec showList p a
 
 instance Show1 Array where
-  liftShowsPrec elemShowsPrec elemListShowsPrec p a = showParen (p > 10) $
-    showString "fromListN " . shows (sizeofArray a) . showString " "
-      . liftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList a)
+#if MIN_VERSION_base(4,9,0)
+  liftShowsPrec = arrayLiftShowsPrec
+#else
+  showsPrec1 = arrayLiftShowsPrec showsPrec showList
+#endif
 
 instance Read a => Read (Array a) where
   readsPrec p = readParen (p > 10) . readP_to_S $ do
