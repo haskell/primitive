@@ -1,3 +1,18 @@
+## Changes in version 0.6.4.0
+
+ * Add `Eq1`, `Ord1`, and `Show1` instances for `Array` and `SmallArray`.
+
+ * Drop support for `transformers-0.2.x.y`.
+
+ * Improve the test suite. This includes having property tests for
+   typeclasses from `base` such as `Eq`, `Ord`, `Functor`, `Applicative`,
+   `Monad`, `IsList`, and `Monoid`.
+
+ * Fix the broken `IsList` instance for `ByteArray`.
+
+ * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
+   `Array` and `SmallArray`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
