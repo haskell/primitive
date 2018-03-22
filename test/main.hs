@@ -147,18 +147,3 @@ iforM_ xs0 f = go 0 xs0 where
   go !_ [] = return ()
   go !ix (x : xs) = f ix x >> go (ix + 1) xs
 
-infixl 1 ?
-(?) :: (a -> b -> c) -> (b -> a -> c)
-(?) = flip
-{-# INLINE (?) #-}
-
-smallArrayFromListN :: Int -> [a] -> SmallArray a
-smallArrayFromListN n l = runST $ do
-  sma <- newSmallArray n (error "primitive:test, smallArrayFromListN, mismatched size and list")
-  fix ? 0 ? l $ \go i li -> case li of
-    [] -> pure ()
-    x:xs -> writeSmallArray sma i x *> go (i+1) xs
-  unsafeFreezeSmallArray sma
-
-smallArrayFromList :: [a] -> SmallArray a
-smallArrayFromList l = smallArrayFromListN (length l) l

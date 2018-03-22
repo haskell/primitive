@@ -500,26 +500,35 @@ unsafeTraverseArray f = \ !ary ->
     go 0 mary
 {-# INLINE unsafeTraverseArray #-}
 
+arrayFromListN :: Int -> [a] -> Array a
+arrayFromListN n l = runST $ do
+  sma <- newArray n (die "fromListN" "uninitialized element")
+  let go !ix [] = if ix == n
+        then return ()
+        else die "fromListN" "list length less than specified size"
+      go !ix (x : xs) = if ix < n
+        then do
+          writeArray sma ix x
+          go (ix+1) xs
+        else die "fromListN" "list length greater than specified size"
+  go 0 l
+  unsafeFreezeArray sma
+
+arrayFromList :: [a] -> Array a
+arrayFromList l = arrayFromListN (length l) l
+
 #if MIN_VERSION_base(4,7,0)
 instance Exts.IsList (Array a) where
   type Item (Array a) = a
-  fromListN n l =
-    createArray n (die "fromListN" "mismatched size and list") $ \mi ->
-      let go i (x:xs) = writeArray mi i x >> go (i+1) xs
-          go _ [    ] = return ()
-       in go 0 l
-  fromList l = Exts.fromListN (length l) l
+  fromListN = arrayFromListN
+  fromList = arrayFromList
   toList = toList
 #else
 fromListN :: Int -> [a] -> Array a
-fromListN n l =
-  createArray n (die "fromListN" "mismatched size and list") $ \mi ->
-    let go i (x:xs) = writeArray mi i x >> go (i+1) xs
-        go _ [    ] = return ()
-     in go 0 l
+fromListN = arrayFromListN
 
 fromList :: [a] -> Array a
-fromList l = fromListN (length l) l
+fromList = arrayFromList
 #endif
 
 instance Functor Array where

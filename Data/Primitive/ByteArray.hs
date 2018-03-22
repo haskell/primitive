@@ -185,10 +185,14 @@ foldrByteArray f z arr = go 0
 fromListN :: Prim a => Int -> [a] -> ByteArray
 fromListN n ys = runST $ do
     marr <- newByteArray (n * sizeOf (head ys))
-    let go !_ [] = return ()
-        go !ix (x : xs) = do
-          writeByteArray marr ix x
-          go (ix + 1) xs
+    let go !ix [] = if ix == n
+          then return ()
+          else die "fromListN" "list length less than specified size"
+        go !ix (x : xs) = if ix < n 
+          then do
+            writeByteArray marr ix x
+            go (ix + 1) xs
+          else die "fromListN" "list length greater than specified size"
     go 0 ys
     unsafeFreezeByteArray marr
 
@@ -447,3 +451,7 @@ instance Exts.IsList ByteArray where
   fromList xs = fromListN (length xs) xs
   fromListN = fromListN
 #endif
+
+die :: String -> String -> a
+die fun problem = error $ "Data.Primitive.ByteArray." ++ fun ++ ": " ++ problem
+

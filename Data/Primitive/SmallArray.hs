@@ -54,6 +54,8 @@ module Data.Primitive.SmallArray
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
+  , smallArrayFromList
+  , smallArrayFromListN
   , unsafeTraverseSmallArray
   ) where
 
@@ -785,13 +787,26 @@ instance Monoid (SmallArray a) where
 
 instance IsList (SmallArray a) where
   type Item (SmallArray a) = a
-  fromListN n l =
-    createSmallArray n (die "fromListN" "mismatched size and list") $ \sma ->
-      fix ? 0 ? l $ \go i li -> case li of
-        [] -> pure ()
-        x:xs -> writeSmallArray sma i x *> go (i+1) xs
-  fromList l = fromListN (length l) l
+  fromListN = smallArrayFromListN
+  fromList = smallArrayFromList
   toList = Foldable.toList
+
+smallArrayFromListN :: Int -> [a] -> SmallArray a
+smallArrayFromListN n l = runST $ do
+  sma <- newSmallArray n (die "smallArrayFromListN" "uninitialized element")
+  let go !ix [] = if ix == n
+        then return ()
+        else die "smallArrayFromListN" "list length less than specified size"
+      go !ix (x : xs) = if ix < n
+        then do
+          writeSmallArray sma ix x
+          go (ix+1) xs
+        else die "smallArrayFromListN" "list length greater than specified size"
+  go 0 l
+  unsafeFreezeSmallArray sma
+
+smallArrayFromList :: [a] -> SmallArray a
+smallArrayFromList l = smallArrayFromListN (length l) l
 
 smallArrayLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> SmallArray a -> ShowS
 smallArrayLiftShowsPrec elemShowsPrec elemListShowsPrec p sa = showParen (p > 10) $
