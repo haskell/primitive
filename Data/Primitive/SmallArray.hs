@@ -84,9 +84,7 @@ import Data.Monoid
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Sem
 #endif
-import Text.ParserCombinators.ReadPrec
-import Text.Read
-import Text.Read.Lex
+import Text.ParserCombinators.ReadP
 
 #if !(HAVE_SMALL_ARRAY)
 import Data.Primitive.Array
@@ -95,7 +93,7 @@ import qualified Data.Primitive.Array as Array
 #endif
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
-import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..))
+import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
 
 #if HAVE_SMALL_ARRAY
@@ -821,12 +819,28 @@ instance Show1 SmallArray where
 #endif
 #endif
 
+smallArrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (SmallArray a)
+smallArrayLiftReadsPrec _ listReadsPrec p = readParen (p > 10) . readP_to_S $ do
+  () <$ string "fromListN"
+  skipSpaces
+  n <- readS_to_P reads
+  skipSpaces
+  l <- readS_to_P listReadsPrec
+  return $ smallArrayFromListN n l
+
 instance Read a => Read (SmallArray a) where
-  readPrec = parens . prec 10 $ do
-    Symbol "fromListN" <- lexP
-    Number nu <- lexP
-    n <- maybe empty pure $ numberToInteger nu
-    fromListN (fromIntegral n) <$> readPrec
+  readsPrec = smallArrayLiftReadsPrec readsPrec readList
+
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+instance Read1 SmallArray where
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
+  liftReadsPrec = smallArrayLiftReadsPrec
+#else
+  readsPrec1 = smallArrayLiftReadsPrec readsPrec readList
+#endif
+#endif
+
+
 
 smallArrayDataType :: DataType
 smallArrayDataType =

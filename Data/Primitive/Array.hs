@@ -64,7 +64,7 @@ import Data.Functor.Identity
 import Text.ParserCombinators.ReadP
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
-import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..))
+import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
 
 -- | Boxed arrays
@@ -708,14 +708,27 @@ instance Show1 Array where
 #endif
 #endif
 
+arrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (Array a)
+arrayLiftReadsPrec _ listReadsPrec p = readParen (p > 10) . readP_to_S $ do
+  () <$ string "fromListN"
+  skipSpaces
+  n <- readS_to_P reads
+  skipSpaces
+  l <- readS_to_P listReadsPrec
+  return $ arrayFromListN n l
+
 instance Read a => Read (Array a) where
-  readsPrec p = readParen (p > 10) . readP_to_S $ do
-    () <$ string "fromListN"
-    skipSpaces
-    n <- readS_to_P reads
-    skipSpaces
-    l <- readS_to_P reads
-    return $ fromListN n l
+  readsPrec = arrayLiftReadsPrec readsPrec readList
+
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+instance Read1 Array where
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
+  liftReadsPrec = arrayLiftReadsPrec
+#else
+  readsPrec1 = arrayLiftReadsPrec readsPrec readList
+#endif
+#endif
+
 
 arrayDataType :: DataType
 arrayDataType = mkDataType "Data.Primitive.Array.Array" [fromListConstr]
