@@ -91,9 +91,12 @@ import Text.Read.Lex
 #if !(HAVE_SMALL_ARRAY)
 import Data.Primitive.Array
 import Data.Traversable
+import qualified Data.Primitive.Array as Array
 #endif
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..))
+#endif
 
 #if HAVE_SMALL_ARRAY
 data SmallArray a = SmallArray (SmallArray# a)
@@ -115,9 +118,11 @@ newtype SmallArray a = SmallArray (Array a) deriving
   , MonadFix
   , Monoid
   , Typeable
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
   , Eq1
   , Ord1
   , Show1
+#endif
   )
 
 #if MIN_VERSION_base(4,7,0)
@@ -460,11 +465,13 @@ smallArrayLiftEq p sa1 sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
     , (# y #) <- indexSmallArray## sa2 i
     = p x y && loop (i-1)
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 instance Eq1 SmallArray where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = smallArrayLiftEq
 #else
   eq1 = smallArrayLiftEq (==)
+#endif
 #endif
 
 instance Eq a => Eq (SmallArray a) where
@@ -485,11 +492,13 @@ smallArrayLiftCompare elemCompare a1 a2 = loop 0
     = elemCompare x1 x2 `mappend` loop (i+1)
     | otherwise = compare (length a1) (length a2)
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 instance Ord1 SmallArray where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = smallArrayLiftCompare
 #else
   compare1 = smallArrayLiftCompare compare
+#endif
 #endif
 
 instance Ord a => Ord (SmallArray a) where
@@ -791,23 +800,6 @@ instance IsList (SmallArray a) where
   fromList = smallArrayFromList
   toList = Foldable.toList
 
-smallArrayFromListN :: Int -> [a] -> SmallArray a
-smallArrayFromListN n l = runST $ do
-  sma <- newSmallArray n (die "smallArrayFromListN" "uninitialized element")
-  let go !ix [] = if ix == n
-        then return ()
-        else die "smallArrayFromListN" "list length less than specified size"
-      go !ix (x : xs) = if ix < n
-        then do
-          writeSmallArray sma ix x
-          go (ix+1) xs
-        else die "smallArrayFromListN" "list length greater than specified size"
-  go 0 l
-  unsafeFreezeSmallArray sma
-
-smallArrayFromList :: [a] -> SmallArray a
-smallArrayFromList l = smallArrayFromListN (length l) l
-
 smallArrayLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> SmallArray a -> ShowS
 smallArrayLiftShowsPrec elemShowsPrec elemListShowsPrec p sa = showParen (p > 10) $
   showString "fromListN " . shows (length sa) . showString " "
@@ -820,11 +812,13 @@ listLiftShowsPrec _ sl _ = sl
 instance Show a => Show (SmallArray a) where
   showsPrec p sa = smallArrayLiftShowsPrec showsPrec showList p sa
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 instance Show1 SmallArray where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftShowsPrec = smallArrayLiftShowsPrec
 #else
   showsPrec1 = smallArrayLiftShowsPrec showsPrec showList
+#endif
 #endif
 
 instance Read a => Read (SmallArray a) where
@@ -854,3 +848,25 @@ instance (Typeable s, Typeable a) => Data (SmallMutableArray s a) where
   gunfold _ _ = die "gunfold" "SmallMutableArray"
   dataTypeOf _ = mkNoRepType "Data.Primitive.SmallArray.SmallMutableArray"
 #endif
+
+smallArrayFromListN :: Int -> [a] -> SmallArray a
+#if HAVE_SMALL_ARRAY
+smallArrayFromListN n l = runST $ do
+  sma <- newSmallArray n (die "smallArrayFromListN" "uninitialized element")
+  let go !ix [] = if ix == n
+        then return ()
+        else die "smallArrayFromListN" "list length less than specified size"
+      go !ix (x : xs) = if ix < n
+        then do
+          writeSmallArray sma ix x
+          go (ix+1) xs
+        else die "smallArrayFromListN" "list length greater than specified size"
+  go 0 l
+  unsafeFreezeSmallArray sma
+#else
+smallArrayFromListN n l = SmallArray (Array.fromListN n l)
+#endif
+
+smallArrayFromList :: [a] -> SmallArray a
+smallArrayFromList l = smallArrayFromListN (length l) l
+

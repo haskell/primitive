@@ -43,10 +43,12 @@ main = do
 #if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
 #endif
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 Array))
+#endif
       ]
     , testGroup "SmallArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
@@ -55,10 +57,12 @@ main = do
 #if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
 #endif
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 SmallArray))
+#endif
       ]
     , testGroup "ByteArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))

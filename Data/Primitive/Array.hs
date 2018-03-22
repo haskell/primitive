@@ -63,7 +63,9 @@ import Data.Functor.Identity
 
 import Text.ParserCombinators.ReadP
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..))
+#endif
 
 -- | Boxed arrays
 data Array a = Array
@@ -300,11 +302,13 @@ arrayLiftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 -
 instance Eq a => Eq (Array a) where
   a1 == a2 = arrayLiftEq (==) a1 a2
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 instance Eq1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = arrayLiftEq
 #else
   eq1 = arrayLiftEq (==)
+#endif
 #endif
 
 instance Eq (MutableArray s a) where
@@ -324,11 +328,13 @@ arrayLiftCompare elemCompare a1 a2 = loop 0
 instance Ord a => Ord (Array a) where
   compare a1 a2 = arrayLiftCompare compare a1 a2
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 instance Ord1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = arrayLiftCompare
 #else
   compare1 = arrayLiftCompare compare
+#endif
 #endif
 
 instance Foldable Array where
@@ -693,11 +699,13 @@ listLiftShowsPrec _ sl _ = sl
 instance Show a => Show (Array a) where
   showsPrec p a = arrayLiftShowsPrec showsPrec showList p a
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 instance Show1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftShowsPrec = arrayLiftShowsPrec
 #else
   showsPrec1 = arrayLiftShowsPrec showsPrec showList
+#endif
 #endif
 
 instance Read a => Read (Array a) where
