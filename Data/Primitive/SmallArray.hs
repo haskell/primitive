@@ -849,6 +849,8 @@ instance (Typeable s, Typeable a) => Data (SmallMutableArray s a) where
   dataTypeOf _ = mkNoRepType "Data.Primitive.SmallArray.SmallMutableArray"
 #endif
 
+-- | Create a 'SmallArray' from a list of a known length. If the length
+--   of the list does not match the given length, this throws an exception.
 smallArrayFromListN :: Int -> [a] -> SmallArray a
 #if HAVE_SMALL_ARRAY
 smallArrayFromListN n l = runST $ do
@@ -867,6 +869,7 @@ smallArrayFromListN n l = runST $ do
 smallArrayFromListN n l = SmallArray (Array.fromListN n l)
 #endif
 
+-- | Create a 'SmallArray' from a list.
 smallArrayFromList :: [a] -> SmallArray a
 smallArrayFromList l = smallArrayFromListN (length l) l
 
