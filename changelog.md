@@ -2,8 +2,6 @@
 
  * Add `Eq1`, `Ord1`, and `Show1` instances for `Array` and `SmallArray`.
 
- * Drop support for `transformers-0.2.x.y`.
-
  * Improve the test suite. This includes having property tests for
    typeclasses from `base` such as `Eq`, `Ord`, `Functor`, `Applicative`,
    `Monad`, `IsList`, and `Monoid`.
