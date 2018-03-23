@@ -6,6 +6,14 @@ as `primitive` itself. The test suite depends on `QuickCheck`, which
 transitively depends on `primitive`. To break up this dependency cycle,
 the test suite lives here in its own unpublished package.
 
+To accelerates builds of the test suite, it is recommended to use
+`cabal new-build`, which will use the pass the flags specified in
+the `cabal.project` file to build `quickcheck-classes`. From the
+root directory of `primitive`, run the following command to build
+the test suite:
+
+    cabal new-build test --enable-tests
+
 This test suite is tested by travis. Although `primitive` supports
 versions of transformers all the way back to `transformers-0.2.0.0`,
 the test suite cannot be build with versions of transformers older than
