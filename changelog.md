@@ -11,6 +11,9 @@
 
  * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
    `Array` and `SmallArray`.
+ 
+ * Implement `Data.Primitive.Ptr`, implementations of `Ptr` functions
+   that require a `Prim` constraint instead of a `Storable` constraint.
 
 ## Changes in version 0.6.3.0
 
