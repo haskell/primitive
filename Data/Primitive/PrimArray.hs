@@ -40,11 +40,14 @@ import GHC.Ptr
 import Data.Primitive
 import Control.Monad.Primitive
 import Control.Monad.ST
-import Data.Semigroup (Semigroup(..))
-import qualified Data.Semigroup as SG
 import qualified Data.List as L
 import qualified Data.Primitive.ByteArray as PB
 import qualified Data.Primitive.Types as PT
+
+#if MIN_VERSION_base(4,9,0)
+import Data.Semigroup (Semigroup(..))
+import qualified Data.Semigroup as SG
+#endif
 
 -- | Primitive arrays
 data PrimArray a = PrimArray ByteArray#
@@ -52,42 +55,67 @@ data PrimArray a = PrimArray ByteArray#
 -- | Mutable primitive arrays associated with a primitive state token
 data MutablePrimArray s a = MutablePrimArray (MutableByteArray# s)
 
+sameByteArray :: ByteArray# -> ByteArray# -> Bool
+sameByteArray ba1 ba2 =
+    case reallyUnsafePtrEquality# (unsafeCoerce# ba1 :: ()) (unsafeCoerce# ba2 :: ()) of
+#if __GLASGOW_HASKELL__ >= 708
+      r -> isTrue# r
+#else
+      1# -> True
+      0# -> False
+#endif
+
 instance (Eq a, Prim a) => Eq (PrimArray a) where
-  a1 == a2 = sizeofPrimArray a1 == sizeofPrimArray a2 && loop (sizeofPrimArray a1 - 1)
+  a1@(PrimArray ba1#) == a2@(PrimArray ba2#)
+    | sameByteArray ba1# ba2# = True
+    | I# (sizeofByteArray# ba1#) /= I# (sizeofByteArray# ba2#) = False
+    | otherwise = loop (sizeofPrimArray a1 - 1)
     where 
-    loop !i | i < 0 = True
-            | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
+    loop !i
+      | i < 0 = True
+      | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
 
 instance Prim a => IsList (PrimArray a) where
   type Item (PrimArray a) = a
-  fromList xs = primArrayFromList (L.length xs) xs
-  fromListN = primArrayFromList
+  fromList xs = primArrayFromListN (L.length xs) xs
+  fromListN = primArrayFromListN
   toList = primArrayToList
 
-instance (Prim a, Show a) => Show (PrimArray a) where
-  showsPrec p = showsPrec p . primArrayToList
+instance (Show a, Prim a) => Show (PrimArray a) where
+  showsPrec p a = showParen (p > 10) $
+    showString "fromListN " . shows (sizeofPrimArray a) . showString " "
+      . shows (primArrayToList a)
 
-primArrayFromList :: forall a. Prim a => Int -> [a] -> PrimArray a
-primArrayFromList len vs = runST run where
+die :: String -> String -> a
+die fun problem = error $ "Data.Primitive.PrimArray." ++ fun ++ ": " ++ problem
+
+primArrayFromListN :: forall a. Prim a => Int -> [a] -> PrimArray a
+primArrayFromListN len vs = runST run where
   run :: forall s. ST s (PrimArray a)
   run = do
     arr <- newPrimArray len
     let go :: [a] -> Int -> ST s ()
-        go !xs !ix = case xs of
-          [] -> return ()
-          a : as -> do
+        go [] !ix = if ix == len
+          then return ()
+          else die "fromListN" "list length less than specified size"
+        go (a : as) !ix = if ix < len
+          then do
             writePrimArray arr ix a
             go as (ix + 1)
+          else die "fromListN" "list length greater than specified size"
     go vs 0
     unsafeFreezePrimArray arr
 
+-- Right-fold over the elements of a PrimArray
+foldrPrimArray :: forall a b. (Prim a) => (a -> b -> b) -> b -> PrimArray a -> b
+foldrPrimArray f z arr = go 0
+  where
+    go i
+      | sizeofPrimArray arr > i = f (indexPrimArray arr i) (go (i+1))
+      | otherwise = z
+
 primArrayToList :: forall a. Prim a => PrimArray a -> [a]
-primArrayToList arr = go 0 where
-  !len = sizeofPrimArray arr
-  go :: Int -> [a]
-  go !ix = if ix < len
-    then indexPrimArray arr ix : go (ix + 1)
-    else []
+primArrayToList = foldrPrimArray (:) []
 
 primArrayToByteArray :: PrimArray a -> PB.ByteArray
 primArrayToByteArray (PrimArray x) = PB.ByteArray x
