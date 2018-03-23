@@ -120,6 +120,7 @@ newtype SmallArray a = SmallArray (Array a) deriving
   , Eq1
   , Ord1
   , Show1
+  , Read1
 #endif
   )
 
