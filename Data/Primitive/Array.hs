@@ -375,7 +375,7 @@ instance Foldable Array where
       go i =
         case indexArray## ary i of
           (# x #) | i == 0 -> x
-                  | otherwise -> f x (go (i - 1))
+                  | otherwise -> f (go (i - 1)) x
     in if sz < 0
        then die "foldl1" "empty array"
        else go sz

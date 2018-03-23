@@ -540,7 +540,7 @@ instance Foldable SmallArray where
       go i =
         case indexSmallArray## ary i of
           (# x #) | i == 0 -> x
-                  | otherwise -> f x (go (i - 1))
+                  | otherwise -> f (go (i - 1)) x
     in if sz < 0
        then die "foldl1" "Empty SmallArray"
        else go sz

@@ -5,7 +5,7 @@
 
  * Improve the test suite. This includes having property tests for
    typeclasses from `base` such as `Eq`, `Ord`, `Functor`, `Applicative`,
-   `Monad`, `IsList`, and `Monoid`.
+   `Monad`, `IsList`, `Monoid`, `Foldable`, and `Traversable`.
 
  * Fix the broken `IsList` instance for `ByteArray`.
 
