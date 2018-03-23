@@ -54,6 +54,8 @@ module Data.Primitive.SmallArray
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
+  , smallArrayFromList
+  , smallArrayFromListN
   , unsafeTraverseSmallArray
   ) where
 
@@ -82,13 +84,16 @@ import Data.Monoid
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Sem
 #endif
-import Text.ParserCombinators.ReadPrec
-import Text.Read
-import Text.Read.Lex
+import Text.ParserCombinators.ReadP
 
 #if !(HAVE_SMALL_ARRAY)
 import Data.Primitive.Array
 import Data.Traversable
+import qualified Data.Primitive.Array as Array
+#endif
+
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
 
 #if HAVE_SMALL_ARRAY
@@ -111,6 +116,12 @@ newtype SmallArray a = SmallArray (Array a) deriving
   , MonadFix
   , Monoid
   , Typeable
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+  , Eq1
+  , Ord1
+  , Show1
+  , Read1
+#endif
   )
 
 #if MIN_VERSION_base(4,7,0)
@@ -443,31 +454,54 @@ infixl 1 ?
 noOp :: a -> ST s ()
 noOp = const $ pure ()
 
+smallArrayLiftEq :: (a -> b -> Bool) -> SmallArray a -> SmallArray b -> Bool
+smallArrayLiftEq p sa1 sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
+  where
+  loop i
+    | i < 0
+    = True
+    | (# x #) <- indexSmallArray## sa1 i
+    , (# y #) <- indexSmallArray## sa2 i
+    = p x y && loop (i-1)
+
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+instance Eq1 SmallArray where
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
+  liftEq = smallArrayLiftEq
+#else
+  eq1 = smallArrayLiftEq (==)
+#endif
+#endif
+
 instance Eq a => Eq (SmallArray a) where
-  sa1 == sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
-   where
-   loop i
-     | i < 0
-     = True
-     | (# x #) <- indexSmallArray## sa1 i
-     , (# y #) <- indexSmallArray## sa2 i
-     = x == y && loop (i-1)
+  sa1 == sa2 = smallArrayLiftEq (==) sa1 sa2
 
 instance Eq (SmallMutableArray s a) where
   SmallMutableArray sma1# == SmallMutableArray sma2# =
     isTrue# (sameSmallMutableArray# sma1# sma2#)
 
-instance Ord a => Ord (SmallArray a) where
-  compare a1 a2 = loop 0
-   where
-   mn = length a1 `min` length a2
-   loop i
-     | i < mn
-     , (# x1 #) <- indexSmallArray## a1 i
-     , (# x2 #) <- indexSmallArray## a2 i
-     = compare x1 x2 `mappend` loop (i+1)
-     | otherwise = compare (length a1) (length a2)
+smallArrayLiftCompare :: (a -> b -> Ordering) -> SmallArray a -> SmallArray b -> Ordering
+smallArrayLiftCompare elemCompare a1 a2 = loop 0
+  where
+  mn = length a1 `min` length a2
+  loop i
+    | i < mn
+    , (# x1 #) <- indexSmallArray## a1 i
+    , (# x2 #) <- indexSmallArray## a2 i
+    = elemCompare x1 x2 `mappend` loop (i+1)
+    | otherwise = compare (length a1) (length a2)
 
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+instance Ord1 SmallArray where
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
+  liftCompare = smallArrayLiftCompare
+#else
+  compare1 = smallArrayLiftCompare compare
+#endif
+#endif
+
+instance Ord a => Ord (SmallArray a) where
+  compare sa1 sa2 = smallArrayLiftCompare compare sa1 sa2
 
 instance Foldable SmallArray where
   -- Note: we perform the array lookups eagerly so we won't
@@ -507,7 +541,7 @@ instance Foldable SmallArray where
       go i =
         case indexSmallArray## ary i of
           (# x #) | i == 0 -> x
-                  | otherwise -> f x (go (i - 1))
+                  | otherwise -> f (go (i - 1)) x
     in if sz < 0
        then die "foldl1" "Empty SmallArray"
        else go sz
@@ -632,17 +666,21 @@ instance Applicative SmallArray where
      in go 0
    where sza = sizeofSmallArray a ; szb = sizeofSmallArray b
 
-  sf <*> sx = createSmallArray (lf*lx) (die "<*>" "impossible") $ \smb ->
-    fix ? 0 $ \outer i -> when (i < lf) $ do
-      f <- indexSmallArrayM sf i
-      fix ? 0 $ \inner j ->
-        when (j < lx) $ do
-          x <- indexSmallArrayM sx j
-          writeSmallArray smb (lf*i + j) (f x)
-            *> inner (j+1)
-      outer $ i+1
-   where
-   lf = length sf ; lx = length sx
+  ab <*> a = runST $ do
+    mb <- newSmallArray (szab*sza) $ die "<*>" "impossible"
+    let go1 i = when (i < szab) $
+            do
+              f <- indexSmallArrayM ab i
+              go2 (i*sza) f 0
+              go1 (i+1)
+        go2 off f j = when (j < sza) $
+            do
+              x <- indexSmallArrayM a j
+              writeSmallArray mb (off + j) (f x)
+              go2 off f (j + 1)
+    go1 0
+    unsafeFreezeSmallArray mb
+   where szab = sizeofSmallArray ab ; sza = sizeofSmallArray a
 
 instance Alternative SmallArray where
   empty = emptySmallArray
@@ -757,25 +795,53 @@ instance Monoid (SmallArray a) where
 
 instance IsList (SmallArray a) where
   type Item (SmallArray a) = a
-  fromListN n l =
-    createSmallArray n (die "fromListN" "mismatched size and list") $ \sma ->
-      fix ? 0 ? l $ \go i li -> case li of
-        [] -> pure ()
-        x:xs -> writeSmallArray sma i x *> go (i+1) xs
-  fromList l = fromListN (length l) l
+  fromListN = smallArrayFromListN
+  fromList = smallArrayFromList
   toList = Foldable.toList
 
+smallArrayLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> SmallArray a -> ShowS
+smallArrayLiftShowsPrec elemShowsPrec elemListShowsPrec p sa = showParen (p > 10) $
+  showString "fromListN " . shows (length sa) . showString " "
+    . listLiftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList sa)
+
+-- this need to be included for older ghcs
+listLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> [a] -> ShowS
+listLiftShowsPrec _ sl _ = sl
+
 instance Show a => Show (SmallArray a) where
-  showsPrec p sa = showParen (p > 10) $
-    showString "fromListN " . shows (length sa) . showString " "
-      . shows (toList sa)
+  showsPrec p sa = smallArrayLiftShowsPrec showsPrec showList p sa
+
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+instance Show1 SmallArray where
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
+  liftShowsPrec = smallArrayLiftShowsPrec
+#else
+  showsPrec1 = smallArrayLiftShowsPrec showsPrec showList
+#endif
+#endif
+
+smallArrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (SmallArray a)
+smallArrayLiftReadsPrec _ listReadsPrec p = readParen (p > 10) . readP_to_S $ do
+  () <$ string "fromListN"
+  skipSpaces
+  n <- readS_to_P reads
+  skipSpaces
+  l <- readS_to_P listReadsPrec
+  return $ smallArrayFromListN n l
 
 instance Read a => Read (SmallArray a) where
-  readPrec = parens . prec 10 $ do
-    Symbol "fromListN" <- lexP
-    Number nu <- lexP
-    n <- maybe empty pure $ numberToInteger nu
-    fromListN (fromIntegral n) <$> readPrec
+  readsPrec = smallArrayLiftReadsPrec readsPrec readList
+
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+instance Read1 SmallArray where
+#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
+  liftReadsPrec = smallArrayLiftReadsPrec
+#else
+  readsPrec1 = smallArrayLiftReadsPrec readsPrec readList
+#endif
+#endif
+
+
 
 smallArrayDataType :: DataType
 smallArrayDataType =
@@ -797,3 +863,28 @@ instance (Typeable s, Typeable a) => Data (SmallMutableArray s a) where
   gunfold _ _ = die "gunfold" "SmallMutableArray"
   dataTypeOf _ = mkNoRepType "Data.Primitive.SmallArray.SmallMutableArray"
 #endif
+
+-- | Create a 'SmallArray' from a list of a known length. If the length
+--   of the list does not match the given length, this throws an exception.
+smallArrayFromListN :: Int -> [a] -> SmallArray a
+#if HAVE_SMALL_ARRAY
+smallArrayFromListN n l = runST $ do
+  sma <- newSmallArray n (die "smallArrayFromListN" "uninitialized element")
+  let go !ix [] = if ix == n
+        then return ()
+        else die "smallArrayFromListN" "list length less than specified size"
+      go !ix (x : xs) = if ix < n
+        then do
+          writeSmallArray sma ix x
+          go (ix+1) xs
+        else die "smallArrayFromListN" "list length greater than specified size"
+  go 0 l
+  unsafeFreezeSmallArray sma
+#else
+smallArrayFromListN n l = SmallArray (Array.fromListN n l)
+#endif
+
+-- | Create a 'SmallArray' from a list.
+smallArrayFromList :: [a] -> SmallArray a
+smallArrayFromList l = smallArrayFromListN (length l) l
+

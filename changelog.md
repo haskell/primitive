@@ -1,3 +1,17 @@
+## Changes in version 0.6.4.0
+
+ * Add `Eq1`, `Ord1`, `Show1`, and `Read1` instances for `Array` and
+   `SmallArray`.
+
+ * Improve the test suite. This includes having property tests for
+   typeclasses from `base` such as `Eq`, `Ord`, `Functor`, `Applicative`,
+   `Monad`, `IsList`, `Monoid`, `Foldable`, and `Traversable`.
+
+ * Fix the broken `IsList` instance for `ByteArray`.
+
+ * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
+   `Array` and `SmallArray`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from

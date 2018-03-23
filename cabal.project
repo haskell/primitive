@@ -1,2 +1,5 @@
 packages: .
           ./test
+package quickcheck-classes
+  flags: -aeson -semigroupoids
+  
