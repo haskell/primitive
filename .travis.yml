@@ -94,6 +94,8 @@ install:
     fi
   - grep -Ev -- '^\s*--' ${HOME}/.cabal/config | grep -Ev '^\s*$'
   - "printf 'packages: \".\" \"./test\"\\n' > cabal.project"
+  - echo 'package quickcheck-classes' >> cabal.project
+  - "echo '  flags: -aeson -semigroupoids' >> cabal.project"
   - cat cabal.project
   - if [ -f "./configure.ac" ]; then
       (cd "." && autoreconf -i);
@@ -115,6 +117,8 @@ script:
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -name '*.tar.gz' -exec tar -xvf '{}' \;
   - "printf 'packages: primitive-*/*.cabal primitive-tests-*/*.cabal\\n' > cabal.project"
+  - echo 'package quickcheck-classes' >> cabal.project
+  - "echo '  flags: -aeson -semigroupoids' >> cabal.project"
   - cat cabal.project
   # this builds all libraries and executables (without tests/benchmarks)
   - cabal new-build -w ${HC} --disable-tests --disable-benchmarks all
