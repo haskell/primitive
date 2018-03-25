@@ -7,6 +7,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE PolyKinds #-}
+#endif
 
 -- |
 -- Module : Data.Primitive.SmallArray
@@ -52,6 +55,8 @@ module Data.Primitive.SmallArray
   , unsafeFreezeSmallArray
   , thawSmallArray
   , runSmallArray
+  , runSmallArrays
+  , runSmallArraysHetOf
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
@@ -940,3 +945,57 @@ smallArrayFromListN n l = SmallArray (Array.fromListN n l)
 -- | Create a 'SmallArray' from a list.
 smallArrayFromList :: [a] -> SmallArray a
 smallArrayFromList l = smallArrayFromListN (length l) l
+
+-- | Create any number of arrays of the same type within an arbitrary
+-- 'Traversable' context. This will often be useful with traversables
+-- like  @(c,)@, @'Either' e@, @'Compose' (c,) ('Either' e)@, and
+-- @'Compose' ('Either' e) (c,)@. For a more general version, see
+-- 'runArraysHetOf'.
+runSmallArrays
+  :: Traversable t
+  => (forall s. ST s (t (SmallMutableArray s a)))
+  -> t (SmallArray a)
+runSmallArrays m = runST $ m >>= traverse unsafeFreezeSmallArray
+
+-- | Create arbitrarily many arrays that may have different types. For
+-- a simpler but less general version, see 'runArrays'.
+--
+-- === __Examples__
+--
+-- ==== @'runSmallArrays'@
+--
+-- @
+-- newtype Ha t a v = Ha {unHa :: t (v a)}
+-- runSmallArrays m = unHa $ runSmallArraysHetOf (\f (Ha t) -> Ha <$> traverse f t) (Ha <$> m)
+-- @
+--
+-- ==== @unzipSmallArray@
+--
+-- @
+-- unzipSmallArray :: Array (a, b) -> (Array a, Array b)
+-- unzipSmallArray ar =
+--   unPair $ runSmallArraysHetOf traversePair $ do
+--          xs <- newSmallArray sz undefined
+--          ys <- newSmallArray sz undefined
+--          let go k
+--                | k == sz = pure (Pair (xs, ys))
+--                | otherwise = do
+--                    (x,y) <- indexSmallArrayM ar k
+--                    writeSmallArray xs k x
+--                    writeSmallArray ys k y
+--                    go (k + 1)
+--          go 0
+--   where sz = sizeofSmallArray ar
+--
+-- data Pair ab v where
+--   Pair :: {unPair :: (v a, v b)} -> Pair (a,b) v
+--
+-- traversePair :: Applicative h => (forall x. f x -> h (g x)) -> Pair ab f -> h (Pair ab g)
+-- traversePair f (Pair (xs, ys)) = liftA2 (\x y -> Pair (x,y)) (f xs) (f ys)
+-- @
+runSmallArraysHetOf
+  :: (forall h f g.
+       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g))) -- ^ A rank-2 traversal
+  -> (forall s. ST s (t (SmallMutableArray s))) -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+  -> u SmallArray
+runSmallArraysHetOf f m = runST $ m >>= f unsafeFreezeSmallArray

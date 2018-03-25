@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE PolyKinds #-}
+#endif
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -17,7 +20,7 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM,
-  freezeArray, thawArray, runArray,
+  freezeArray, thawArray, runArray, runArrays, runArraysHetOf,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
@@ -340,7 +343,6 @@ emptyArray# :: (# #) -> Array# a
 emptyArray# _ = case emptyArray of Array ar -> ar
 {-# NOINLINE emptyArray# #-}
 #endif
-
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.Array." ++ fun ++ ": " ++ problem
@@ -798,3 +800,57 @@ instance (Typeable s, Typeable a) => Data (MutableArray s a) where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
   dataTypeOf _ = mkNoRepType "Data.Primitive.Array.MutableArray"
+
+-- | Create any number of arrays of the same type within an arbitrary
+-- 'Traversable' context. This will often be useful with traversables
+-- like  @(c,)@, @'Either' e@, @'Compose' (c,) ('Either' e)@, and
+-- @'Compose' ('Either' e) (c,)@. For a more general version, see
+-- 'runArraysHetOf'.
+runArrays
+  :: Traversable t
+  => (forall s. ST s (t (MutableArray s a)))
+  -> t (Array a)
+runArrays m = runST $ m >>= traverse unsafeFreezeArray
+
+-- | Create arbitrarily many arrays that may have different types.
+-- For a simpler but less general version, see 'runArrays'.
+--
+-- === __Examples__
+--
+-- ==== @'runArrays'@
+--
+-- @
+-- newtype Ha t a v = Ha {unHa :: t (v a)}
+-- runArrays m = unHa $ runArraysHetOf (\f (Ha t) -> Ha <$> traverse f t) (Ha <$> m)
+-- @
+--
+-- ==== @unzipArray@
+--
+-- @
+-- unzipArray :: Array (a, b) -> (Array a, Array b)
+-- unzipArray ar =
+--   unPair $ runArraysHetOf traversePair $ do
+--          xs <- newArray sz undefined
+--          ys <- newArray sz undefined
+--          let go k
+--                | k == sz = pure (Pair (xs, ys))
+--                | otherwise = do
+--                    (x,y) <- indexArrayM ar k
+--                    writeArray xs k x
+--                    writeArray ys k y
+--                    go (k + 1)
+--          go 0
+--   where sz = sizeofArray ar
+--
+-- data Pair ab v where
+--   Pair :: {unPair :: (v a, v b)} -> Pair (a,b) v
+--
+-- traversePair :: Applicative h => (forall x. f x -> h (g x)) -> Pair ab f -> h (Pair ab g)
+-- traversePair f (Pair (xs, ys)) = liftA2 (\x y -> Pair (x,y)) (f xs) (f ys)
+-- @
+runArraysHetOf
+  :: (forall h f g.
+       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g))) -- ^ A rank-2 traversal
+  -> (forall s. ST s (t (MutableArray s))) -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+  -> u Array
+runArraysHetOf f m = runST $ m >>= f unsafeFreezeArray
