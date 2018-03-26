@@ -20,7 +20,7 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM,
-  freezeArray, thawArray, runArray, runArrays, runArraysHetOf,
+  freezeArray, thawArray, runArray, runArrays, runArraysHetOf, runArraysHetOfThen,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
@@ -29,6 +29,7 @@ module Data.Primitive.Array (
   unsafeTraverseArray
 ) where
 
+import Data.Functor.Compose
 import Control.Monad.Primitive
 
 import GHC.Base  ( Int(..) )
@@ -850,7 +851,24 @@ runArrays m = runST $ m >>= traverse unsafeFreezeArray
 -- @
 runArraysHetOf
   :: (forall h f g.
-       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g))) -- ^ A rank-2 traversal
-  -> (forall s. ST s (t (MutableArray s))) -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g)))
+     -- ^ A rank-2 traversal
+  -> (forall s. ST s (t (MutableArray s)))
+     -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u Array
-runArraysHetOf f m = runST $ m >>= f unsafeFreezeArray
+runArraysHetOf trav m = runST $ m >>= trav unsafeFreezeArray
+
+-- | Similar to 'runArraysHetOf', but takes a function to traverse over the
+-- generated 'Array's as it freezes them.
+runArraysHetOfThen
+  :: Applicative q
+  => (forall h f g.
+       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g)))
+     -- ^ A rank-2 traversal
+  -> (forall x. Array x -> q (r x))
+     -- ^ A function to traverse over the container of 'Array's
+  -> (forall s. ST s (t (MutableArray s)))
+     -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+  -> q (u r)
+runArraysHetOfThen trav post m =
+    runST $ m >>= getCompose . trav (Compose . fmap post . unsafeFreezeArray)

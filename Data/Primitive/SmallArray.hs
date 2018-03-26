@@ -57,6 +57,7 @@ module Data.Primitive.SmallArray
   , runSmallArray
   , runSmallArrays
   , runSmallArraysHetOf
+  , runSmallArraysHetOfThen
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
@@ -107,6 +108,7 @@ import qualified Data.Primitive.Array as Array
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
+import Data.Functor.Compose
 
 #if HAVE_SMALL_ARRAY
 data SmallArray a = SmallArray (SmallArray# a)
@@ -995,7 +997,24 @@ runSmallArrays m = runST $ m >>= traverse unsafeFreezeSmallArray
 -- @
 runSmallArraysHetOf
   :: (forall h f g.
-       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g))) -- ^ A rank-2 traversal
-  -> (forall s. ST s (t (SmallMutableArray s))) -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g)))
+     -- ^ A rank-2 traversal
+  -> (forall s. ST s (t (SmallMutableArray s)))
+     -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u SmallArray
 runSmallArraysHetOf f m = runST $ m >>= f unsafeFreezeSmallArray
+
+-- | Similar to 'runSmallArraysHetOf', but takes a function to traverse over the
+-- generated 'SmallArray's as it freezes them.
+runSmallArraysHetOfThen
+  :: Applicative q
+  => (forall h f g.
+       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g)))
+     -- ^ A rank-2 traversal
+  -> (forall x. SmallArray x -> q (r x))
+     -- ^ A function to traverse over a container of 'Array's
+  -> (forall s. ST s (t (SmallMutableArray s)))
+     -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+  -> q (u r)
+runSmallArraysHetOfThen trav post m =
+  runST $ m >>= getCompose . trav (Compose . fmap post . unsafeFreezeSmallArray)
