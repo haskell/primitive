@@ -27,6 +27,19 @@ module Data.Primitive.PrimArray
   , copyPrimArrayToPtr
   , copyMutablePrimArrayToPtr
   , setPrimArray
+    -- * Folding
+  , foldrPrimArray
+  , foldrPrimArray'
+  , foldlPrimArray
+  , foldlPrimArray'
+  , foldlPrimArrayM'
+    -- * Traversing
+  , mapPrimArray
+  , mapPrimArrayM
+  , mapPrimArrayP
+  , imapPrimArray
+  , imapPrimArrayM
+  , imapPrimArrayP
     -- * Information
   , sameMutablePrimArray
   , getSizeofMutablePrimArray
@@ -35,7 +48,7 @@ module Data.Primitive.PrimArray
 
 import GHC.Prim
 import GHC.Exts (isTrue#,IsList(..))
-import GHC.Int
+import GHC.Base ( Int(..) )
 import GHC.Ptr
 import Data.Primitive
 import Control.Monad.Primitive
@@ -106,19 +119,26 @@ primArrayFromListN len vs = runST run where
     go vs 0
     unsafeFreezePrimArray arr
 
--- Right-fold over the elements of a PrimArray
-foldrPrimArray :: forall a b. (Prim a) => (a -> b -> b) -> b -> PrimArray a -> b
-foldrPrimArray f z arr = go 0
-  where
-    go i
-      | sizeofPrimArray arr > i = f (indexPrimArray arr i) (go (i+1))
-      | otherwise = z
-
 primArrayToList :: forall a. Prim a => PrimArray a -> [a]
 primArrayToList = foldrPrimArray (:) []
 
 primArrayToByteArray :: PrimArray a -> PB.ByteArray
 primArrayToByteArray (PrimArray x) = PB.ByteArray x
+
+-- only used internally, no error checking
+{-# INLINE primArrayFromBackwardsListN #-}
+primArrayFromBackwardsListN :: forall a. Prim a => Int -> [a] -> PrimArray a
+primArrayFromBackwardsListN len vs = runST run where
+  run :: forall s. ST s (PrimArray a)
+  run = do
+    arr <- newPrimArray len
+    let go :: [a] -> Int -> ST s ()
+        go [] !_ = return ()
+        go (a : as) !ix = do
+          writePrimArray arr ix a
+          go as (ix - 1)
+    go vs (len - 1)
+    unsafeFreezePrimArray arr
 
 byteArrayToPrimArray :: ByteArray -> PrimArray a
 byteArrayToPrimArray (PB.ByteArray x) = PrimArray x
@@ -294,4 +314,175 @@ indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
+
+-- | Lazy right-associated fold over the elements of a 'PrimArray'.
+{-# INLINE foldrPrimArray #-}
+foldrPrimArray :: forall a b. Prim a => (a -> b -> b) -> b -> PrimArray a -> b
+foldrPrimArray f z arr = go 0
+  where
+    !sz = sizeofPrimArray arr
+    go !i
+      | sz > i = f (indexPrimArray arr i) (go (i+1))
+      | otherwise = z
+
+-- | Strict right-associated fold over the elements of a 'PrimArray'.
+{-# INLINE foldrPrimArray' #-}
+foldrPrimArray' :: forall a b. Prim a => (a -> b -> b) -> b -> PrimArray a -> b
+foldrPrimArray' f z0 arr = go (sizeofPrimArray arr - 1) z0
+  where
+    go !i !acc
+      | i < 0 = acc
+      | otherwise = go (i - 1) (f (indexPrimArray arr i) acc)
+
+-- | Lazy left-associated fold over the elements of a 'PrimArray'.
+{-# INLINE foldlPrimArray #-}
+foldlPrimArray :: forall a b. Prim a => (b -> a -> b) -> b -> PrimArray a -> b
+foldlPrimArray f z arr = go (sizeofPrimArray arr - 1)
+  where
+    go !i
+      | i < 0 = z
+      | otherwise = f (go (i - 1)) (indexPrimArray arr i)
+
+-- | Strict left-associated fold over the elements of a 'PrimArray'.
+{-# INLINE foldlPrimArray' #-}
+foldlPrimArray' :: forall a b. Prim a => (b -> a -> b) -> b -> PrimArray a -> b
+foldlPrimArray' f z0 arr = go 0 z0
+  where
+    !sz = sizeofPrimArray arr
+    go !i !acc
+      | i < sz = go (i + 1) (f acc (indexPrimArray arr i))
+      | otherwise = acc
+
+-- | Strict left-associated fold over the elements of a 'PrimArray'.
+{-# INLINE foldlPrimArrayM' #-}
+foldlPrimArrayM' :: (Prim a, Monad m) => (b -> a -> m b) -> b -> PrimArray a -> m b
+foldlPrimArrayM' f z0 arr = go 0 z0
+  where
+    !sz = sizeofPrimArray arr
+    go !i !acc1
+      | i < sz = do
+          acc2 <- f acc1 (indexPrimArray arr i)
+          go (i + 1) acc2
+      | otherwise = return acc1
+
+-- | Monadic map over a 'PrimArray'.
+{-# INLINE mapPrimArrayM #-}
+mapPrimArrayM :: (Monad m, Prim a, Prim b)
+  => (a -> m b)
+  -> PrimArray a
+  -> m (PrimArray b)
+mapPrimArrayM f arr = go 0 []
+  where
+  !sz = sizeofPrimArray arr
+  go !ix !xs
+    | ix < sz = do
+        !x <- f (indexPrimArray arr ix)
+        go (ix + 1) (x : xs)
+    | otherwise = return (primArrayFromBackwardsListN sz xs)
+
+-- | Monadic map over a 'PrimArray' where the monad allows
+--   primitive actions.
+{-# INLINE mapPrimArrayP #-}
+mapPrimArrayP :: (PrimBase m, Prim a, Prim b)
+  => (a -> m b)
+  -> PrimArray a
+  -> m (PrimArray b)
+mapPrimArrayP = unsafeMapPrimArrayP
+
+-- This function is not exported. It only produces correct
+-- results when the monad is sufficiently affine.
+{-# INLINE unsafeMapPrimArrayP #-}
+unsafeMapPrimArrayP :: (PrimMonad m, Prim a, Prim b)
+  => (a -> m b)
+  -> PrimArray a
+  -> m (PrimArray b)
+unsafeMapPrimArrayP f arr = do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ix = if ix < sz
+        then do
+          b <- f (indexPrimArray arr ix)
+          writePrimArray marr ix b
+          go (ix + 1)
+        else return ()
+  go 0
+  unsafeFreezePrimArray marr
+
+{-# INLINE mapPrimArray #-}
+mapPrimArray :: (Prim a, Prim b)
+  => (a -> b)
+  -> PrimArray a
+  -> PrimArray b
+mapPrimArray f arr = runST $ do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ix = if ix < sz
+        then do
+          let b = f (indexPrimArray arr ix)
+          writePrimArray marr ix b
+          go (ix + 1)
+        else return ()
+  go 0
+  unsafeFreezePrimArray marr
+
+{-# INLINE imapPrimArray #-}
+imapPrimArray :: (Prim a, Prim b)
+  => (Int -> a -> b)
+  -> PrimArray a
+  -> PrimArray b
+imapPrimArray f arr = runST $ do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ix = if ix < sz
+        then do
+          let b = f ix (indexPrimArray arr ix)
+          writePrimArray marr ix b
+          go (ix + 1)
+        else return ()
+  go 0
+  unsafeFreezePrimArray marr
+
+{-# INLINE imapPrimArrayM #-}
+imapPrimArrayM :: (Prim a, Prim b, Monad m)
+  => (Int -> a -> m b)
+  -> PrimArray a
+  -> m (PrimArray b)
+imapPrimArrayM f arr = go 0 []
+  where
+  !sz = sizeofPrimArray arr
+  go !ix !xs
+    | ix < sz = do
+        !x <- f ix (indexPrimArray arr ix)
+        go (ix + 1) (x : xs)
+    | otherwise = return (primArrayFromBackwardsListN sz xs)
+
+{-# INLINE imapPrimArrayP #-}
+imapPrimArrayP :: (Prim a, Prim b, PrimBase m)
+  => (Int -> a -> m b)
+  -> PrimArray a
+  -> m (PrimArray b)
+imapPrimArrayP f arr = do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ix
+        | ix < sz = do
+            writePrimArray marr ix =<< f ix (indexPrimArray arr ix)
+            go (ix + 1)
+        | otherwise = return ()
+  go 0
+  unsafeFreezePrimArray marr
+
+generatePrimArray :: Prim a
+  => Int -- ^ length
+  -> (Int -> a) -- ^ element from index
+  -> PrimArray a
+generatePrimArray len f = runST $ do
+  marr <- newPrimArray len
+  let go !ix = if ix < len
+        then do
+          writePrimArray marr ix (f ix)
+          go (ix + 1)
+        else return ()
+  go 0
+  unsafeFreezePrimArray marr
 

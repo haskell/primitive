@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Applicative
 import Control.Monad
@@ -15,6 +16,7 @@ import Data.Primitive.Array
 import Data.Primitive.ByteArray
 import Data.Primitive.Types
 import Data.Primitive.SmallArray
+import Data.Primitive.PrimArray
 import Data.Word
 import Data.Proxy (Proxy(..))
 import GHC.Int
@@ -29,6 +31,7 @@ import Test.QuickCheck (Arbitrary,Arbitrary1,Gen)
 import qualified Test.Tasty.QuickCheck as TQC
 import qualified Test.QuickCheck as QC
 import qualified Test.QuickCheck.Classes as QCC
+import qualified Test.QuickCheck.Classes.IsList as QCCL
 import qualified Data.List as L
 
 main :: IO ()
@@ -76,7 +79,26 @@ main = do
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
 #endif
       ]
+    , testGroup "PrimArray"
+      [ TQC.testProperty "foldrPrimArray" (QCCL.foldrProp int16 foldrPrimArray)
+      , TQC.testProperty "foldrPrimArray'" (QCCL.foldrProp int16 foldrPrimArray')
+      , TQC.testProperty "foldlPrimArray" (QCCL.foldlProp int16 foldlPrimArray)
+      , TQC.testProperty "foldlPrimArray'" (QCCL.foldlProp int16 foldlPrimArray')
+      , TQC.testProperty "foldlPrimArrayM'" (QCCL.foldlMProp int16 foldlPrimArrayM')
+      , TQC.testProperty "mapPrimArray" (QCCL.mapProp int16 int32 mapPrimArray)
+      , TQC.testProperty "mapPrimArrayM" (QCCL.traverseProp int16 int32 mapPrimArrayM)
+      , TQC.testProperty "mapPrimArrayP" (QCCL.traverseProp int16 int32 mapPrimArrayP)
+      , TQC.testProperty "imapPrimArray" (QCCL.imapProp int16 int32 imapPrimArray)
+      , TQC.testProperty "imapPrimArrayM" (QCCL.imapMProp int16 int32 imapPrimArrayM)
+      , TQC.testProperty "imapPrimArrayP" (QCCL.imapMProp int16 int32 imapPrimArrayP)
+      ]
     ]
+
+int16 :: Proxy Int16
+int16 = Proxy
+
+int32 :: Proxy Int32
+int32 = Proxy
 
 -- on GHC 7.4, Proxy is not polykinded, so we need this instead.
 data Proxy1 (f :: * -> *) = Proxy1
@@ -149,6 +171,15 @@ instance Arbitrary ByteArray where
       iforM_ xs $ \ix x -> do
         writeByteArray a ix x
       unsafeFreezeByteArray a
+
+instance (Arbitrary a, Prim a) => Arbitrary (PrimArray a) where
+  arbitrary = do
+    xs <- QC.arbitrary :: Gen [a]
+    return $ runST $ do
+      a <- newPrimArray (L.length xs)
+      iforM_ xs $ \ix x -> do
+        writePrimArray a ix x
+      unsafeFreezePrimArray a
 
 
 iforM_ :: Monad m => [a] -> (Int -> a -> m b) -> m ()
