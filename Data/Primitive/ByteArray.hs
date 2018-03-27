@@ -229,7 +229,7 @@ fromListN n ys = runST $ do
     let go !ix [] = if ix == n
           then return ()
           else die "fromListN" "list length less than specified size"
-        go !ix (x : xs) = if ix < n 
+        go !ix (x : xs) = if ix < n
           then do
             writeByteArray marr ix x
             go (ix + 1) xs
@@ -237,10 +237,8 @@ fromListN n ys = runST $ do
     go 0 ys
     unsafeFreezeByteArray marr
 
-#if __GLASGOW_HASKELL__ >= 702
 unI# :: Int -> Int#
 unI# (I# n#) = n#
-#endif
 
 -- | Copy a slice of an immutable byte array to a mutable byte array.
 copyByteArray
@@ -253,13 +251,7 @@ copyByteArray
                  -> m ()
 {-# INLINE copyByteArray #-}
 copyByteArray (MutableByteArray dst#) doff (ByteArray src#) soff sz
-#if __GLASGOW_HASKELL__ >= 702
   = primitive_ (copyByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
-#else
-  = unsafePrimToPrim
-  $ memcpy_ba dst# (fromIntegral doff) src# (fromIntegral soff)
-                 (fromIntegral sz)
-#endif
 
 -- | Copy a slice of a mutable byte array into another array. The two slices
 -- may not overlap.
@@ -275,14 +267,7 @@ copyMutableByteArray
 {-# INLINE copyMutableByteArray #-}
 copyMutableByteArray (MutableByteArray dst#) doff
                      (MutableByteArray src#) soff sz
-#if __GLASGOW_HASKELL__ >= 702
   = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
-#else
-  = unsafePrimToPrim
-  $ memcpy_mba dst# (fromIntegral doff) src# (fromIntegral soff)
-                    (fromIntegral sz)
-#endif
-
 
 #if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a byte array to an unmanaged address. These must not
@@ -354,18 +339,6 @@ fillByteArray
                  -> m ()
 {-# INLINE fillByteArray #-}
 fillByteArray = setByteArray
-
-#if __GLASGOW_HASKELL__ < 702
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
-  memcpy_mba :: MutableByteArray# s -> CInt
-             -> MutableByteArray# s -> CInt
-             -> CSize -> IO ()
-
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
-  memcpy_ba :: MutableByteArray# s -> CInt
-            -> ByteArray# -> CInt
-            -> CSize -> IO ()
-#endif
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
   memmove_mba :: MutableByteArray# s -> CInt
