@@ -272,16 +272,28 @@ setPrimArray
 setPrimArray (MutablePrimArray dst#) (I# doff#) (I# sz#) x
   = primitive_ (PT.setByteArray# dst# doff# sz# x)
 
--- | Get the size of the mutable array.
+-- | Get the size of a mutable primitive array in bytes. Unlike 'sizeofMutablePrimArray',
+-- this function ensures sequencing in the presence of resizing.
 getSizeofMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   => MutablePrimArray (PrimState m) a -- ^ array
   -> m Int
 {-# INLINE getSizeofMutablePrimArray #-}
+#if __GLASGOW_HASKELL__ >= 801
 getSizeofMutablePrimArray (MutablePrimArray arr#)
   = primitive (\s# -> 
       case getSizeofMutableByteArray# arr# s# of
         (# s'#, sz# #) -> (# s'#, I# (quotInt# sz# (sizeOf# (undefined :: a))) #)
     )
+#else
+getSizeofMutablePrimArray arr
+  = return (sizeofMutablePrimArray arr)
+#endif
+
+-- | Size of the mutable primitive array in elements.
+sizeofMutablePrimArray :: forall s a. Prim a => MutablePrimArray s a -> Int
+{-# INLINE sizeofMutablePrimArray #-}
+sizeofMutablePrimArray (MutablePrimArray arr#) =
+  I# (quotInt# (sizeofMutableByteArray# arr#) (sizeOf# (undefined :: a)))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutablePrimArray :: MutablePrimArray s a -> MutablePrimArray s a -> Bool
