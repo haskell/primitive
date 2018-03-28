@@ -396,8 +396,14 @@ foldlPrimArrayM' f z0 arr = go 0 z0
           go (i + 1) acc2
       | otherwise = return acc1
 
--- | Monadic map over a 'PrimArray' where the monad allows
---   primitive actions.
+-- | Traverse a primitive array. The traversal forces the resulting values and
+-- writes them to the new primitive array as it performs the monadic effects.
+-- Consequently:
+--
+-- >>> traversePrimArrayP (\x -> print x $> bool x undefined (x == 2)) (fromList [1, 2, 3 :: Int])
+-- 1
+-- 2
+-- *** Exception: Prelude.undefined
 {-# INLINE traversePrimArrayP #-}
 traversePrimArrayP :: (PrimAffineMonad m, Prim a, Prim b)
   => (a -> m b)
@@ -445,6 +451,7 @@ generatePrimArrayUnsafe sz f = do
   go 0
   unsafeFreezePrimArray marr
 
+-- | Map over the elements of a primitive array.
 {-# INLINE mapPrimArray #-}
 mapPrimArray :: (Prim a, Prim b)
   => (a -> b)
@@ -462,6 +469,7 @@ mapPrimArray f arr = runST $ do
   go 0
   unsafeFreezePrimArray marr
 
+-- | Indexed map over the elements of a primitive array.
 {-# INLINE imapPrimArray #-}
 imapPrimArray :: (Prim a, Prim b)
   => (Int -> a -> b)
@@ -479,11 +487,23 @@ imapPrimArray f arr = runST $ do
   go 0
   unsafeFreezePrimArray marr
 
--- | Traverse a primitive array.
+-- | Traverse a primitive array. The traversal performs all of the applicative
+-- effects /before/ forcing the resulting values and writing them to the new
+-- primitive array. Consequently:
+--
+-- >>> traversePrimArray (\x -> print x $> bool x undefined (x == 2)) (fromList [1, 2, 3 :: Int])
+-- 1
+-- 2
+-- 3
+-- *** Exception: Prelude.undefined
+--
+-- The function 'traversePrimArrayP' always outperforms this function, but it
+-- requires a 'PrimAffineMonad' constraint, and it forces the values as
+-- it performs the effects.
 traversePrimArray ::
      (Applicative f, Prim a, Prim b)
-  => (a -> f b)
-  -> PrimArray a
+  => (a -> f b) -- ^ mapping function
+  -> PrimArray a -- ^ primitive array
   -> f (PrimArray b)
 traversePrimArray f = \ !ary ->
   let
@@ -541,6 +561,7 @@ itraversePrimArrayUnsafe f arr = do
   go 0
   unsafeFreezePrimArray marr
 
+-- | Generate a primitive array 
 {-# INLINE generatePrimArray #-}
 generatePrimArray :: Prim a
   => Int -- ^ length
