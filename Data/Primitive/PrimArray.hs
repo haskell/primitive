@@ -27,33 +27,37 @@ module Data.Primitive.PrimArray
   , copyPrimArrayToPtr
   , copyMutablePrimArrayToPtr
   , setPrimArray
+    -- * Information
+  , sameMutablePrimArray
+  , getSizeofMutablePrimArray
+  , sizeofMutablePrimArray
+  , sizeofPrimArray
     -- * Folding
   , foldrPrimArray
   , foldrPrimArray'
   , foldlPrimArray
   , foldlPrimArray'
   , foldlPrimArrayM'
-    -- * Map
-  , mapPrimArray
-  , imapPrimArray
-    -- * Traverse
-    -- ** Discard
+    -- * Effectful Folding
   , traversePrimArray_
   , itraversePrimArray_
-    -- ** Preserve
-    -- *** Lazy
+    -- * Map/Create
+  , mapPrimArray
+  , imapPrimArray
+  , generatePrimArray
+    -- * Effectful Map/Create
+    -- ** Lazy Applicative
   , traversePrimArray
   , itraversePrimArray
-    -- *** Strict
-  , traversePrimArray'
-  , itraversePrimArray'
-    -- *** Strict Unsafe
-  , traversePrimArrayUnsafe'
-  , itraversePrimArrayUnsafe'
-    -- * Information
-  , sameMutablePrimArray
-  , getSizeofMutablePrimArray
-  , sizeofPrimArray
+  , generatePrimArrayA
+    -- ** Strict Primitive Monadic
+  , traversePrimArrayP
+  , itraversePrimArrayP
+  , generatePrimArrayP
+    -- ** Strict Unsafe
+  , traversePrimArrayUnsafe
+  , itraversePrimArrayUnsafe
+  , generatePrimArrayUnsafe
   ) where
 
 import GHC.Prim
@@ -389,43 +393,49 @@ foldlPrimArrayM' f z0 arr = go 0 z0
           go (i + 1) acc2
       | otherwise = return acc1
 
--- | Monadic map over a 'PrimArray'.
-{-# INLINE mapPrimArrayM #-}
-mapPrimArrayM :: (Monad m, Prim a, Prim b)
-  => (a -> m b)
-  -> PrimArray a
-  -> m (PrimArray b)
-mapPrimArrayM f arr = go 0 []
-  where
-  !sz = sizeofPrimArray arr
-  go !ix !xs
-    | ix < sz = do
-        !x <- f (indexPrimArray arr ix)
-        go (ix + 1) (x : xs)
-    | otherwise = return (primArrayFromBackwardsListN sz xs)
-
 -- | Monadic map over a 'PrimArray' where the monad allows
 --   primitive actions.
-{-# INLINE traversePrimArray' #-}
-traversePrimArray' :: (PrimAffineMonad m, Prim a, Prim b)
+{-# INLINE traversePrimArrayP #-}
+traversePrimArrayP :: (PrimAffineMonad m, Prim a, Prim b)
   => (a -> m b)
   -> PrimArray a
   -> m (PrimArray b)
-traversePrimArray' = traversePrimArrayUnsafe'
+traversePrimArrayP = traversePrimArrayUnsafe
 
--- This function is not exported. It only produces correct
--- results when the monad is sufficiently affine.
-{-# INLINE traversePrimArrayUnsafe' #-}
-traversePrimArrayUnsafe' :: (PrimMonad m, Prim a, Prim b)
+{-# INLINE traversePrimArrayUnsafe #-}
+traversePrimArrayUnsafe :: (PrimMonad m, Prim a, Prim b)
   => (a -> m b)
   -> PrimArray a
   -> m (PrimArray b)
-traversePrimArrayUnsafe' f arr = do
+traversePrimArrayUnsafe f arr = do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
   let go !ix = if ix < sz
         then do
           b <- f (indexPrimArray arr ix)
+          writePrimArray marr ix b
+          go (ix + 1)
+        else return ()
+  go 0
+  unsafeFreezePrimArray marr
+
+{-# INLINE generatePrimArrayP #-}
+generatePrimArrayP :: (PrimAffineMonad m, Prim a)
+  => Int
+  -> (Int -> m a)
+  -> m (PrimArray a)
+generatePrimArrayP = generatePrimArrayUnsafe
+
+{-# INLINE generatePrimArrayUnsafe #-}
+generatePrimArrayUnsafe :: (PrimMonad m, Prim a)
+  => Int
+  -> (Int -> m a)
+  -> m (PrimArray a)
+generatePrimArrayUnsafe sz f = do
+  marr <- newPrimArray sz
+  let go !ix = if ix < sz
+        then do
+          b <- f ix
           writePrimArray marr ix b
           go (ix + 1)
         else return ()
@@ -505,19 +515,19 @@ itraversePrimArray f = \ !ary ->
      else runSTA len <$> go 0
 
 
-{-# INLINE itraversePrimArray' #-}
-itraversePrimArray' :: (Prim a, Prim b, PrimAffineMonad m)
+{-# INLINE itraversePrimArrayP #-}
+itraversePrimArrayP :: (Prim a, Prim b, PrimAffineMonad m)
   => (Int -> a -> m b)
   -> PrimArray a
   -> m (PrimArray b)
-itraversePrimArray' = itraversePrimArrayUnsafe'
+itraversePrimArrayP = itraversePrimArrayUnsafe
 
-{-# INLINE itraversePrimArrayUnsafe' #-}
-itraversePrimArrayUnsafe' :: (Prim a, Prim b, PrimMonad m)
+{-# INLINE itraversePrimArrayUnsafe #-}
+itraversePrimArrayUnsafe :: (Prim a, Prim b, PrimMonad m)
   => (Int -> a -> m b)
   -> PrimArray a
   -> m (PrimArray b)
-itraversePrimArrayUnsafe' f arr = do
+itraversePrimArrayUnsafe f arr = do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
   let go !ix
@@ -528,6 +538,7 @@ itraversePrimArrayUnsafe' f arr = do
   go 0
   unsafeFreezePrimArray marr
 
+{-# INLINE generatePrimArray #-}
 generatePrimArray :: Prim a
   => Int -- ^ length
   -> (Int -> a) -- ^ element from index
@@ -541,6 +552,24 @@ generatePrimArray len f = runST $ do
         else return ()
   go 0
   unsafeFreezePrimArray marr
+
+{-# INLINE generatePrimArrayA #-}
+generatePrimArrayA ::
+     (Applicative f, Prim a)
+  => Int -- ^ length
+  -> (Int -> f a) -- ^ element from index
+  -> f (PrimArray a)
+generatePrimArrayA len f =
+  let
+    go !i
+      | i == len = pure $ STA $ \mary -> unsafeFreezePrimArray (MutablePrimArray mary)
+      | otherwise
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writePrimArray (MutablePrimArray mary) i b >> m mary)
+               (f i) (go (i + 1))
+  in if len == 0
+     then pure emptyPrimArray
+     else runSTA len <$> go 0
 
 traversePrimArray_ ::
      (Applicative f, Prim a)
