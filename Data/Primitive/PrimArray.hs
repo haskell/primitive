@@ -301,6 +301,9 @@ getSizeofMutablePrimArray (MutablePrimArray arr#)
         (# s'#, sz# #) -> (# s'#, I# (quotInt# sz# (sizeOf# (undefined :: a))) #)
     )
 #else
+-- On older GHCs, it is not possible to resize a byte array, so
+-- this provides behavior consistent with the implementation for
+-- newer GHCs.
 getSizeofMutablePrimArray arr
   = return (sizeofMutablePrimArray arr)
 #endif
