@@ -14,6 +14,7 @@ module Data.Primitive.PrimArray
   , MutablePrimArray(..)
     -- * Allocation
   , newPrimArray
+  , resizeMutablePrimArray
     -- * Element Access
   , readPrimArray
   , writePrimArray
@@ -45,19 +46,24 @@ module Data.Primitive.PrimArray
   , mapPrimArray
   , imapPrimArray
   , generatePrimArray
+  , replicatePrimArray
+  , filterPrimArray
     -- * Effectful Map/Create
     -- ** Lazy Applicative
   , traversePrimArray
   , itraversePrimArray
   , generatePrimArrayA
+  , replicatePrimArrayA
     -- ** Strict Primitive Monadic
   , traversePrimArrayP
   , itraversePrimArrayP
   , generatePrimArrayP
+  , replicatePrimArrayP
     -- ** Strict Unsafe
   , traversePrimArrayUnsafe
   , itraversePrimArrayUnsafe
   , generatePrimArrayUnsafe
+  , replicatePrimArrayUnsafe
   ) where
 
 import GHC.Prim
@@ -186,6 +192,32 @@ newPrimArray (I# n#)
       case newByteArray# (n# *# sizeOf# (undefined :: a)) s# of
         (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #)
     )
+
+-- | Resize a mutable primitive array. The new size is given in bytes.
+--
+-- This will either resize the array in-place or, if not possible, allocate the
+-- contents into a new, unpinned array and copy the original array\'s contents.
+--
+-- To avoid undefined behaviour, the original 'MutablePrimArray' shall not be
+-- accessed anymore after a 'resizeMutablePrimArray' has been performed.
+-- Moreover, no reference to the old one should be kept in order to allow
+-- garbage collection of the original 'MutablePrimArray' in case a new
+-- 'MutablePrimArray' had to be allocated.
+resizeMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
+  => MutablePrimArray (PrimState m) a
+  -> Int -- ^ new size
+  -> m (MutablePrimArray (PrimState m) a)
+{-# INLINE resizeMutablePrimArray #-}
+#if __GLASGOW_HASKELL__ >= 710
+resizeMutablePrimArray (MutablePrimArray arr#) (I# n#)
+  = primitive (\s# -> case resizeMutableByteArray# arr# (n# *# sizeOf# (undefined :: a)) s# of
+                        (# s'#, arr'# #) -> (# s'#, MutablePrimArray arr'# #))
+#else
+resizeMutablePrimArray arr n
+  = do arr' <- newPrimArray n
+       copyMutablePrimArray arr 0 arr' 0 (min (sizeofMutablePrimArray arr) n)
+       return arr'
+#endif
 
 readPrimArray :: (Prim a, PrimMonad m) => MutablePrimArray (PrimState m) a -> Int -> m a
 {-# INLINE readPrimArray #-}
@@ -451,6 +483,30 @@ generatePrimArrayUnsafe sz f = do
   go 0
   unsafeFreezePrimArray marr
 
+{-# INLINE replicatePrimArrayP #-}
+replicatePrimArrayP :: (PrimAffineMonad m, Prim a)
+  => Int
+  -> m a
+  -> m (PrimArray a)
+replicatePrimArrayP = replicatePrimArrayUnsafe
+
+{-# INLINE replicatePrimArrayUnsafe #-}
+replicatePrimArrayUnsafe :: (PrimMonad m, Prim a)
+  => Int
+  -> m a
+  -> m (PrimArray a)
+replicatePrimArrayUnsafe sz f = do
+  marr <- newPrimArray sz
+  let go !ix = if ix < sz
+        then do
+          b <- f
+          writePrimArray marr ix b
+          go (ix + 1)
+        else return ()
+  go 0
+  unsafeFreezePrimArray marr
+
+
 -- | Map over the elements of a primitive array.
 {-# INLINE mapPrimArray #-}
 mapPrimArray :: (Prim a, Prim b)
@@ -486,6 +542,29 @@ imapPrimArray f arr = runST $ do
         else return ()
   go 0
   unsafeFreezePrimArray marr
+
+-- | Filter elements of a primitive array according to a predicate.
+{-# INLINE filterPrimArray #-}
+filterPrimArray :: Prim a
+  => (a -> Bool)
+  -> PrimArray a
+  -> PrimArray a
+filterPrimArray p arr = runST $ do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ixSrc !ixDst = if ixSrc < sz
+        then do
+          let !a = indexPrimArray arr ixSrc
+          if p a
+            then do
+              writePrimArray marr ixDst a
+              go (ixSrc + 1) (ixDst + 1)
+            else go (ixSrc + 1) ixDst
+        else return ixDst
+  dstLen <- go 0 0
+  marr' <- resizeMutablePrimArray marr dstLen
+  unsafeFreezePrimArray marr'
+
 
 -- | Traverse a primitive array. The traversal performs all of the applicative
 -- effects /before/ forcing the resulting values and writing them to the new
@@ -577,6 +656,17 @@ generatePrimArray len f = runST $ do
   go 0
   unsafeFreezePrimArray marr
 
+-- | Generate a primitive array 
+{-# INLINE replicatePrimArray #-}
+replicatePrimArray :: Prim a
+  => Int -- ^ length
+  -> a -- ^ element
+  -> PrimArray a
+replicatePrimArray len a = runST $ do
+  marr <- newPrimArray len
+  setPrimArray marr 0 len a
+  unsafeFreezePrimArray marr
+
 {-# INLINE generatePrimArrayA #-}
 generatePrimArrayA ::
      (Applicative f, Prim a)
@@ -594,6 +684,25 @@ generatePrimArrayA len f =
   in if len == 0
      then pure emptyPrimArray
      else runSTA len <$> go 0
+
+{-# INLINE replicatePrimArrayA #-}
+replicatePrimArrayA ::
+     (Applicative f, Prim a)
+  => Int -- ^ length
+  -> f a -- ^ applicative element producer
+  -> f (PrimArray a)
+replicatePrimArrayA len f =
+  let
+    go !i
+      | i == len = pure $ STA $ \mary -> unsafeFreezePrimArray (MutablePrimArray mary)
+      | otherwise
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writePrimArray (MutablePrimArray mary) i b >> m mary)
+               f (go (i + 1))
+  in if len == 0
+     then pure emptyPrimArray
+     else runSTA len <$> go 0
+
 
 traversePrimArray_ ::
      (Applicative f, Prim a)
