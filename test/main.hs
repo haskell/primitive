@@ -86,11 +86,11 @@ main = do
       , TQC.testProperty "foldlPrimArray'" (QCCL.foldlProp int16 foldlPrimArray')
       , TQC.testProperty "foldlPrimArrayM'" (QCCL.foldlMProp int16 foldlPrimArrayM')
       , TQC.testProperty "mapPrimArray" (QCCL.mapProp int16 int32 mapPrimArray)
-      , TQC.testProperty "mapPrimArrayM" (QCCL.traverseProp int16 int32 mapPrimArrayM)
-      , TQC.testProperty "mapPrimArrayP" (QCCL.traverseProp int16 int32 mapPrimArrayP)
+      , TQC.testProperty "traversePrimArray" (QCCL.traverseProp int16 int32 traversePrimArray)
+      , TQC.testProperty "traversePrimArrayP" (QCCL.traverseProp int16 int32 traversePrimArrayP)
       , TQC.testProperty "imapPrimArray" (QCCL.imapProp int16 int32 imapPrimArray)
-      , TQC.testProperty "imapPrimArrayM" (QCCL.imapMProp int16 int32 imapPrimArrayM)
-      , TQC.testProperty "imapPrimArrayP" (QCCL.imapMProp int16 int32 imapPrimArrayP)
+      , TQC.testProperty "itraversePrimArray" (QCCL.imapMProp int16 int32 itraversePrimArray)
+      , TQC.testProperty "itraversePrimArrayP" (QCCL.imapMProp int16 int32 itraversePrimArrayP)
       ]
     ]
 
