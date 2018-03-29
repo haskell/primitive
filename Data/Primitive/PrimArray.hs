@@ -15,6 +15,9 @@ module Data.Primitive.PrimArray
     -- * Allocation
   , newPrimArray
   , resizeMutablePrimArray
+#if __GLASGOW_HASKELL__ >= 710
+  , shrinkMutablePrimArray
+#endif
     -- * Element Access
   , readPrimArray
   , writePrimArray
@@ -193,7 +196,7 @@ newPrimArray (I# n#)
         (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #)
     )
 
--- | Resize a mutable primitive array. The new size is given in bytes.
+-- | Resize a mutable primitive array. The new size is given in elements.
 --
 -- This will either resize the array in-place or, if not possible, allocate the
 -- contents into a new, unpinned array and copy the original array\'s contents.
@@ -217,6 +220,21 @@ resizeMutablePrimArray arr n
   = do arr' <- newPrimArray n
        copyMutablePrimArray arr 0 arr' 0 (min (sizeofMutablePrimArray arr) n)
        return arr'
+#endif
+
+-- Although it is possible to shim resizeMutableByteArray for old GHCs, this
+-- is not the case with shrinkMutablePrimArray.
+#if __GLASGOW_HASKELL__ >= 710
+-- | Shrink a mutable primitive array. The new size is given in elements.
+-- It must be smaller than the old size. The array will be resized in place.
+-- This function is only available when compiling with GHC 7.10 or newer.
+shrinkMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
+  => MutablePrimArray (PrimState m) a
+  -> Int -- ^ new size
+  -> m ()
+{-# INLINE shrinkMutablePrimArray #-}
+shrinkMutablePrimArray (MutablePrimArray arr#) (I# n#)
+  = primitive_ (shrinkMutableByteArray# arr# (n# *# sizeOf# (undefined :: a)))
 #endif
 
 readPrimArray :: (Prim a, PrimMonad m) => MutablePrimArray (PrimState m) a -> Int -> m a
@@ -340,7 +358,9 @@ getSizeofMutablePrimArray arr
   = return (sizeofMutablePrimArray arr)
 #endif
 
--- | Size of the mutable primitive array in elements.
+-- | Size of the mutable primitive array in elements. This function shall not
+--   be used on primitive arrays that are an argument to or a result of
+--   'resizeMutablePrimArray' or 'shrinkMutablePrimArray'.
 sizeofMutablePrimArray :: forall s a. Prim a => MutablePrimArray s a -> Int
 {-# INLINE sizeofMutablePrimArray #-}
 sizeofMutablePrimArray (MutablePrimArray arr#) =
