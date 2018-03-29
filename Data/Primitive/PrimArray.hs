@@ -72,7 +72,7 @@ module Data.Primitive.PrimArray
   ) where
 
 import GHC.Prim
-import GHC.Exts (isTrue#,IsList(..))
+import GHC.Exts
 import GHC.Base ( Int(..) )
 import GHC.Ptr
 import Data.Primitive
@@ -115,11 +115,13 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
 
+#if MIN_VERSION_base(4,7,0)
 instance Prim a => IsList (PrimArray a) where
   type Item (PrimArray a) = a
   fromList xs = primArrayFromListN (L.length xs) xs
   fromListN = primArrayFromListN
   toList = primArrayToList
+#endif
 
 instance (Show a, Prim a) => Show (PrimArray a) where
   showsPrec p a = showParen (p > 10) $
