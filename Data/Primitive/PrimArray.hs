@@ -51,6 +51,7 @@ module Data.Primitive.PrimArray
   , generatePrimArray
   , replicatePrimArray
   , filterPrimArray
+  , witherPrimArray
     -- * Effectful Map/Create
     -- ** Lazy Applicative
   , traversePrimArray
@@ -580,6 +581,28 @@ filterPrimArray p arr = runST $ do
               writePrimArray marr ixDst a
               go (ixSrc + 1) (ixDst + 1)
             else go (ixSrc + 1) ixDst
+        else return ixDst
+  dstLen <- go 0 0
+  marr' <- resizeMutablePrimArray marr dstLen
+  unsafeFreezePrimArray marr'
+
+-- | Map over a primitive array, optionally discarding some elements.
+{-# INLINE witherPrimArray #-}
+witherPrimArray :: (Prim a, Prim b)
+  => (a -> Maybe b)
+  -> PrimArray a
+  -> PrimArray b
+witherPrimArray p arr = runST $ do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ixSrc !ixDst = if ixSrc < sz
+        then do
+          let !a = indexPrimArray arr ixSrc
+          case p a of
+            Just b -> do
+              writePrimArray marr ixDst b
+              go (ixSrc + 1) (ixDst + 1)
+            Nothing -> go (ixSrc + 1) ixDst
         else return ixDst
   dstLen <- go 0 0
   marr' <- resizeMutablePrimArray marr dstLen
