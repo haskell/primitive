@@ -23,7 +23,13 @@ Tested-With:
   GHC == 8.2.2,
   GHC == 8.4.1
 
+flag primitive-benchmarks
+  default: True
+
 benchmark bench
+  if !flag(primitive-benchmarks)
+    buildable: False
+
   Default-Language: Haskell2010
   hs-source-dirs: .
   main-is: main.hs
@@ -33,7 +39,7 @@ benchmark bench
     Array.Traverse.Closure
     Array.Traverse.Unsafe
   build-depends:
-      base >= 4.5 && < 4.12
+      base >= 4.8 && < 4.12
     , primitive
     , deepseq
     , ghc-prim
@@ -43,3 +49,4 @@ benchmark bench
 source-repository head
   type:     git
   location: https://github.com/haskell/primitive
+  subdir:   bench
