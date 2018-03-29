@@ -58,6 +58,7 @@ module Data.Primitive.PrimArray
   , itraversePrimArray
   , generatePrimArrayA
   , replicatePrimArrayA
+  , filterPrimArrayA
     -- ** Strict Primitive Monadic
   , traversePrimArrayP
   , itraversePrimArrayP
@@ -586,7 +587,30 @@ filterPrimArray p arr = runST $ do
   marr' <- resizeMutablePrimArray marr dstLen
   unsafeFreezePrimArray marr'
 
--- | Map over a primitive array, optionally discarding some elements.
+filterPrimArrayA ::
+     (Applicative f, Prim a)
+  => (a -> f Bool) -- ^ mapping function
+  -> PrimArray a -- ^ primitive array
+  -> f (PrimArray a)
+filterPrimArrayA f = \ !ary ->
+  let
+    !len = sizeofPrimArray ary
+    go !ixSrc
+      | ixSrc == len = pure $ IxSTA $ \ixDst _ -> return ixDst
+      | otherwise = let x = indexPrimArray ary ixSrc in
+          liftA2
+            (\keep (IxSTA m) -> IxSTA $ \ixDst mary -> if keep
+              then writePrimArray (MutablePrimArray mary) ixDst x >> m (ixDst + 1) mary
+              else m ixDst mary
+            )
+            (f x)
+            (go (ixSrc + 1))
+  in if len == 0
+     then pure emptyPrimArray
+     else runIxSTA len <$> go 0
+
+-- | Map over a primitive array, optionally discarding some elements. This
+--   has the same behavior as @Data.Maybe.mapMaybe@.
 {-# INLINE witherPrimArray #-}
 witherPrimArray :: (Prim a, Prim b)
   => (a -> Maybe b)
@@ -768,6 +792,19 @@ itraversePrimArray_ f a = go 0 where
   go !ix = if ix < sz
     then f ix (indexPrimArray a ix) *> go (ix + 1)
     else pure ()
+
+newtype IxSTA a = IxSTA {_runIxSTA :: forall s. Int -> MutableByteArray# s -> ST s Int}
+
+runIxSTA :: forall a. Prim a
+  => Int -- maximum possible size
+  -> IxSTA a
+  -> PrimArray a
+runIxSTA !szUpper = \ (IxSTA m) -> runST $ do
+  ar :: MutablePrimArray s a <- newPrimArray szUpper
+  sz <- m 0 (unMutablePrimArray ar)
+  ar' <- resizeMutablePrimArray ar sz
+  unsafeFreezePrimArray ar'
+{-# INLINE runIxSTA #-}
 
 newtype STA a = STA {_runSTA :: forall s. MutableByteArray# s -> ST s (PrimArray a)}
 

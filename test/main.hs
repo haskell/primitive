@@ -91,6 +91,15 @@ main = do
       , TQC.testProperty "imapPrimArray" (QCCL.imapProp int16 int32 imapPrimArray)
       , TQC.testProperty "itraversePrimArray" (QCCL.imapMProp int16 int32 itraversePrimArray)
       , TQC.testProperty "itraversePrimArrayP" (QCCL.imapMProp int16 int32 itraversePrimArrayP)
+      , TQC.testProperty "generatePrimArray" (QCCL.generateProp int16 generatePrimArray)
+      , TQC.testProperty "generatePrimArrayA" (QCCL.generateMProp int16 generatePrimArrayA)
+      , TQC.testProperty "generatePrimArrayP" (QCCL.generateMProp int16 generatePrimArrayP)
+      , TQC.testProperty "replicatePrimArray" (QCCL.replicateProp int16 replicatePrimArray)
+      , TQC.testProperty "replicatePrimArrayA" (QCCL.replicateMProp int16 replicatePrimArrayA)
+      , TQC.testProperty "replicatePrimArrayP" (QCCL.replicateMProp int16 replicatePrimArrayP)
+      , TQC.testProperty "filterPrimArray" (QCCL.filterProp int16 filterPrimArray)
+      , TQC.testProperty "filterPrimArrayA" (QCCL.filterMProp int16 filterPrimArrayA)
+      , TQC.testProperty "witherPrimArray" (QCCL.mapMaybeProp int16 int32 witherPrimArray)
       ]
     ]
 
