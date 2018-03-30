@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Applicative
 import Control.Monad
@@ -25,7 +26,7 @@ import Data.Semigroup (stimes)
 #endif
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
-import Test.QuickCheck (Arbitrary,Arbitrary1,Gen)
+import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,(===))
 import qualified Test.Tasty.QuickCheck as TQC
 import qualified Test.QuickCheck as QC
 import qualified Test.QuickCheck.Classes as QCC
@@ -69,7 +70,11 @@ main = do
 #endif
       ]
     , testGroup "ByteArray"
-      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
+      [ testGroup "Ordering"
+        [ TQC.testProperty "equality" byteArrayEqProp
+        , TQC.testProperty "compare" byteArrayCompareProp
+        ]
+      , lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
 #if MIN_VERSION_base(4,7,0)
@@ -77,6 +82,20 @@ main = do
 #endif
       ]
     ]
+
+byteArrayCompareProp :: QC.Property
+byteArrayCompareProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
+  compareLengthFirst xs ys === compare (byteArrayFromList xs) (byteArrayFromList ys)
+
+byteArrayEqProp :: QC.Property
+byteArrayEqProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
+  (compareLengthFirst xs ys == EQ) === (byteArrayFromList xs == byteArrayFromList ys)
+
+compareLengthFirst :: [Word8] -> [Word8] -> Ordering
+compareLengthFirst xs ys = case compare (length xs) (length ys) of
+  LT -> LT
+  GT -> GT
+  EQ -> compare xs ys
 
 -- on GHC 7.4, Proxy is not polykinded, so we need this instead.
 data Proxy1 (f :: * -> *) = Proxy1
