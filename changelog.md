@@ -1,5 +1,7 @@
 ## Changes in version 0.6.4.0
 
+ * Implement `isByteArrayPinned` and `isMutableByteArrayPinned`.
+
  * Add `Eq1`, `Ord1`, `Show1`, and `Read1` instances for `Array` and
    `SmallArray`.
 
