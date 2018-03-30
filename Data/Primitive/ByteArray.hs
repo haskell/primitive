@@ -41,7 +41,11 @@ module Data.Primitive.ByteArray (
   -- * Information
   sizeofByteArray,
   sizeofMutableByteArray, getSizeofMutableByteArray, sameMutableByteArray,
+#if __GLASGOW_HASKELL__ >= 802
+  isByteArrayPinned, isMutableByteArrayPinned,
+#endif
   byteArrayContents, mutableByteArrayContents
+
 ) where
 
 import Control.Monad.Primitive
@@ -72,6 +76,10 @@ import qualified Data.Foldable as F
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
+#endif
+
+#if __GLASGOW_HASKELL__ >= 802
+import GHC.Exts as Exts (isByteArrayPinned#,isMutableByteArrayPinned#)
 #endif
 
 -- | Byte arrays
@@ -191,6 +199,26 @@ sizeofByteArray (ByteArray arr#) = I# (sizeofByteArray# arr#)
 sizeofMutableByteArray :: MutableByteArray s -> Int
 {-# INLINE sizeofMutableByteArray #-}
 sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr#)
+
+#if __GLASGOW_HASKELL__ >= 802
+-- | Check whether or not the byte array is pinned. Pinned byte arrays cannot
+--   be moved by the garbage collector. It is safe to use 'byteArrayContents'
+--   on such byte arrays. This function is only available when compiling with
+--   GHC 8.2 or newer.
+isByteArrayPinned :: ByteArray -> Bool
+{-# INLINE isByteArrayPinned #-}
+isByteArrayPinned (ByteArray arr#) = case Exts.isByteArrayPinned# arr# of
+  1# -> True
+  _ -> False
+
+-- | Check whether or not the mutable byte array is pinned. This function is
+--   only available when compiling with GHC 8.2 or newer.
+isMutableByteArrayPinned :: MutableByteArray s -> Bool
+{-# INLINE isMutableByteArrayPinned #-}
+isMutableByteArrayPinned (MutableByteArray marr#) = case Exts.isMutableByteArrayPinned# marr# of
+  1# -> True
+  _ -> False
+#endif
 
 -- | Read a primitive value from the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
