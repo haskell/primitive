@@ -207,17 +207,13 @@ sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr
 --   GHC 8.2 or newer.
 isByteArrayPinned :: ByteArray -> Bool
 {-# INLINE isByteArrayPinned #-}
-isByteArrayPinned (ByteArray arr#) = case Exts.isByteArrayPinned# arr# of
-  1# -> True
-  _ -> False
+isByteArrayPinned (ByteArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
 
 -- | Check whether or not the mutable byte array is pinned. This function is
 --   only available when compiling with GHC 8.2 or newer.
 isMutableByteArrayPinned :: MutableByteArray s -> Bool
 {-# INLINE isMutableByteArrayPinned #-}
-isMutableByteArrayPinned (MutableByteArray marr#) = case Exts.isMutableByteArrayPinned# marr# of
-  1# -> True
-  _ -> False
+isMutableByteArrayPinned (MutableByteArray marr#) = isTrue# (Exts.isMutableByteArrayPinned# marr#)
 #endif
 
 -- | Read a primitive value from the byte array. The offset is given in
