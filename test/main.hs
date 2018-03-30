@@ -79,6 +79,7 @@ main = do
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
 #endif
       ]
+#if MIN_VERSION_base(4,7,0)
     , testGroup "PrimArray"
       [ TQC.testProperty "foldrPrimArray" (QCCL.foldrProp int16 foldrPrimArray)
       , TQC.testProperty "foldrPrimArray'" (QCCL.foldrProp int16 foldrPrimArray')
@@ -101,6 +102,7 @@ main = do
       , TQC.testProperty "filterPrimArrayA" (QCCL.filterMProp int16 filterPrimArrayA)
       , TQC.testProperty "mapMaybePrimArray" (QCCL.mapMaybeProp int16 int32 mapMaybePrimArray)
       ]
+#endif
     ]
 
 int16 :: Proxy Int16
