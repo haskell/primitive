@@ -28,8 +28,10 @@ module Data.Primitive.PrimArray
     -- * Block Operations
   , copyPrimArray
   , copyMutablePrimArray
+#if __GLASGOW_HASKELL__ >= 708
   , copyPrimArrayToPtr
   , copyMutablePrimArrayToPtr
+#endif
   , setPrimArray
     -- * Information
   , sameMutablePrimArray
@@ -51,7 +53,7 @@ module Data.Primitive.PrimArray
   , generatePrimArray
   , replicatePrimArray
   , filterPrimArray
-  , witherPrimArray
+  , mapMaybePrimArray
     -- * Effectful Map/Create
     -- ** Lazy Applicative
   , traversePrimArray
@@ -72,9 +74,9 @@ module Data.Primitive.PrimArray
   ) where
 
 import GHC.Prim
-import GHC.Exts
 import GHC.Base ( Int(..) )
 import GHC.Ptr
+import Data.Primitive.Internal.Compat (isTrue#)
 import Data.Primitive
 import Data.Monoid (Monoid(..))
 import Control.Applicative
@@ -83,6 +85,10 @@ import Control.Monad.ST
 import qualified Data.List as L
 import qualified Data.Primitive.ByteArray as PB
 import qualified Data.Primitive.Types as PT
+
+#if MIN_VERSION_base(4,7,0)
+import GHC.Exts (IsList(..))
+#endif
 
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (Semigroup(..))
@@ -95,6 +101,7 @@ data PrimArray a = PrimArray ByteArray#
 -- | Mutable primitive arrays associated with a primitive state token
 data MutablePrimArray s a = MutablePrimArray (MutableByteArray# s)
 
+
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =
     case reallyUnsafePtrEquality# (unsafeCoerce# ba1 :: ()) (unsafeCoerce# ba2 :: ()) of
@@ -102,7 +109,7 @@ sameByteArray ba1 ba2 =
       r -> isTrue# r
 #else
       1# -> True
-      0# -> False
+      _ -> False
 #endif
 
 instance (Eq a, Prim a) => Eq (PrimArray a) where
@@ -222,7 +229,7 @@ resizeMutablePrimArray (MutablePrimArray arr#) (I# n#)
 #else
 resizeMutablePrimArray arr n
   = do arr' <- newPrimArray n
-       copyMutablePrimArray arr 0 arr' 0 (min (sizeofMutablePrimArray arr) n)
+       copyMutablePrimArray arr' 0 arr 0 (min (sizeofMutablePrimArray arr) n)
        return arr'
 #endif
 
@@ -296,10 +303,12 @@ copyPrimArray (MutablePrimArray dst#) (I# doff#) (PrimArray src#) (I# soff#) (I#
       (n# *# (sizeOf# (undefined :: a)))
     )
 
+#if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of an immutable primitive array to an address.
 --   The offset and length are given in elements of type @a@.
 --   This function assumes that the 'Prim' instance of @a@
---   agrees with the 'Storable' instance.
+--   agrees with the 'Storable' instance. This function is only
+--   available when building with GHC 7.8 or newer.
 copyPrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination pointer
   -> PrimArray a -- ^ source array
@@ -316,7 +325,8 @@ copyPrimArrayToPtr (Ptr addr#) (PrimArray ba#) (I# soff#) (I# n#) =
 -- | Copy a slice of an immutable primitive array to an address.
 --   The offset and length are given in elements of type @a@.
 --   This function assumes that the 'Prim' instance of @a@
---   agrees with the 'Storable' instance.
+--   agrees with the 'Storable' instance. This function is only
+--   available when building with GHC 7.8 or newer.
 copyMutablePrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination pointer
   -> MutablePrimArray (PrimState m) a -- ^ source array
@@ -329,6 +339,7 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
         let s'# = copyMutableByteArrayToAddr# mba# (soff# *# siz#) addr# (n# *# siz#) s#
         in (# s'#, () #))
   where siz# = sizeOf# (undefined :: a)
+#endif
 
 -- | Fill a slice of a mutable byte array with a value.
 setPrimArray
@@ -613,12 +624,12 @@ filterPrimArrayA f = \ !ary ->
 
 -- | Map over a primitive array, optionally discarding some elements. This
 --   has the same behavior as @Data.Maybe.mapMaybe@.
-{-# INLINE witherPrimArray #-}
-witherPrimArray :: (Prim a, Prim b)
+{-# INLINE mapMaybePrimArray #-}
+mapMaybePrimArray :: (Prim a, Prim b)
   => (a -> Maybe b)
   -> PrimArray a
   -> PrimArray b
-witherPrimArray p arr = runST $ do
+mapMaybePrimArray p arr = runST $ do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
   let go !ixSrc !ixDst = if ixSrc < sz
