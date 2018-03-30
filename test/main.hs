@@ -92,10 +92,7 @@ byteArrayEqProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
   (compareLengthFirst xs ys == EQ) === (byteArrayFromList xs == byteArrayFromList ys)
 
 compareLengthFirst :: [Word8] -> [Word8] -> Ordering
-compareLengthFirst xs ys = case compare (length xs) (length ys) of
-  LT -> LT
-  GT -> GT
-  EQ -> compare xs ys
+compareLengthFirst xs ys = (compare `on` length) <> compare xs ys
 
 -- on GHC 7.4, Proxy is not polykinded, so we need this instead.
 data Proxy1 (f :: * -> *) = Proxy1
