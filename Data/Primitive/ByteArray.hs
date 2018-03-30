@@ -147,7 +147,7 @@ resizeMutableByteArray (MutableByteArray arr#) (I# n#)
 #else
 resizeMutableByteArray arr n
   = do arr' <- newByteArray n
-       copyMutableByteArray arr 0 arr' 0 (min (sizeofMutableByteArray arr) n)
+       copyMutableByteArray arr' 0 arr 0 (min (sizeofMutableByteArray arr) n)
        return arr'
 #endif
 
