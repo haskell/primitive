@@ -25,6 +25,7 @@ Tested-With:
 
 flag primitive-benchmarks
   default: True
+  manual: True
 
 benchmark bench
   if !flag(primitive-benchmarks)
@@ -38,6 +39,7 @@ benchmark bench
   other-modules:
     Array.Traverse.Closure
     Array.Traverse.Unsafe
+    ByteArray.Compare
   build-depends:
       base >= 4.8 && < 4.12
     , primitive
