@@ -21,6 +21,7 @@ import Data.Proxy (Proxy(..))
 import GHC.Int
 import GHC.IO
 import GHC.Prim
+import Data.Function (on)
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (stimes)
 #endif
