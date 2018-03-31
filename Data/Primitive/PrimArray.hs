@@ -70,6 +70,7 @@ module Data.Primitive.PrimArray
 
 import GHC.Prim
 import GHC.Base ( Int(..) )
+import GHC.Exts (build)
 import GHC.Ptr
 import Data.Primitive.Internal.Compat (isTrue#)
 import Data.Primitive
@@ -150,8 +151,9 @@ primArrayFromListN len vs = runST run where
     go vs 0
     unsafeFreezePrimArray arr
 
+{-# INLINE primArrayToList #-}
 primArrayToList :: forall a. Prim a => PrimArray a -> [a]
-primArrayToList = foldrPrimArray (:) []
+primArrayToList xs = build (\c n -> foldrPrimArray c n xs)
 
 primArrayToByteArray :: PrimArray a -> PB.ByteArray
 primArrayToByteArray (PrimArray x) = PB.ByteArray x
