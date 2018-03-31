@@ -111,9 +111,11 @@ sameByteArray ba1 ba2 =
 instance (Eq a, Prim a) => Eq (PrimArray a) where
   a1@(PrimArray ba1#) == a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = True
-    | I# (sizeofByteArray# ba1#) /= I# (sizeofByteArray# ba2#) = False
-    | otherwise = loop (sizeofPrimArray a1 - 1)
-    where 
+    | sz1 /= sz2 = False
+    | otherwise = loop sz1
+    where
+    sz1 = PB.sizeofByteArray (ByteArray ba1#)
+    sz2 = PB.sizeofByteArray (ByteArray ba2#)
     loop !i
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
