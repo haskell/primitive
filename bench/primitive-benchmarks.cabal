@@ -25,7 +25,6 @@ Tested-With:
 
 flag primitive-benchmarks
   default: True
-  manual: True
 
 benchmark bench
   if !flag(primitive-benchmarks)
