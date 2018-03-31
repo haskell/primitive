@@ -79,9 +79,12 @@ main = do
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
 #endif
       ]
-#if MIN_VERSION_base(4,7,0)
     , testGroup "PrimArray"
-      [ TQC.testProperty "foldrPrimArray" (QCCL.foldrProp int16 foldrPrimArray)
+      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (PrimArray Word16)))
+      , lawsToTest (QCC.ordLaws (Proxy :: Proxy (PrimArray Word16)))
+#if MIN_VERSION_base(4,7,0)
+      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (PrimArray Word16)))
+      , TQC.testProperty "foldrPrimArray" (QCCL.foldrProp int16 foldrPrimArray)
       , TQC.testProperty "foldrPrimArray'" (QCCL.foldrProp int16 foldrPrimArray')
       , TQC.testProperty "foldlPrimArray" (QCCL.foldlProp int16 foldlPrimArray)
       , TQC.testProperty "foldlPrimArray'" (QCCL.foldlProp int16 foldlPrimArray')
@@ -101,8 +104,8 @@ main = do
       , TQC.testProperty "filterPrimArray" (QCCL.filterProp int16 filterPrimArray)
       , TQC.testProperty "filterPrimArrayA" (QCCL.filterMProp int16 filterPrimArrayA)
       , TQC.testProperty "mapMaybePrimArray" (QCCL.mapMaybeProp int16 int32 mapMaybePrimArray)
-      ]
 #endif
+      ]
     ]
 
 int16 :: Proxy Int16

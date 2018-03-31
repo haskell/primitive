@@ -112,13 +112,31 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
   a1@(PrimArray ba1#) == a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = True
     | sz1 /= sz2 = False
-    | otherwise = loop sz1
+    | otherwise = loop (quot sz1 (sizeOf (undefined :: a)) - 1)
     where
+    -- Here, we take the size in bytes, not in elements. We do this
+    -- since it allows us to defer performing the division to
+    -- calculate the size in elements.
     sz1 = PB.sizeofByteArray (ByteArray ba1#)
     sz2 = PB.sizeofByteArray (ByteArray ba2#)
     loop !i
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
+
+-- | __Note__: For the sake of efficiency, this is not a lexographic
+--   ordering. This library makes no guarantees about the particular
+--   ordering used, and it is subject to change between major releases.
+instance (Ord a, Prim a) => Ord (PrimArray a) where
+  compare a1@(PrimArray ba1#) a2@(PrimArray ba2#)
+    | sameByteArray ba1# ba2# = EQ
+    | sz1 /= sz2 = compare sz1 sz2
+    | otherwise = loop (quot sz1 (sizeOf (undefined :: a)) - 1)
+    where
+    sz1 = PB.sizeofByteArray (ByteArray ba1#)
+    sz2 = PB.sizeofByteArray (ByteArray ba2#)
+    loop !i
+      | i < 0 = EQ
+      | otherwise = compare (indexPrimArray a1 i) (indexPrimArray a2 i) <> loop (i-1)
 
 #if MIN_VERSION_base(4,7,0)
 instance Prim a => IsList (PrimArray a) where
