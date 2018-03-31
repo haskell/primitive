@@ -388,6 +388,7 @@ instance Eq ByteArray where
           0 -> True
           _ -> False
 
+-- | __Note__: For the sake of efficiency this is not a lexicographic ordering.
 instance Ord ByteArray where
   ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = EQ
