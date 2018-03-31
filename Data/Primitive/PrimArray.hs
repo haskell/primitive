@@ -66,11 +66,6 @@ module Data.Primitive.PrimArray
   , itraversePrimArrayP
   , generatePrimArrayP
   , replicatePrimArrayP
-    -- ** Strict Unsafe
-  , traversePrimArrayUnsafe
-  , itraversePrimArrayUnsafe
-  , generatePrimArrayUnsafe
-  , replicatePrimArrayUnsafe
   ) where
 
 import GHC.Prim
@@ -472,18 +467,11 @@ foldlPrimArrayM' f z0 arr = go 0 z0
 -- 2
 -- *** Exception: Prelude.undefined
 {-# INLINE traversePrimArrayP #-}
-traversePrimArrayP :: (PrimAffineMonad m, Prim a, Prim b)
+traversePrimArrayP :: (PrimMonad m, Prim a, Prim b)
   => (a -> m b)
   -> PrimArray a
   -> m (PrimArray b)
-traversePrimArrayP = traversePrimArrayUnsafe
-
-{-# INLINE traversePrimArrayUnsafe #-}
-traversePrimArrayUnsafe :: (PrimMonad m, Prim a, Prim b)
-  => (a -> m b)
-  -> PrimArray a
-  -> m (PrimArray b)
-traversePrimArrayUnsafe f arr = do
+traversePrimArrayP f arr = do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
   let go !ix = if ix < sz
@@ -496,18 +484,11 @@ traversePrimArrayUnsafe f arr = do
   unsafeFreezePrimArray marr
 
 {-# INLINE generatePrimArrayP #-}
-generatePrimArrayP :: (PrimAffineMonad m, Prim a)
+generatePrimArrayP :: (PrimMonad m, Prim a)
   => Int
   -> (Int -> m a)
   -> m (PrimArray a)
-generatePrimArrayP = generatePrimArrayUnsafe
-
-{-# INLINE generatePrimArrayUnsafe #-}
-generatePrimArrayUnsafe :: (PrimMonad m, Prim a)
-  => Int
-  -> (Int -> m a)
-  -> m (PrimArray a)
-generatePrimArrayUnsafe sz f = do
+generatePrimArrayP sz f = do
   marr <- newPrimArray sz
   let go !ix = if ix < sz
         then do
@@ -519,18 +500,11 @@ generatePrimArrayUnsafe sz f = do
   unsafeFreezePrimArray marr
 
 {-# INLINE replicatePrimArrayP #-}
-replicatePrimArrayP :: (PrimAffineMonad m, Prim a)
+replicatePrimArrayP :: (PrimMonad m, Prim a)
   => Int
   -> m a
   -> m (PrimArray a)
-replicatePrimArrayP = replicatePrimArrayUnsafe
-
-{-# INLINE replicatePrimArrayUnsafe #-}
-replicatePrimArrayUnsafe :: (PrimMonad m, Prim a)
-  => Int
-  -> m a
-  -> m (PrimArray a)
-replicatePrimArrayUnsafe sz f = do
+replicatePrimArrayP sz f = do
   marr <- newPrimArray sz
   let go !ix = if ix < sz
         then do
@@ -696,20 +670,12 @@ itraversePrimArray f = \ !ary ->
      then pure emptyPrimArray
      else runSTA len <$> go 0
 
-
 {-# INLINE itraversePrimArrayP #-}
-itraversePrimArrayP :: (Prim a, Prim b, PrimAffineMonad m)
+itraversePrimArrayP :: (Prim a, Prim b, PrimMonad m)
   => (Int -> a -> m b)
   -> PrimArray a
   -> m (PrimArray b)
-itraversePrimArrayP = itraversePrimArrayUnsafe
-
-{-# INLINE itraversePrimArrayUnsafe #-}
-itraversePrimArrayUnsafe :: (Prim a, Prim b, PrimMonad m)
-  => (Int -> a -> m b)
-  -> PrimArray a
-  -> m (PrimArray b)
-itraversePrimArrayUnsafe f arr = do
+itraversePrimArrayP f arr = do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
   let go !ix
