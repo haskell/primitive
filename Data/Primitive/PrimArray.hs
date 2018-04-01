@@ -74,7 +74,7 @@ import GHC.Exts (build)
 import GHC.Ptr
 import Data.Primitive.Internal.Compat (isTrue#)
 import Data.Primitive
-import Data.Monoid (Monoid(..))
+import Data.Monoid (Monoid(..),(<>))
 import Control.Applicative
 import Control.Monad.Primitive
 import Control.Monad.ST
