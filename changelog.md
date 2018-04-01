@@ -12,6 +12,8 @@
  * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
    `Array` and `SmallArray`.
 
+ * Add `PrimUnlifted` instances for `TVar` and `MVar`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from

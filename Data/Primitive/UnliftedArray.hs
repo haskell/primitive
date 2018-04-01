@@ -80,6 +80,8 @@ import           Data.Primitive.ByteArray (ByteArray)
 import qualified Data.Primitive.ByteArray as BA
 import qualified Data.Primitive.SmallArray as SA
 import qualified Data.Primitive.MutVar as MV
+import qualified GHC.MVar as GM (MVar(..))
+import qualified GHC.Conc as GC (TVar(..))
 
 -- | Immutable arrays that efficiently store types that are simple wrappers
 -- around unlifted primitive types. The values of the unlifted type are
@@ -136,6 +138,14 @@ instance PrimUnlifted (SA.SmallMutableArray s a) where
 instance PrimUnlifted (MV.MutVar s a) where
   toArrayArray# (MV.MutVar mv#) = unsafeCoerce# mv#
   fromArrayArray# aa# = MV.MutVar (unsafeCoerce# aa#)
+
+instance PrimUnlifted (GM.MVar a) where
+  toArrayArray# (GM.MVar mv#) = unsafeCoerce# mv#
+  fromArrayArray# mv# = GM.MVar (unsafeCoerce# mv#)
+
+instance PrimUnlifted (GC.TVar a) where
+  toArrayArray# (GC.TVar tv#) = unsafeCoerce# tv#
+  fromArrayArray# tv# = GC.TVar (unsafeCoerce# tv#)
 
 -- | Creates a new 'MutableUnliftedArray'. This function is unsafe, because it
 -- allows access to the raw contents of the underlying 'ArrayArray#'.
