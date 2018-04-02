@@ -21,6 +21,8 @@ module Data.Primitive.Types (
 import Control.Monad.Primitive
 import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
+import Foreign.C.Types
+import System.Posix.Types
 
 import GHC.Base (
     Int(..), Char(..),
@@ -205,3 +207,72 @@ derivePrim(Ptr a, Ptr, sIZEOF_PTR, aLIGNMENT_PTR,
 derivePrim(FunPtr a, FunPtr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
+
+#define newtypePrim(ty, ctr)                                    \
+instance Prim ty where {                                        \
+  sizeOf# (ctr x) = sizeOf# x                                   \
+; alignment# (ctr x) = alignment# x                             \
+; indexByteArray# arr# i# = ctr (indexByteArray# arr# i#)       \
+; readByteArray# arr# i# s# = case readByteArray# arr# i# s# of \
+                      { (# s1#, x #) -> (# s1#, ctr x #) }      \
+; writeByteArray# arr# i# (ctr x) = writeByteArray# arr# i# x   \
+; setByteArray# arr# i# n# (ctr x) = setByteArray# arr# i# n# x \
+; indexOffAddr# addr# i# = ctr (indexOffAddr# addr# i#)         \
+; readOffAddr# addr# i# s# = case readOffAddr# addr# i# s# of   \
+                      { (# s1#, x #) -> (# s1#, ctr x #) }      \
+; writeOffAddr# addr# i# (ctr x) = writeOffAddr# addr# i# x     \
+; setOffAddr# addr# i# n# (ctr x) = setOffAddr# addr# i# n# x   \
+; {-# INLINE sizeOf# #-}                                        \
+; {-# INLINE alignment# #-}                                     \
+; {-# INLINE indexByteArray# #-}                                \
+; {-# INLINE readByteArray# #-}                                 \
+; {-# INLINE writeByteArray# #-}                                \
+; {-# INLINE setByteArray# #-}                                  \
+; {-# INLINE indexOffAddr# #-}                                  \
+; {-# INLINE readOffAddr# #-}                                   \
+; {-# INLINE writeOffAddr# #-}                                  \
+; {-# INLINE setOffAddr# #-}                                    \
+}
+
+#define newtypeHomoPrim(ty) newtypePrim(ty, ty)
+
+newtypeHomoPrim(CChar)
+newtypeHomoPrim(CSChar)
+newtypeHomoPrim(CUChar)
+newtypeHomoPrim(CShort)
+newtypeHomoPrim(CUShort)
+newtypeHomoPrim(CInt)
+newtypeHomoPrim(CUInt)
+newtypeHomoPrim(CLong)
+newtypeHomoPrim(CULong)
+newtypeHomoPrim(CPtrdiff)
+newtypeHomoPrim(CSize)
+newtypeHomoPrim(CWchar)
+newtypeHomoPrim(CSigAtomic)
+newtypeHomoPrim(CLLong)
+newtypeHomoPrim(CULLong)
+#if MIN_VERSION_base(4,10,0)
+newtypeHomoPrim(CBool)
+#endif
+newtypeHomoPrim(CIntPtr)
+newtypeHomoPrim(CUIntPtr)
+newtypeHomoPrim(CIntMax)
+newtypeHomoPrim(CUIntMax)
+newtypeHomoPrim(CClock)
+newtypeHomoPrim(CTime)
+#if MIN_VERSION_base(4,4,0)
+newtypeHomoPrim(CUSeconds)
+newtypeHomoPrim(CSUSeconds)
+#endif
+newtypeHomoPrim(CFloat)
+newtypeHomoPrim(CDouble)
+newtypeHomoPrim(CDev)
+newtypeHomoPrim(CIno)
+newtypeHomoPrim(CMode)
+newtypeHomoPrim(COff)
+newtypeHomoPrim(CPid)
+newtypeHomoPrim(CSsize)
+#if MIN_VERSION_base(4,10,0)
+newtypeHomoPrim(CClockId)
+#endif
+newtypeHomoPrim(Fd)
