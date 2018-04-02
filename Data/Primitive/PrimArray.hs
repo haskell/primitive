@@ -488,6 +488,25 @@ foldlPrimArrayM' f z0 arr = go 0 z0
 -- 1
 -- 2
 -- *** Exception: Prelude.undefined
+--
+-- In many situations, 'traversePrimArrayP' can replace 'traversePrimArray',
+-- changing the strictness characteristics of the traversal but typically improving
+-- the performance. Consider the following short-circuiting traversal:
+--
+-- > incrPositiveA :: PrimArray Int -> Maybe (PrimArray Int)
+-- > incrPositiveA xs = traversePrimArray (\x -> bool Nothing (Just x + 1) (x > 0)) xs
+--
+-- This can be rewritten using 'traversePrimArrayP'. To do this, we must
+-- change the traversal context to @MaybeT (ST s)@, which has a 'PrimMonad'
+-- instance:
+--
+-- > incrPositiveB :: PrimArray Int -> Maybe (PrimArray Int)
+-- > incrPositiveB xs = runST $ traversePrimArrayP
+-- >   (\x -> bool (MaybeT (return Nothing)) (MaybeT (return (Just (x + 1)))) (x > 0))
+-- >   xs
+-- 
+-- Benchmarks demonstrate that the second implementation outperforms
+-- the first by a factor of X.
 {-# INLINE traversePrimArrayP #-}
 traversePrimArrayP :: (PrimMonad m, Prim a, Prim b)
   => (a -> m b)
