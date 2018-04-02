@@ -208,6 +208,8 @@ derivePrim(FunPtr a, FunPtr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
 
+-- This is a workaround, since GeneralizedNewtypeDeriving doesn't work for Prim.
+-- newtypePrim(ty, ctr) works if the wrapped type has a Prim instance.
 #define newtypePrim(ty, ctr)                                    \
 instance Prim ty where {                                        \
   sizeOf# (ctr x) = sizeOf# x                                   \
@@ -234,8 +236,10 @@ instance Prim ty where {                                        \
 ; {-# INLINE setOffAddr# #-}                                    \
 }
 
+-- It's often the case that the newtype constructor has the same name as the type.
 #define newtypeHomoPrim(ty) newtypePrim(ty, ty)
 
+-- Prim instances for newtypes in Foreign.C.Types
 newtypeHomoPrim(CChar)
 newtypeHomoPrim(CSChar)
 newtypeHomoPrim(CUChar)
@@ -260,12 +264,12 @@ newtypeHomoPrim(CIntMax)
 newtypeHomoPrim(CUIntMax)
 newtypeHomoPrim(CClock)
 newtypeHomoPrim(CTime)
-#if MIN_VERSION_base(4,4,0)
 newtypeHomoPrim(CUSeconds)
 newtypeHomoPrim(CSUSeconds)
-#endif
 newtypeHomoPrim(CFloat)
 newtypeHomoPrim(CDouble)
+
+-- Prim instances for newtypes in System.Posix.Types
 newtypeHomoPrim(CDev)
 newtypeHomoPrim(CIno)
 newtypeHomoPrim(CMode)
