@@ -4,6 +4,8 @@
 {-# LANGUAGE TypeInType #-}
 #endif
 
+#include "HsBaseConfig.h"
+
 -- |
 -- Module      : Data.Primitive.Types
 -- Copyright   : (c) Roman Leshchinskiy 2009-2012
@@ -243,13 +245,67 @@ deriving instance Prim CFloat
 deriving instance Prim CDouble
 
 -- Prim instances for newtypes in System.Posix.Types
+#if defined(HTYPE_DEV_T)
 deriving instance Prim CDev
+#endif
+#if defined(HTYPE_INO_T)
 deriving instance Prim CIno
+#endif
+#if defined(HTYPE_MODE_T)
 deriving instance Prim CMode
+#endif
+#if defined(HTYPE_OFF_T)
 deriving instance Prim COff
+#endif
+#if defined(HTYPE_PID_T)
 deriving instance Prim CPid
+#endif
+#if defined(HTYPE_SSIZE_T)
 deriving instance Prim CSsize
-#if MIN_VERSION_base(4,10,0)
+#endif
+#if defined(HTYPE_GID_T)
+deriving instance Prim CGid
+#endif
+#if defined(HTYPE_NLINK_T)
+deriving instance Prim CNlink
+#endif
+#if defined(HTYPE_UID_T)
+deriving instance Prim CUid
+#endif
+#if defined(HTYPE_CC_T)
+deriving instance Prim CCc
+#endif
+#if defined(HTYPE_SPEED_T)
+deriving instance Prim CSpeed
+#endif
+#if defined(HTYPE_TCFLAG_T)
+deriving instance Prim CTcflag
+#endif
+#if defined(HTYPE_RLIM_T)
+deriving instance Prim CRLim
+#endif
+#if defined(HTYPE_BLKSIZE_T)
+deriving instance Prim CBlkSize
+#endif
+#if defined(HTYPE_BLKCNT_T)
+deriving instance Prim CBlkCnt
+#endif
+#if defined(HTYPE_CLOCKID_T)
 deriving instance Prim CClockId
+#endif
+#if defined(HTYPE_FSBLKCNT_T)
+deriving instance Prim CFsBlkCnt
+#endif
+#if defined(HTYPE_FSFILCNT_T)
+deriving instance Prim CFsFilCnt
+#endif
+#if defined(HTYPE_ID_T)
+deriving instance Prim CId
+#endif
+#if defined(HTYPE_KEY_T)
+deriving instance Prim CKey
+#endif
+#if defined(HTYPE_TIMER_T)
+deriving instance Prim CTimer
 #endif
 deriving instance Prim Fd
