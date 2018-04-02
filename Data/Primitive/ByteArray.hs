@@ -19,6 +19,7 @@ module Data.Primitive.ByteArray (
 
   -- * Allocation
   newByteArray, newPinnedByteArray, newAlignedPinnedByteArray,
+  resizeMutableByteArray,
 
   -- * Element access
   readByteArray, writeByteArray, indexByteArray,
@@ -38,7 +39,8 @@ module Data.Primitive.ByteArray (
   setByteArray, fillByteArray,
 
   -- * Information
-  sizeofByteArray, sizeofMutableByteArray, sameMutableByteArray,
+  sizeofByteArray,
+  sizeofMutableByteArray, getSizeofMutableByteArray, sameMutableByteArray,
   byteArrayContents, mutableByteArrayContents
 ) where
 
@@ -124,6 +126,45 @@ sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
 sameMutableByteArray (MutableByteArray arr#) (MutableByteArray brr#)
   = isTrue# (sameMutableByteArray# arr# brr#)
 
+-- | Resize a mutable byte array. The new size is given in bytes.
+--
+-- This will either resize the array in-place or, if not possible, allocate the
+-- contents into a new, unpinned array and copy the original array's contents.
+--
+-- To avoid undefined behaviour, the original 'MutableByteArray' shall not be
+-- accessed anymore after a 'resizeMutableByteArray' has been performed.
+-- Moreover, no reference to the old one should be kept in order to allow
+-- garbage collection of the original 'MutableByteArray' in case a new
+-- 'MutableByteArray' had to be allocated.
+resizeMutableByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> Int
+                 -> m (MutableByteArray (PrimState m))
+{-# INLINE resizeMutableByteArray #-}
+#if __GLASGOW_HASKELL__ >= 710
+resizeMutableByteArray (MutableByteArray arr#) (I# n#)
+  = primitive (\s# -> case resizeMutableByteArray# arr# n# s# of
+                        (# s'#, arr'# #) -> (# s'#, MutableByteArray arr'# #))
+#else
+resizeMutableByteArray arr n
+  = do arr' <- newByteArray n
+       copyMutableByteArray arr' 0 arr 0 (min (sizeofMutableByteArray arr) n)
+       return arr'
+#endif
+
+-- | Get the size of a byte array in bytes. Unlike 'sizeofMutableByteArray',
+-- this function ensures sequencing in the presence of resizing.
+getSizeofMutableByteArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> m Int
+{-# INLINE getSizeofMutableByteArray #-}
+#if __GLASGOW_HASKELL__ >= 801
+getSizeofMutableByteArray (MutableByteArray arr#)
+  = primitive (\s# -> case getSizeofMutableByteArray# arr# s# of
+                        (# s'#, n# #) -> (# s'#, I# n# #))
+#else
+getSizeofMutableByteArray arr
+  = return (sizeofMutableByteArray arr)
+#endif
+
 -- | Convert a mutable byte array to an immutable one without copying. The
 -- array should not be modified after the conversion.
 unsafeFreezeByteArray
@@ -188,7 +229,7 @@ fromListN n ys = runST $ do
     let go !ix [] = if ix == n
           then return ()
           else die "fromListN" "list length less than specified size"
-        go !ix (x : xs) = if ix < n 
+        go !ix (x : xs) = if ix < n
           then do
             writeByteArray marr ix x
             go (ix + 1) xs
@@ -196,10 +237,8 @@ fromListN n ys = runST $ do
     go 0 ys
     unsafeFreezeByteArray marr
 
-#if __GLASGOW_HASKELL__ >= 702
 unI# :: Int -> Int#
 unI# (I# n#) = n#
-#endif
 
 -- | Copy a slice of an immutable byte array to a mutable byte array.
 copyByteArray
@@ -212,13 +251,7 @@ copyByteArray
                  -> m ()
 {-# INLINE copyByteArray #-}
 copyByteArray (MutableByteArray dst#) doff (ByteArray src#) soff sz
-#if __GLASGOW_HASKELL__ >= 702
   = primitive_ (copyByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
-#else
-  = unsafePrimToPrim
-  $ memcpy_ba dst# (fromIntegral doff) src# (fromIntegral soff)
-                 (fromIntegral sz)
-#endif
 
 -- | Copy a slice of a mutable byte array into another array. The two slices
 -- may not overlap.
@@ -234,14 +267,7 @@ copyMutableByteArray
 {-# INLINE copyMutableByteArray #-}
 copyMutableByteArray (MutableByteArray dst#) doff
                      (MutableByteArray src#) soff sz
-#if __GLASGOW_HASKELL__ >= 702
   = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
-#else
-  = unsafePrimToPrim
-  $ memcpy_mba dst# (fromIntegral doff) src# (fromIntegral soff)
-                    (fromIntegral sz)
-#endif
-
 
 #if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a byte array to an unmanaged address. These must not
@@ -313,18 +339,6 @@ fillByteArray
                  -> m ()
 {-# INLINE fillByteArray #-}
 fillByteArray = setByteArray
-
-#if __GLASGOW_HASKELL__ < 702
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
-  memcpy_mba :: MutableByteArray# s -> CInt
-             -> MutableByteArray# s -> CInt
-             -> CSize -> IO ()
-
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memcpy"
-  memcpy_ba :: MutableByteArray# s -> CInt
-            -> ByteArray# -> CInt
-            -> CSize -> IO ()
-#endif
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
   memmove_mba :: MutableByteArray# s -> CInt

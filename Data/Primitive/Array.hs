@@ -17,7 +17,7 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM,
-  freezeArray, thawArray,
+  freezeArray, thawArray, runArray,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
@@ -54,11 +54,17 @@ import Data.Traversable (Traversable(..))
 import Data.Monoid
 #endif
 #if MIN_VERSION_base(4,9,0)
+import qualified GHC.ST as GHCST
 import qualified Data.Foldable as F
 import Data.Semigroup
 #endif
 #if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity
+#endif
+#if MIN_VERSION_base(4,10,0)
+import GHC.Exts (runRW#)
+#elif MIN_VERSION_base(4,9,0)
+import GHC.Base (runRW#)
 #endif
 
 import Text.ParserCombinators.ReadP
@@ -278,16 +284,63 @@ emptyArray =
   runST $ newArray 0 (die "emptyArray" "impossible") >>= unsafeFreezeArray
 {-# NOINLINE emptyArray #-}
 
+#if !MIN_VERSION_base(4,9,0)
 createArray
   :: Int
   -> a
   -> (forall s. MutableArray s a -> ST s ())
   -> Array a
 createArray 0 _ _ = emptyArray
-createArray n x f = runST $ do
-  ma <- newArray n x
-  f ma
-  unsafeFreezeArray ma
+createArray n x f = runArray $ do
+  mary <- newArray n x
+  f mary
+  pure mary
+
+runArray
+  :: (forall s. ST s (MutableArray s a))
+  -> Array a
+runArray m = runST $ m >>= unsafeFreezeArray
+
+#else /* Below, runRW# is available. */
+
+-- This low-level business is designed to work with GHC's worker-wrapper
+-- transformation. A lot of the time, we don't actually need an Array
+-- constructor. By putting it on the outside, and being careful about
+-- how we special-case the empty array, we can make GHC smarter about this.
+-- The only downside is that separately created 0-length arrays won't share
+-- their Array constructors, although they'll share their underlying
+-- Array#s.
+createArray
+  :: Int
+  -> a
+  -> (forall s. MutableArray s a -> ST s ())
+  -> Array a
+createArray 0 _ _ = Array (emptyArray# (# #))
+createArray n x f = runArray $ do
+  mary <- newArray n x
+  f mary
+  pure mary
+
+runArray
+  :: (forall s. ST s (MutableArray s a))
+  -> Array a
+runArray m = Array (runArray# m)
+
+runArray#
+  :: (forall s. ST s (MutableArray s a))
+  -> Array# a
+runArray# m = case runRW# $ \s ->
+  case unST m s of { (# s', MutableArray mary# #) ->
+  unsafeFreezeArray# mary# s'} of (# _, ary# #) -> ary#
+
+unST :: ST s a -> State# s -> (# State# s, a #)
+unST (GHCST.ST f) = f
+
+emptyArray# :: (# #) -> Array# a
+emptyArray# _ = case emptyArray of Array ar -> ar
+{-# NOINLINE emptyArray# #-}
+#endif
+
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.Array." ++ fun ++ ": " ++ problem
@@ -507,18 +560,17 @@ unsafeTraverseArray f = \ !ary ->
 {-# INLINE unsafeTraverseArray #-}
 
 arrayFromListN :: Int -> [a] -> Array a
-arrayFromListN n l = runST $ do
-  sma <- newArray n (die "fromListN" "uninitialized element")
-  let go !ix [] = if ix == n
-        then return ()
-        else die "fromListN" "list length less than specified size"
-      go !ix (x : xs) = if ix < n
-        then do
-          writeArray sma ix x
-          go (ix+1) xs
-        else die "fromListN" "list length greater than specified size"
-  go 0 l
-  unsafeFreezeArray sma
+arrayFromListN n l =
+  createArray n (die "fromListN" "uninitialized element") $ \sma ->
+    let go !ix [] = if ix == n
+          then return ()
+          else die "fromListN" "list length less than specified size"
+        go !ix (x : xs) = if ix < n
+          then do
+            writeArray sma ix x
+            go (ix+1) xs
+          else die "fromListN" "list length greater than specified size"
+    in go 0 l
 
 arrayFromList :: [a] -> Array a
 arrayFromList l = arrayFromListN (length l) l
@@ -547,13 +599,12 @@ instance Functor Array where
                     writeArray mb i (f x) >> go (i+1)
        in go 0
 #if MIN_VERSION_base(4,8,0)
-  e <$ a = runST $ newArray (sizeofArray a) e >>= unsafeFreezeArray
+  e <$ a = createArray (sizeofArray a) e (\ !_ -> pure ())
 #endif
 
 instance Applicative Array where
-  pure x = runST $ newArray 1 x >>= unsafeFreezeArray
-  ab <*> a = runST $ do
-    mb <- newArray (szab*sza) $ die "<*>" "impossible"
+  pure x = runArray $ newArray 1 x
+  ab <*> a = createArray (szab*sza) (die "<*>" "impossible") $ \mb ->
     let go1 i = when (i < szab) $
             do
               f <- indexArrayM ab i
@@ -564,8 +615,7 @@ instance Applicative Array where
               x <- indexArrayM a j
               writeArray mb (off + j) (f x)
               go2 off f (j + 1)
-    go1 0
-    unsafeFreezeArray mb
+    in go1 0
    where szab = sizeofArray ab ; sza = sizeofArray a
   a *> b = createArray (sza*szb) (die "*>" "impossible") $ \mb ->
     let go i | i < sza   = copyArray mb (i * szb) b 0 szb

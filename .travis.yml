@@ -93,7 +93,7 @@ install:
       cabal new-update head.hackage -v
     fi
   - grep -Ev -- '^\s*--' ${HOME}/.cabal/config | grep -Ev '^\s*$'
-  - "printf 'packages: \".\" \"./test\"\\n' > cabal.project"
+  - "printf 'packages: \".\" \"./test\" \"./bench\"\\n' > cabal.project"
   - echo 'package quickcheck-classes' >> cabal.project
   - "echo '  flags: -aeson -semigroupoids' >> cabal.project"
   - cat cabal.project
@@ -103,8 +103,11 @@ install:
   - if [ -f "./test/configure.ac" ]; then
       (cd "./test" && autoreconf -i);
     fi
+  - if [ -f "./bench/configure.ac" ]; then
+      (cd "./bench" && autoreconf -i);
+    fi
   - rm -f cabal.project.freeze
-  - rm -rf .ghc.environment.* "."/dist "./test"/dist
+  - rm -rf .ghc.environment.* "."/dist "./test"/dist "./bench"/dist
   - DISTDIR=$(mktemp -d /tmp/dist-test.XXXX)
 
 # Here starts the actual work to be performed for the package under test;
@@ -113,10 +116,11 @@ script:
   # test that source-distributions can be generated
   - (cd "." && cabal sdist)
   - (cd "./test" && cabal sdist)
-  - mv "."/dist/primitive-*.tar.gz "./test"/dist/primitive-tests-*.tar.gz ${DISTDIR}/
+  - (cd "./bench" && cabal sdist)
+  - mv "."/dist/primitive-*.tar.gz "./test"/dist/primitive-tests-*.tar.gz "./bench"/dist/primitive-benchmarks-*.tar.gz ${DISTDIR}/
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -name '*.tar.gz' -exec tar -xvf '{}' \;
-  - "printf 'packages: primitive-*/*.cabal primitive-tests-*/*.cabal\\n' > cabal.project"
+  - "printf 'packages: primitive-*/*.cabal primitive-tests-*/*.cabal primitive-benchmarks-*/*.cabal\\n' > cabal.project"
   - echo 'package quickcheck-classes' >> cabal.project
   - "echo '  flags: -aeson -semigroupoids' >> cabal.project"
   - cat cabal.project
@@ -134,6 +138,7 @@ script:
   #   Commented out due to https://github.com/haskell/cabal/issues/4551
   # - (cd primitive-* && cabal check)
   - (cd primitive-tests-* && cabal check)
+  - (cd primitive-benchmarks-* && cabal check)
 
   # haddock
   - rm -rf ./dist-newstyle
