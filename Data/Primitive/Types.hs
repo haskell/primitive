@@ -1,4 +1,8 @@
 {-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE TypeInType #-}
+#endif
 
 -- |
 -- Module      : Data.Primitive.Types
@@ -208,75 +212,44 @@ derivePrim(FunPtr a, FunPtr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
 
--- This is a workaround, since GeneralizedNewtypeDeriving doesn't work for Prim.
--- newtypePrim(ty, ctr) works if the wrapped type has a Prim instance.
-#define newtypePrim(ty, ctr)                                    \
-instance Prim ty where {                                        \
-  sizeOf# (ctr x) = sizeOf# x                                   \
-; alignment# (ctr x) = alignment# x                             \
-; indexByteArray# arr# i# = ctr (indexByteArray# arr# i#)       \
-; readByteArray# arr# i# s# = case readByteArray# arr# i# s# of \
-                      { (# s1#, x #) -> (# s1#, ctr x #) }      \
-; writeByteArray# arr# i# (ctr x) = writeByteArray# arr# i# x   \
-; setByteArray# arr# i# n# (ctr x) = setByteArray# arr# i# n# x \
-; indexOffAddr# addr# i# = ctr (indexOffAddr# addr# i#)         \
-; readOffAddr# addr# i# s# = case readOffAddr# addr# i# s# of   \
-                      { (# s1#, x #) -> (# s1#, ctr x #) }      \
-; writeOffAddr# addr# i# (ctr x) = writeOffAddr# addr# i# x     \
-; setOffAddr# addr# i# n# (ctr x) = setOffAddr# addr# i# n# x   \
-; {-# INLINE sizeOf# #-}                                        \
-; {-# INLINE alignment# #-}                                     \
-; {-# INLINE indexByteArray# #-}                                \
-; {-# INLINE readByteArray# #-}                                 \
-; {-# INLINE writeByteArray# #-}                                \
-; {-# INLINE setByteArray# #-}                                  \
-; {-# INLINE indexOffAddr# #-}                                  \
-; {-# INLINE readOffAddr# #-}                                   \
-; {-# INLINE writeOffAddr# #-}                                  \
-; {-# INLINE setOffAddr# #-}                                    \
-}
-
--- It's often the case that the newtype constructor has the same name as the type.
-#define newtypeHomoPrim(ty) newtypePrim(ty, ty)
-
 -- Prim instances for newtypes in Foreign.C.Types
-newtypeHomoPrim(CChar)
-newtypeHomoPrim(CSChar)
-newtypeHomoPrim(CUChar)
-newtypeHomoPrim(CShort)
-newtypeHomoPrim(CUShort)
-newtypeHomoPrim(CInt)
-newtypeHomoPrim(CUInt)
-newtypeHomoPrim(CLong)
-newtypeHomoPrim(CULong)
-newtypeHomoPrim(CPtrdiff)
-newtypeHomoPrim(CSize)
-newtypeHomoPrim(CWchar)
-newtypeHomoPrim(CSigAtomic)
-newtypeHomoPrim(CLLong)
-newtypeHomoPrim(CULLong)
+deriving instance Prim CChar
+deriving instance Prim CSChar
+deriving instance Prim CUChar
+deriving instance Prim CShort
+deriving instance Prim CUShort
+deriving instance Prim CInt
+deriving instance Prim CUInt
+deriving instance Prim CLong
+deriving instance Prim CULong
+deriving instance Prim CPtrdiff
+deriving instance Prim CSize
+deriving instance Prim CWchar
+deriving instance Prim CSigAtomic
+deriving instance Prim CLLong
+deriving instance Prim CULLong
 #if MIN_VERSION_base(4,10,0)
-newtypeHomoPrim(CBool)
+deriving instance Prim CBool
 #endif
-newtypeHomoPrim(CIntPtr)
-newtypeHomoPrim(CUIntPtr)
-newtypeHomoPrim(CIntMax)
-newtypeHomoPrim(CUIntMax)
-newtypeHomoPrim(CClock)
-newtypeHomoPrim(CTime)
-newtypeHomoPrim(CUSeconds)
-newtypeHomoPrim(CSUSeconds)
-newtypeHomoPrim(CFloat)
-newtypeHomoPrim(CDouble)
+deriving instance Prim CIntPtr
+deriving instance Prim CUIntPtr
+deriving instance Prim CIntMax
+deriving instance Prim CUIntMax
+deriving instance Prim CClock
+deriving instance Prim CTime
+deriving instance Prim CUSeconds
+deriving instance Prim CSUSeconds
+deriving instance Prim CFloat
+deriving instance Prim CDouble
 
 -- Prim instances for newtypes in System.Posix.Types
-newtypeHomoPrim(CDev)
-newtypeHomoPrim(CIno)
-newtypeHomoPrim(CMode)
-newtypeHomoPrim(COff)
-newtypeHomoPrim(CPid)
-newtypeHomoPrim(CSsize)
+deriving instance Prim CDev
+deriving instance Prim CIno
+deriving instance Prim CMode
+deriving instance Prim COff
+deriving instance Prim CPid
+deriving instance Prim CSsize
 #if MIN_VERSION_base(4,10,0)
-newtypeHomoPrim(CClockId)
+deriving instance Prim CClockId
 #endif
-newtypeHomoPrim(Fd)
+deriving instance Prim Fd
