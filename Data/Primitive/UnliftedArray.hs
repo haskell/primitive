@@ -82,6 +82,9 @@ import qualified Data.Primitive.SmallArray as SA
 import qualified Data.Primitive.MutVar as MV
 import qualified GHC.MVar as GM (MVar(..))
 import qualified GHC.Conc as GC (TVar(..))
+import qualified GHC.Stable as GSP (StablePtr(..))
+import qualified GHC.Weak as GW (Weak(..))
+import qualified GHC.Conc.Sync as GCS (ThreadId(..))
 
 -- | Immutable arrays that efficiently store types that are simple wrappers
 -- around unlifted primitive types. The values of the unlifted type are
@@ -146,6 +149,18 @@ instance PrimUnlifted (GM.MVar a) where
 instance PrimUnlifted (GC.TVar a) where
   toArrayArray# (GC.TVar tv#) = unsafeCoerce# tv#
   fromArrayArray# tv# = GC.TVar (unsafeCoerce# tv#)
+
+instance PrimUnlifted (GSP.StablePtr a) where
+  toArrayArray# (GSP.StablePtr tv#) = unsafeCoerce# tv#
+  fromArrayArray# tv# = GSP.StablePtr (unsafeCoerce# tv#)
+
+instance PrimUnlifted (GW.Weak a) where
+  toArrayArray# (GW.Weak tv#) = unsafeCoerce# tv#
+  fromArrayArray# tv# = GW.Weak (unsafeCoerce# tv#)
+
+instance PrimUnlifted GCS.ThreadId where
+  toArrayArray# (GCS.ThreadId tv#) = unsafeCoerce# tv#
+  fromArrayArray# tv# = GCS.ThreadId (unsafeCoerce# tv#)
 
 -- | Creates a new 'MutableUnliftedArray'. This function is unsafe, because it
 -- allows access to the raw contents of the underlying 'ArrayArray#'.
