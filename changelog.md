@@ -12,6 +12,9 @@
  * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
    `Array` and `SmallArray`.
 
+ * Add `Prim` instances for lots of types in `Foreign.C.Types` and
+   `System.Posix.Types`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
