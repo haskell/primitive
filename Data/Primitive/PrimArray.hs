@@ -87,7 +87,7 @@ import GHC.Exts (IsList(..))
 #endif
 
 #if MIN_VERSION_base(4,9,0)
-import Data.Semigroup (Semigroup(..))
+import Data.Semigroup (Semigroup)
 import qualified Data.Semigroup as SG
 #endif
 
@@ -200,7 +200,7 @@ byteArrayToPrimArray (PB.ByteArray x) = PrimArray x
 instance Semigroup (PrimArray a) where
   x <> y = byteArrayToPrimArray (primArrayToByteArray x SG.<> primArrayToByteArray y)
   sconcat = byteArrayToPrimArray . SG.sconcat . fmap primArrayToByteArray
-  stimes i arr = byteArrayToPrimArray (stimes i (primArrayToByteArray arr))
+  stimes i arr = byteArrayToPrimArray (SG.stimes i (primArrayToByteArray arr))
 #endif
 
 instance Monoid (PrimArray a) where
