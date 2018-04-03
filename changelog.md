@@ -12,6 +12,9 @@
  * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
    `Array` and `SmallArray`.
 
+ * Use `compareByteArrays#` for the `Eq` and `Ord` instances of
+   `ByteArray` when building with GHC 8.4 and newer.
+
  * Add `Prim` instances for lots of types in `Foreign.C.Types` and
    `System.Posix.Types`.
 
