@@ -105,9 +105,12 @@ newPinnedByteArray (I# n#)
                         (# s'#, arr# #) -> (# s'#, MutableByteArray arr# #))
 
 -- | Create a /pinned/ byte array of the specified size in bytes and with the
--- give alignment. The garbage collector is guaranteed not to move it.
+-- given alignment. The garbage collector is guaranteed not to move it.
 newAlignedPinnedByteArray
-  :: PrimMonad m => Int -> Int -> m (MutableByteArray (PrimState m))
+  :: PrimMonad m
+  => Int  -- ^ size
+  -> Int  -- ^ alignment
+  -> m (MutableByteArray (PrimState m))
 {-# INLINE newAlignedPinnedByteArray #-}
 newAlignedPinnedByteArray (I# n#) (I# k#)
   = primitive (\s# -> case newAlignedPinnedByteArray# n# k# s# of

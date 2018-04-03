@@ -26,7 +26,10 @@ module Data.Primitive.Addr (
 #if __GLASGOW_HASKELL__ >= 708
   copyAddrToByteArray,
 #endif
-  moveAddr, setAddr
+  moveAddr, setAddr,
+
+  -- * Conversion
+  addrToInt
 ) where
 
 import Control.Monad.Primitive
@@ -122,3 +125,7 @@ setAddr :: (Prim a, PrimMonad m) => Addr -> Int -> a -> m ()
 {-# INLINE setAddr #-}
 setAddr (Addr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
 
+-- | Convert an 'Addr' to an 'Int'.
+addrToInt :: Addr -> Int
+{-# INLINE addrToInt #-}
+addrToInt (Addr addr#) = I# (addr2Int# addr#)
