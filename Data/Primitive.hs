@@ -15,6 +15,8 @@ module Data.Primitive (
   module Data.Primitive.Array,
   module Data.Primitive.ByteArray,
   module Data.Primitive.Addr,
+  module Data.Primitive.SmallArray,
+  module Data.Primitive.UnliftedArray,
 
   sizeOf, alignment
 ) where

@@ -20,6 +20,9 @@
  * Add `Prim` instances for lots of types in `Foreign.C.Types` and
    `System.Posix.Types`.
 
+ * Reexport `Data.Primitive.SmallArray` and `Data.Primitive.UnliftedArray`
+   from `Data.Primitive`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
