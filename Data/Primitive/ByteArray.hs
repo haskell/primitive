@@ -24,6 +24,9 @@ module Data.Primitive.ByteArray (
   -- * Element access
   readByteArray, writeByteArray, indexByteArray,
 
+  -- * Constructing
+  byteArrayFromList, byteArrayFromListN,
+
   -- * Folding
   foldrByteArray,
 
@@ -67,7 +70,6 @@ import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Numeric
-import System.IO.Unsafe
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as SG
@@ -80,6 +82,12 @@ import Data.Monoid (Monoid(..))
 
 #if __GLASGOW_HASKELL__ >= 802
 import GHC.Exts as Exts (isByteArrayPinned#,isMutableByteArrayPinned#)
+#endif
+
+#if __GLASGOW_HASKELL__ >= 804
+import GHC.Exts (compareByteArrays#)
+#else
+import System.IO.Unsafe (unsafeDupablePerformIO)
 #endif
 
 -- | Byte arrays
@@ -155,7 +163,7 @@ resizeMutableByteArray (MutableByteArray arr#) (I# n#)
 #else
 resizeMutableByteArray arr n
   = do arr' <- newByteArray n
-       copyMutableByteArray arr 0 arr' 0 (min (sizeofMutableByteArray arr) n)
+       copyMutableByteArray arr' 0 arr 0 (min (sizeofMutableByteArray arr) n)
        return arr'
 #endif
 
@@ -247,17 +255,20 @@ foldrByteArray f z arr = go 0
       | otherwise                    = z
     sz = sizeOf (undefined :: a)
 
-fromListN :: Prim a => Int -> [a] -> ByteArray
-fromListN n ys = runST $ do
+byteArrayFromList :: Prim a => [a] -> ByteArray
+byteArrayFromList xs = byteArrayFromListN (length xs) xs
+
+byteArrayFromListN :: Prim a => Int -> [a] -> ByteArray
+byteArrayFromListN n ys = runST $ do
     marr <- newByteArray (n * sizeOf (head ys))
     let go !ix [] = if ix == n
           then return ()
-          else die "fromListN" "list length less than specified size"
+          else die "byteArrayFromListN" "list length less than specified size"
         go !ix (x : xs) = if ix < n
           then do
             writeByteArray marr ix x
             go (ix + 1) xs
-          else die "fromListN" "list length greater than specified size"
+          else die "byteArrayFromListN" "list length greater than specified size"
     go 0 ys
     unsafeFreezeByteArray marr
 
@@ -390,8 +401,24 @@ instance Show ByteArray where
           comma | i == 0    = id
                 | otherwise = showString ", "
 
+
+compareByteArrays :: ByteArray -> ByteArray -> Int -> Ordering
+{-# INLINE compareByteArrays #-}
+#if __GLASGOW_HASKELL__ >= 804
+compareByteArrays (ByteArray ba1#) (ByteArray ba2#) (I# n#) =
+  compare (I# (compareByteArrays# ba1# 0# ba2# 0# n#)) 0
+#else
+-- Emulate GHC 8.4's 'GHC.Prim.compareByteArrays#'
+compareByteArrays (ByteArray ba1#) (ByteArray ba2#) (I# n#)
+    = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# ba2# n))) 0
+  where
+    n = fromIntegral (I# n#) :: CSize
+    fromCInt = fromIntegral :: CInt -> Int
+
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp"
   memcmp_ba :: ByteArray# -> ByteArray# -> CSize -> IO CInt
+#endif
+
 
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =
@@ -405,22 +432,24 @@ sameByteArray ba1 ba2 =
 
 instance Eq ByteArray where
   ba1@(ByteArray ba1#) == ba2@(ByteArray ba2#)
-    | sameByteArray ba1# ba2#                    = True
-    | sizeofByteArray ba1 /= sizeofByteArray ba2 = False
-    | otherwise =
-        case unsafeDupablePerformIO $ memcmp_ba ba1# ba2# (fromIntegral $ sizeofByteArray ba1) of
-          0 -> True
-          _ -> False
+    | sameByteArray ba1# ba2# = True
+    | n1 /= n2 = False
+    | otherwise = compareByteArrays ba1 ba2 n1 == EQ
+    where
+      n1 = sizeofByteArray ba1
+      n2 = sizeofByteArray ba2
 
+-- Note: On GHC 8.4, the primop compareByteArrays# performs a check for pointer
+-- equality as a shortcut, so the check here is actually redundant. However, it
+-- is included here because it is likely better to check for pointer equality
+-- before checking for length equality. Getting the length requires deferencing
+-- the pointers, which could cause accesses to memory that is not in the cache.
+-- By contrast, a pointer equality check is always extremely cheap.
 instance Ord ByteArray where
   ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = EQ
-    | n1 /= n2                = n1 `compare` n2
-    | otherwise =
-        case unsafeDupablePerformIO $ memcmp_ba ba1# ba2# (fromIntegral n1) of
-          x | x >  0 -> GT
-            | x == 0 -> EQ
-            | otherwise -> LT
+    | n1 /= n2 = n1 `compare` n2
+    | otherwise = compareByteArrays ba1 ba2 n1
     where
       n1 = sizeofByteArray ba1
       n2 = sizeofByteArray ba2
@@ -486,8 +515,8 @@ instance Exts.IsList ByteArray where
   type Item ByteArray = Word8
 
   toList = foldrByteArray (:) []
-  fromList xs = fromListN (length xs) xs
-  fromListN = fromListN
+  fromList xs = byteArrayFromListN (length xs) xs
+  fromListN = byteArrayFromListN
 #endif
 
 die :: String -> String -> a

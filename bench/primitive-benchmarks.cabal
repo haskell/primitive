@@ -1,4 +1,4 @@
-Name:           primitive-tests
+Name:           primitive-benchmarks
 Version:        0.1
 License:        BSD3
 License-File:   LICENSE
@@ -9,10 +9,10 @@ Copyright:      (c) Roman Leshchinskiy 2009-2012
 Homepage:       https://github.com/haskell/primitive
 Bug-Reports:    https://github.com/haskell/primitive/issues
 Category:       Data
-Synopsis:       primitive tests
+Synopsis:       primitive benchmarks
 Cabal-Version:  >= 1.10
 Build-Type:     Simple
-Description:    @primitive@ tests
+Description:    @primitive@ benchmarks
 
 Tested-With:
   GHC == 7.4.2,
@@ -23,23 +23,31 @@ Tested-With:
   GHC == 8.2.2,
   GHC == 8.4.1
 
-test-suite test
+flag primitive-benchmarks
+  default: True
+
+benchmark bench
+  if !flag(primitive-benchmarks)
+    buildable: False
+
   Default-Language: Haskell2010
   hs-source-dirs: .
   main-is: main.hs
   type: exitcode-stdio-1.0
-  build-depends: base >= 4.5 && < 4.12
-               , ghc-prim
-               , primitive
-               , QuickCheck
-               , tasty
-               , tasty-quickcheck
-               , tagged
-               , transformers >= 0.3
-               , quickcheck-classes >= 0.4.8
   ghc-options: -O2
+  other-modules:
+    Array.Traverse.Closure
+    Array.Traverse.Unsafe
+    ByteArray.Compare
+  build-depends:
+      base >= 4.8 && < 4.12
+    , primitive
+    , deepseq
+    , ghc-prim
+    , gauge
+    , transformers >= 0.3
 
 source-repository head
   type:     git
   location: https://github.com/haskell/primitive
-  subdir:   test
+  subdir:   bench
