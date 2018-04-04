@@ -88,6 +88,9 @@ main = do
       ]
     ]
 
+-- Tests that using resizeByteArray to shrink a byte array produces
+-- the same results as calling Data.List.take on the list that the
+-- byte array corresponds to.
 byteArrayShrinkProp :: QC.Property
 byteArrayShrinkProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (m :: Int)) ->
   let large = max n m
@@ -104,6 +107,10 @@ byteArrayShrinkProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative
         unsafeFreezeByteArray mzs1
    in expected === actual
 
+-- Tests that using resizeByteArray with copyByteArray (to fill in the
+-- new empty space) to grow a byte array produces the same results as
+-- calling Data.List.++ on the lists corresponding to the original
+-- byte array and the appended byte array.
 byteArrayGrowProp :: QC.Property
 byteArrayGrowProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (m :: Int)) ->
   let large = max n m
