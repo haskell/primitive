@@ -25,3 +25,5 @@ import Data.Primitive.Types
 import Data.Primitive.Array
 import Data.Primitive.ByteArray
 import Data.Primitive.Addr
+import Data.Primitive.SmallArray
+import Data.Primitive.UnliftedArray
