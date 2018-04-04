@@ -75,6 +75,10 @@ main = do
         [ TQC.testProperty "equality" byteArrayEqProp
         , TQC.testProperty "compare" byteArrayCompareProp
         ]
+      , testGroup "Resize"
+        [ TQC.testProperty "shrink" byteArrayShrinkProp
+        , TQC.testProperty "grow" byteArrayGrowProp
+        ]
       , lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
@@ -84,6 +88,50 @@ main = do
       ]
     ]
 
+byteArrayShrinkProp :: QC.Property
+byteArrayShrinkProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (m :: Int)) ->
+  let large = max n m
+      small = min n m
+      xs = intsLessThan large
+      ys = byteArrayFromList xs
+      largeBytes = large * sizeOf (undefined :: Int)
+      smallBytes = small * sizeOf (undefined :: Int)
+      expected = byteArrayFromList (L.take small xs)
+      actual = runST $ do
+        mzs0 <- newByteArray largeBytes
+        copyByteArray mzs0 0 ys 0 largeBytes
+        mzs1 <- resizeMutableByteArray mzs0 smallBytes
+        unsafeFreezeByteArray mzs1
+   in expected === actual
+
+byteArrayGrowProp :: QC.Property
+byteArrayGrowProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (m :: Int)) ->
+  let large = max n m
+      small = min n m
+      xs1 = intsLessThan small
+      xs2 = intsLessThan (large - small)
+      ys1 = byteArrayFromList xs1
+      ys2 = byteArrayFromList xs2
+      largeBytes = large * sizeOf (undefined :: Int)
+      smallBytes = small * sizeOf (undefined :: Int)
+      expected = byteArrayFromList (xs1 ++ xs2)
+      actual = runST $ do
+        mzs0 <- newByteArray smallBytes
+        copyByteArray mzs0 0 ys1 0 smallBytes
+        mzs1 <- resizeMutableByteArray mzs0 largeBytes
+        copyByteArray mzs1 smallBytes ys2 0 ((large - small) * sizeOf (undefined :: Int))
+        unsafeFreezeByteArray mzs1
+   in expected === actual
+
+-- Provide the non-negative integers up to the bound. For example:
+--
+-- >>> intsLessThan 5
+-- [0,1,2,3,4]
+intsLessThan :: Int -> [Int]
+intsLessThan i = if i < 1
+  then []
+  else (i - 1) : intsLessThan (i - 1)
+  
 byteArrayCompareProp :: QC.Property
 byteArrayCompareProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
   compareLengthFirst xs ys === compare (byteArrayFromList xs) (byteArrayFromList ys)
