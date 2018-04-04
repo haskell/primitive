@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Applicative
 import Control.Monad
@@ -20,12 +21,13 @@ import Data.Proxy (Proxy(..))
 import GHC.Int
 import GHC.IO
 import GHC.Prim
+import Data.Function (on)
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (stimes)
 #endif
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
-import Test.QuickCheck (Arbitrary,Arbitrary1,Gen)
+import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,(===))
 import qualified Test.Tasty.QuickCheck as TQC
 import qualified Test.QuickCheck as QC
 import qualified Test.QuickCheck.Classes as QCC
@@ -69,7 +71,15 @@ main = do
 #endif
       ]
     , testGroup "ByteArray"
-      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
+      [ testGroup "Ordering"
+        [ TQC.testProperty "equality" byteArrayEqProp
+        , TQC.testProperty "compare" byteArrayCompareProp
+        ]
+      , testGroup "Resize"
+        [ TQC.testProperty "shrink" byteArrayShrinkProp
+        , TQC.testProperty "grow" byteArrayGrowProp
+        ]
+      , lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
 #if MIN_VERSION_base(4,7,0)
@@ -77,6 +87,68 @@ main = do
 #endif
       ]
     ]
+
+-- Tests that using resizeByteArray to shrink a byte array produces
+-- the same results as calling Data.List.take on the list that the
+-- byte array corresponds to.
+byteArrayShrinkProp :: QC.Property
+byteArrayShrinkProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (m :: Int)) ->
+  let large = max n m
+      small = min n m
+      xs = intsLessThan large
+      ys = byteArrayFromList xs
+      largeBytes = large * sizeOf (undefined :: Int)
+      smallBytes = small * sizeOf (undefined :: Int)
+      expected = byteArrayFromList (L.take small xs)
+      actual = runST $ do
+        mzs0 <- newByteArray largeBytes
+        copyByteArray mzs0 0 ys 0 largeBytes
+        mzs1 <- resizeMutableByteArray mzs0 smallBytes
+        unsafeFreezeByteArray mzs1
+   in expected === actual
+
+-- Tests that using resizeByteArray with copyByteArray (to fill in the
+-- new empty space) to grow a byte array produces the same results as
+-- calling Data.List.++ on the lists corresponding to the original
+-- byte array and the appended byte array.
+byteArrayGrowProp :: QC.Property
+byteArrayGrowProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (m :: Int)) ->
+  let large = max n m
+      small = min n m
+      xs1 = intsLessThan small
+      xs2 = intsLessThan (large - small)
+      ys1 = byteArrayFromList xs1
+      ys2 = byteArrayFromList xs2
+      largeBytes = large * sizeOf (undefined :: Int)
+      smallBytes = small * sizeOf (undefined :: Int)
+      expected = byteArrayFromList (xs1 ++ xs2)
+      actual = runST $ do
+        mzs0 <- newByteArray smallBytes
+        copyByteArray mzs0 0 ys1 0 smallBytes
+        mzs1 <- resizeMutableByteArray mzs0 largeBytes
+        copyByteArray mzs1 smallBytes ys2 0 ((large - small) * sizeOf (undefined :: Int))
+        unsafeFreezeByteArray mzs1
+   in expected === actual
+
+-- Provide the non-negative integers up to the bound. For example:
+--
+-- >>> intsLessThan 5
+-- [0,1,2,3,4]
+intsLessThan :: Int -> [Int]
+intsLessThan i = if i < 1
+  then []
+  else (i - 1) : intsLessThan (i - 1)
+  
+byteArrayCompareProp :: QC.Property
+byteArrayCompareProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
+  compareLengthFirst xs ys === compare (byteArrayFromList xs) (byteArrayFromList ys)
+
+byteArrayEqProp :: QC.Property
+byteArrayEqProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
+  (compareLengthFirst xs ys == EQ) === (byteArrayFromList xs == byteArrayFromList ys)
+
+compareLengthFirst :: [Word8] -> [Word8] -> Ordering
+compareLengthFirst xs ys = (compare `on` length) xs ys <> compare xs ys
 
 -- on GHC 7.4, Proxy is not polykinded, so we need this instead.
 data Proxy1 (f :: * -> *) = Proxy1

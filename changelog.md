@@ -1,5 +1,7 @@
 ## Changes in version 0.6.4.0
 
+ * Implement `isByteArrayPinned` and `isMutableByteArrayPinned`.
+
  * Add `Eq1`, `Ord1`, `Show1`, and `Read1` instances for `Array` and
    `SmallArray`.
 
@@ -12,7 +14,17 @@
  * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
    `Array` and `SmallArray`.
 
+
  * Add `PrimUnlifted` instances for `TVar` and `MVar`.
+
+ * Use `compareByteArrays#` for the `Eq` and `Ord` instances of
+   `ByteArray` when building with GHC 8.4 and newer.
+
+ * Add `Prim` instances for lots of types in `Foreign.C.Types` and
+   `System.Posix.Types`.
+
+ * Reexport `Data.Primitive.SmallArray` and `Data.Primitive.UnliftedArray`
+   from `Data.Primitive`.
 
 ## Changes in version 0.6.3.0
 
