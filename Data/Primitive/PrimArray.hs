@@ -174,6 +174,7 @@ primArrayFromListN len vs = runST run where
     go vs 0
     unsafeFreezePrimArray arr
 
+-- | Convert the primitive array to a list.
 {-# INLINE primArrayToList #-}
 primArrayToList :: forall a. Prim a => PrimArray a -> [a]
 primArrayToList xs = build (\c n -> foldrPrimArray c n xs)
@@ -213,12 +214,15 @@ instance Monoid (PrimArray a) where
 #endif
   mconcat = byteArrayToPrimArray . mconcat . map primArrayToByteArray
 
+-- | The empty primitive array.
 emptyPrimArray :: PrimArray a
 {-# NOINLINE emptyPrimArray #-}
 emptyPrimArray = runST $ primitive $ \s0# -> case newByteArray# 0# s0# of
   (# s1#, arr# #) -> case unsafeFreezeByteArray# arr# s1# of
     (# s2#, arr'# #) -> (# s2#, PrimArray arr'# #)
 
+-- | Create a new mutable primitive array of the given length. The
+-- underlying memory is left uninitialized.
 newPrimArray :: forall m a. (PrimMonad m, Prim a) => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPrimArray #-}
 newPrimArray (I# n#)
@@ -273,11 +277,12 @@ readPrimArray :: (Prim a, PrimMonad m) => MutablePrimArray (PrimState m) a -> In
 readPrimArray (MutablePrimArray arr#) (I# i#)
   = primitive (readByteArray# arr# i#)
 
+-- | Write an element to the given index.
 writePrimArray ::
      (Prim a, PrimMonad m)
-  => MutablePrimArray (PrimState m) a
-  -> Int
-  -> a
+  => MutablePrimArray (PrimState m) a -- ^ array
+  -> Int -- ^ index
+  -> a -- ^ element
   -> m ()
 {-# INLINE writePrimArray #-}
 writePrimArray (MutablePrimArray arr#) (I# i#) x
@@ -361,7 +366,7 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
   where siz# = sizeOf# (undefined :: a)
 #endif
 
--- | Fill a slice of a mutable byte array with a value.
+-- | Fill a slice of a mutable primitive array with a value.
 setPrimArray
   :: (Prim a, PrimMonad m)
   => MutablePrimArray (PrimState m) a -- ^ array to fill
@@ -424,11 +429,12 @@ unsafeThawPrimArray
 unsafeThawPrimArray (PrimArray arr#)
   = primitive (\s# -> (# s#, MutablePrimArray (unsafeCoerce# arr#) #))
 
--- | Read a primitive value from the array.
+-- | Read a primitive value from the primitive array.
 indexPrimArray :: forall a. Prim a => PrimArray a -> Int -> a
 {-# INLINE indexPrimArray #-}
 indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 
+-- | Get the size, in elements, of the primitive array.
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
@@ -527,6 +533,8 @@ traversePrimArrayP f arr = do
   go 0
   unsafeFreezePrimArray marr
 
+-- | Filter the primitive array, keeping the elements for which the monadic
+-- predicate evaluates true.
 {-# INLINE filterPrimArrayP #-}
 filterPrimArrayP :: (PrimMonad m, Prim a)
   => (a -> m Bool)
@@ -549,6 +557,8 @@ filterPrimArrayP f arr = do
   marr' <- resizeMutablePrimArray marr lenDst
   unsafeFreezePrimArray marr'
 
+-- | Map over the primitive array, keeping the elements for which the monadic
+-- predicate provides a 'Just'.
 {-# INLINE mapMaybePrimArrayP #-}
 mapMaybePrimArrayP :: (PrimMonad m, Prim a, Prim b)
   => (a -> m (Maybe b))
@@ -571,10 +581,12 @@ mapMaybePrimArrayP f arr = do
   marr' <- resizeMutablePrimArray marr lenDst
   unsafeFreezePrimArray marr'
 
+-- | Generate a primitive array by evaluating the monadic generator function
+-- at each index.
 {-# INLINE generatePrimArrayP #-}
 generatePrimArrayP :: (PrimMonad m, Prim a)
-  => Int
-  -> (Int -> m a)
+  => Int -- ^ length
+  -> (Int -> m a) -- ^ generator
   -> m (PrimArray a)
 generatePrimArrayP sz f = do
   marr <- newPrimArray sz
@@ -587,6 +599,8 @@ generatePrimArrayP sz f = do
   go 0
   unsafeFreezePrimArray marr
 
+-- | Execute the monadic action the given number of times and store the
+-- results in a primitive array.
 {-# INLINE replicatePrimArrayP #-}
 replicatePrimArrayP :: (PrimMonad m, Prim a)
   => Int
@@ -662,6 +676,8 @@ filterPrimArray p arr = runST $ do
   marr' <- resizeMutablePrimArray marr dstLen
   unsafeFreezePrimArray marr'
 
+-- | Filter the primitive array, keeping the elements for which the monadic
+-- predicate evaluates true.
 filterPrimArrayA ::
      (Applicative f, Prim a)
   => (a -> f Bool) -- ^ mapping function
@@ -684,6 +700,8 @@ filterPrimArrayA f = \ !ary ->
      then pure emptyPrimArray
      else runIxSTA len <$> go 0
 
+-- | Map over the primitive array, keeping the elements for which the applicative
+-- predicate provides a 'Just'.
 mapMaybePrimArrayA ::
      (Applicative f, Prim a, Prim b)
   => (a -> f (Maybe b)) -- ^ mapping function
@@ -780,6 +798,9 @@ itraversePrimArray f = \ !ary ->
      then pure emptyPrimArray
      else runSTA len <$> go 0
 
+-- | Traverse a primitive array with the indices. The traversal forces the
+-- resulting values and writes them to the new primitive array as it performs
+-- the monadic effects.
 {-# INLINE itraversePrimArrayP #-}
 itraversePrimArrayP :: (Prim a, Prim b, PrimMonad m)
   => (Int -> a -> m b)
@@ -796,7 +817,7 @@ itraversePrimArrayP f arr = do
   go 0
   unsafeFreezePrimArray marr
 
--- | Generate a primitive array 
+-- | Generate a primitive array.
 {-# INLINE generatePrimArray #-}
 generatePrimArray :: Prim a
   => Int -- ^ length
@@ -812,7 +833,8 @@ generatePrimArray len f = runST $ do
   go 0
   unsafeFreezePrimArray marr
 
--- | Generate a primitive array 
+-- | Create a primitive array by copying the element the given
+-- number of times.
 {-# INLINE replicatePrimArray #-}
 replicatePrimArray :: Prim a
   => Int -- ^ length
@@ -823,6 +845,8 @@ replicatePrimArray len a = runST $ do
   setPrimArray marr 0 len a
   unsafeFreezePrimArray marr
 
+-- | Generate a primitive array by evaluating the applicative generator
+-- function at each index.
 {-# INLINE generatePrimArrayA #-}
 generatePrimArrayA ::
      (Applicative f, Prim a)
@@ -841,6 +865,8 @@ generatePrimArrayA len f =
      then pure emptyPrimArray
      else runSTA len <$> go 0
 
+-- | Execute the applicative action the given number of times and store the
+-- results in a vector.
 {-# INLINE replicatePrimArrayA #-}
 replicatePrimArrayA ::
      (Applicative f, Prim a)
@@ -859,7 +885,9 @@ replicatePrimArrayA len f =
      then pure emptyPrimArray
      else runSTA len <$> go 0
 
-
+-- | Traverse the primitive array, discarding the results. There
+-- is no 'PrimMonad' variant of this function since it would not provide
+-- any performance benefit.
 traversePrimArray_ ::
      (Applicative f, Prim a)
   => (a -> f b)
@@ -871,6 +899,9 @@ traversePrimArray_ f a = go 0 where
     then f (indexPrimArray a ix) *> go (ix + 1)
     else pure ()
 
+-- | Traverse the primitive array with the indices, discarding the results.
+-- There is no 'PrimMonad' variant of this function since it would not
+-- provide any performance benefit.
 itraversePrimArray_ ::
      (Applicative f, Prim a)
   => (Int -> a -> f b)
