@@ -1,4 +1,10 @@
 {-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE TypeInType #-}
+#endif
+
+#include "HsBaseConfig.h"
 
 -- |
 -- Module      : Data.Primitive.Types
@@ -21,6 +27,8 @@ module Data.Primitive.Types (
 import Control.Monad.Primitive
 import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
+import Foreign.C.Types
+import System.Posix.Types
 
 import GHC.Base (
     Int(..), Char(..),
@@ -47,9 +55,14 @@ import GHC.Prim
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+import Numeric
 
 -- | A machine address
 data Addr = Addr Addr# deriving ( Typeable )
+
+instance Show Addr where
+  showsPrec _ (Addr a) =
+    showString "0x" . showHex (fromIntegral (I# (addr2Int# a)) :: Word)
 
 instance Eq Addr where
   Addr a# == Addr b# = isTrue# (eqAddr# a# b#)
@@ -205,3 +218,99 @@ derivePrim(Ptr a, Ptr, sIZEOF_PTR, aLIGNMENT_PTR,
 derivePrim(FunPtr a, FunPtr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
+
+-- Prim instances for newtypes in Foreign.C.Types
+deriving instance Prim CChar
+deriving instance Prim CSChar
+deriving instance Prim CUChar
+deriving instance Prim CShort
+deriving instance Prim CUShort
+deriving instance Prim CInt
+deriving instance Prim CUInt
+deriving instance Prim CLong
+deriving instance Prim CULong
+deriving instance Prim CPtrdiff
+deriving instance Prim CSize
+deriving instance Prim CWchar
+deriving instance Prim CSigAtomic
+deriving instance Prim CLLong
+deriving instance Prim CULLong
+#if MIN_VERSION_base(4,10,0)
+deriving instance Prim CBool
+#endif
+deriving instance Prim CIntPtr
+deriving instance Prim CUIntPtr
+deriving instance Prim CIntMax
+deriving instance Prim CUIntMax
+deriving instance Prim CClock
+deriving instance Prim CTime
+deriving instance Prim CUSeconds
+deriving instance Prim CSUSeconds
+deriving instance Prim CFloat
+deriving instance Prim CDouble
+
+-- Prim instances for newtypes in System.Posix.Types
+#if defined(HTYPE_DEV_T)
+deriving instance Prim CDev
+#endif
+#if defined(HTYPE_INO_T)
+deriving instance Prim CIno
+#endif
+#if defined(HTYPE_MODE_T)
+deriving instance Prim CMode
+#endif
+#if defined(HTYPE_OFF_T)
+deriving instance Prim COff
+#endif
+#if defined(HTYPE_PID_T)
+deriving instance Prim CPid
+#endif
+#if defined(HTYPE_SSIZE_T)
+deriving instance Prim CSsize
+#endif
+#if defined(HTYPE_GID_T)
+deriving instance Prim CGid
+#endif
+#if defined(HTYPE_NLINK_T)
+deriving instance Prim CNlink
+#endif
+#if defined(HTYPE_UID_T)
+deriving instance Prim CUid
+#endif
+#if defined(HTYPE_CC_T)
+deriving instance Prim CCc
+#endif
+#if defined(HTYPE_SPEED_T)
+deriving instance Prim CSpeed
+#endif
+#if defined(HTYPE_TCFLAG_T)
+deriving instance Prim CTcflag
+#endif
+#if defined(HTYPE_RLIM_T)
+deriving instance Prim CRLim
+#endif
+#if defined(HTYPE_BLKSIZE_T)
+deriving instance Prim CBlkSize
+#endif
+#if defined(HTYPE_BLKCNT_T)
+deriving instance Prim CBlkCnt
+#endif
+#if defined(HTYPE_CLOCKID_T)
+deriving instance Prim CClockId
+#endif
+#if defined(HTYPE_FSBLKCNT_T)
+deriving instance Prim CFsBlkCnt
+#endif
+#if defined(HTYPE_FSFILCNT_T)
+deriving instance Prim CFsFilCnt
+#endif
+#if defined(HTYPE_ID_T)
+deriving instance Prim CId
+#endif
+#if defined(HTYPE_KEY_T)
+deriving instance Prim CKey
+#endif
+#if defined(HTYPE_TIMER_T)
+deriving instance Prim CTimer
+#endif
+deriving instance Prim Fd
