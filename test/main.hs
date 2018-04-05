@@ -112,7 +112,10 @@ main = do
       , TQC.testProperty "replicatePrimArrayP" (QCCL.replicateMProp int16 replicatePrimArrayP)
       , TQC.testProperty "filterPrimArray" (QCCL.filterProp int16 filterPrimArray)
       , TQC.testProperty "filterPrimArrayA" (QCCL.filterMProp int16 filterPrimArrayA)
+      , TQC.testProperty "filterPrimArrayP" (QCCL.filterMProp int16 filterPrimArrayP)
       , TQC.testProperty "mapMaybePrimArray" (QCCL.mapMaybeProp int16 int32 mapMaybePrimArray)
+      , TQC.testProperty "mapMaybePrimArrayA" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayA)
+      , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
 #endif
       ]
     ]

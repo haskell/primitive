@@ -61,11 +61,14 @@ module Data.Primitive.PrimArray
   , generatePrimArrayA
   , replicatePrimArrayA
   , filterPrimArrayA
+  , mapMaybePrimArrayA
     -- ** Strict Primitive Monadic
   , traversePrimArrayP
   , itraversePrimArrayP
   , generatePrimArrayP
   , replicatePrimArrayP
+  , filterPrimArrayP
+  , mapMaybePrimArrayP
   ) where
 
 import GHC.Prim
@@ -524,6 +527,50 @@ traversePrimArrayP f arr = do
   go 0
   unsafeFreezePrimArray marr
 
+{-# INLINE filterPrimArrayP #-}
+filterPrimArrayP :: (PrimMonad m, Prim a)
+  => (a -> m Bool)
+  -> PrimArray a
+  -> m (PrimArray a)
+filterPrimArrayP f arr = do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ixSrc !ixDst = if ixSrc < sz
+        then do
+          let a = indexPrimArray arr ixSrc
+          b <- f a
+          if b
+            then do
+              writePrimArray marr ixDst a
+              go (ixSrc + 1) (ixDst + 1)
+            else go (ixSrc + 1) ixDst
+        else return ixDst
+  lenDst <- go 0 0
+  marr' <- resizeMutablePrimArray marr lenDst
+  unsafeFreezePrimArray marr'
+
+{-# INLINE mapMaybePrimArrayP #-}
+mapMaybePrimArrayP :: (PrimMonad m, Prim a, Prim b)
+  => (a -> m (Maybe b))
+  -> PrimArray a
+  -> m (PrimArray b)
+mapMaybePrimArrayP f arr = do
+  let !sz = sizeofPrimArray arr
+  marr <- newPrimArray sz
+  let go !ixSrc !ixDst = if ixSrc < sz
+        then do
+          let a = indexPrimArray arr ixSrc
+          mb <- f a
+          case mb of
+            Just b -> do
+              writePrimArray marr ixDst b
+              go (ixSrc + 1) (ixDst + 1)
+            Nothing -> go (ixSrc + 1) ixDst
+        else return ixDst
+  lenDst <- go 0 0
+  marr' <- resizeMutablePrimArray marr lenDst
+  unsafeFreezePrimArray marr'
+
 {-# INLINE generatePrimArrayP #-}
 generatePrimArrayP :: (PrimMonad m, Prim a)
   => Int
@@ -630,6 +677,28 @@ filterPrimArrayA f = \ !ary ->
             (\keep (IxSTA m) -> IxSTA $ \ixDst mary -> if keep
               then writePrimArray (MutablePrimArray mary) ixDst x >> m (ixDst + 1) mary
               else m ixDst mary
+            )
+            (f x)
+            (go (ixSrc + 1))
+  in if len == 0
+     then pure emptyPrimArray
+     else runIxSTA len <$> go 0
+
+mapMaybePrimArrayA ::
+     (Applicative f, Prim a, Prim b)
+  => (a -> f (Maybe b)) -- ^ mapping function
+  -> PrimArray a -- ^ primitive array
+  -> f (PrimArray b)
+mapMaybePrimArrayA f = \ !ary ->
+  let
+    !len = sizeofPrimArray ary
+    go !ixSrc
+      | ixSrc == len = pure $ IxSTA $ \ixDst _ -> return ixDst
+      | otherwise = let x = indexPrimArray ary ixSrc in
+          liftA2
+            (\mb (IxSTA m) -> IxSTA $ \ixDst mary -> case mb of
+              Just b -> writePrimArray (MutablePrimArray mary) ixDst b >> m (ixDst + 1) mary
+              Nothing -> m ixDst mary
             )
             (f x)
             (go (ixSrc + 1))
