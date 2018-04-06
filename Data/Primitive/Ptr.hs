@@ -18,7 +18,7 @@ module Data.Primitive.Ptr (
   Ptr(..),
 
   -- * Address arithmetic
-  nullPtr, advancePtr,
+  nullPtr, advancePtr, subtractPtr,
 
   -- * Element access
   indexOffPtr, readOffPtr, writeOffPtr,
@@ -39,7 +39,15 @@ import Foreign.Marshal.Utils
 
 -- | Offset a pointer by the given number of elements.
 advancePtr :: forall a. Prim a => Ptr a -> Int -> Ptr a
+{-# INLINE advancePtr #-}
 advancePtr (Ptr a#) (I# i#) = Ptr (plusAddr# a# (i# *# sizeOf# (undefined :: a)))
+
+-- | Subtract a pointer from another pointer. The result represents
+--   the number of elements of type @a@ that fit in the contiguous
+--   memory range bounded by these two pointers.
+subtractPtr :: forall a. Prim a => Ptr a -> Ptr a -> Int
+{-# INLINE subtractPtr #-}
+subtractPtr (Ptr a#) (Ptr b#) = I# (quotInt# (minusAddr# a# b#) (sizeOf# (undefined :: a)))
 
 -- | Read a value from a memory position given by a pointer and an offset.
 -- The memory block the address refers to must be immutable. The offset is in
