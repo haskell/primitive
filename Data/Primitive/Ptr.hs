@@ -77,20 +77,20 @@ copyPtr :: PrimMonad m
   -> m ()
 {-# INLINE copyPtr #-}
 copyPtr (Ptr dst#) (Ptr src#) n
-  = unsafePrimToPrim $ copyBytes (Ptr dst#) (Ptr src#) n
+  = unsafePrimToPrim $ copyBytes (Ptr dst#) (Ptr src#) (n * sizeOf (undefined :: a))
 
 -- | Copy the given number of bytes from the second 'Ptr to the first. The
 -- areas may overlap.
-movePtr :: PrimMonad m
+movePtr :: forall m a. PrimMonad m
   => Ptr a -- ^ destination address
   -> Ptr a -- ^ source address
   -> Int -- ^ number of elements
   -> m ()
 {-# INLINE movePtr #-}
 movePtr (Ptr dst#) (Ptr src#) n
-  = unsafePrimToPrim $ moveBytes (Ptr dst#) (Ptr src#) n
+  = unsafePrimToPrim $ moveBytes (Ptr dst#) (Ptr src#) (n * sizeOf (undefined :: a))
 
--- | Fill a memory block of with the given value. The length is in
+-- | Fill a memory block with the given value. The length is in
 -- elements of type @a@ rather than in bytes.
 setPtr :: (Prim a, PrimMonad m) => Ptr a -> Int -> a -> m ()
 {-# INLINE setPtr #-}
