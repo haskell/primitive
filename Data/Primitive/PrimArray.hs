@@ -76,7 +76,8 @@ import GHC.Base ( Int(..) )
 import GHC.Exts (build)
 import GHC.Ptr
 import Data.Primitive.Internal.Compat (isTrue#)
-import Data.Primitive
+import Data.Primitive.Types
+import Data.Primitive.ByteArray (ByteArray(..))
 import Data.Monoid (Monoid(..),(<>))
 import Control.Applicative
 import Control.Monad.Primitive
