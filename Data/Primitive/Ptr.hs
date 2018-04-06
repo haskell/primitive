@@ -68,7 +68,7 @@ writeOffPtr :: (Prim a, PrimMonad m) => Ptr a -> Int -> a -> m ()
 {-# INLINE writeOffPtr #-}
 writeOffPtr (Ptr addr#) (I# i#) x = primitive_ (writeOffAddr# addr# i# x)
 
--- | Copy the given number of bytes from the second 'Ptr' to the first. The
+-- | Copy the given number of elements from the second 'Ptr' to the first. The
 -- areas may not overlap.
 copyPtr :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination pointer
