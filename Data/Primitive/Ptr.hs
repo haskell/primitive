@@ -70,7 +70,7 @@ writeOffPtr (Ptr addr#) (I# i#) x = primitive_ (writeOffAddr# addr# i# x)
 
 -- | Copy the given number of bytes from the second 'Ptr to the first. The
 -- areas may not overlap.
-copyPtr :: PrimMonad m
+copyPtr :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination pointer
   -> Ptr a -- ^ source pointer
   -> Int -- ^ number of elements
@@ -81,7 +81,7 @@ copyPtr (Ptr dst#) (Ptr src#) n
 
 -- | Copy the given number of bytes from the second 'Ptr to the first. The
 -- areas may overlap.
-movePtr :: forall m a. PrimMonad m
+movePtr :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination address
   -> Ptr a -- ^ source address
   -> Int -- ^ number of elements
