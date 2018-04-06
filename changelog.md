@@ -13,6 +13,9 @@
 
  * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
    `Array` and `SmallArray`.
+ 
+ * Implement `Data.Primitive.Ptr`, implementations of `Ptr` functions
+   that require a `Prim` constraint instead of a `Storable` constraint.
 
 
  * Add `PrimUnlifted` instances for `TVar` and `MVar`.

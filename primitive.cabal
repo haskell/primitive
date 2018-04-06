@@ -44,6 +44,7 @@ Library
         Data.Primitive.SmallArray
         Data.Primitive.UnliftedArray
         Data.Primitive.Addr
+        Data.Primitive.Ptr
         Data.Primitive.MutVar
 
   Other-Modules:
