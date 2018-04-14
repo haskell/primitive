@@ -7,7 +7,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
-#if __GLASGOW_HASKELL__ >= 708
+#if __GLASGOW_HASKELL__ >= 706
 {-# LANGUAGE PolyKinds #-}
 #endif
 
@@ -56,8 +56,8 @@ module Data.Primitive.SmallArray
   , thawSmallArray
   , runSmallArray
   , runSmallArrays
+  , runSmallArraysOf
   , runSmallArraysHetOf
-  , runSmallArraysHetOfThen
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
@@ -108,7 +108,6 @@ import qualified Data.Primitive.Array as Array
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
-import Data.Functor.Compose
 
 #if HAVE_SMALL_ARRAY
 data SmallArray a = SmallArray (SmallArray# a)
@@ -951,16 +950,32 @@ smallArrayFromList l = smallArrayFromListN (length l) l
 -- | Create any number of arrays of the same type within an arbitrary
 -- 'Traversable' context. This will often be useful with traversables
 -- like  @(c,)@, @'Either' e@, @'Compose' (c,) ('Either' e)@, and
--- @'Compose' ('Either' e) (c,)@. For a more general version, see
--- 'runArraysHetOf'.
+-- @'Compose' ('Either' e) (c,)@. To supply an arbitrary traversal
+-- function, use 'runSmallArraysOf'. To produce arrays of varying types,
+-- use 'runSmallArraysHetOf'.
 runSmallArrays
   :: Traversable t
   => (forall s. ST s (t (SmallMutableArray s a)))
   -> t (SmallArray a)
 runSmallArrays m = runST $ m >>= traverse unsafeFreezeSmallArray
 
+-- | Just like 'runSmallArrays', but takes an arbitrary (potentially
+-- type-changing) traversal function instead of requiring a 'Traversable'
+-- constraint. To produce arrays of varying types, use 'runSmallArraysHetOf'.
+--
+-- @ runSmallArrays m = runSmallArraysOf traverse m @
+runSmallArraysOf
+  :: (forall s1 s2.
+       (SmallMutableArray s1 a -> ST s2 (SmallArray a))
+          -> t (SmallMutableArray s1 a) -> ST s2 (u (SmallArray a)))
+  -> (forall s. ST s (t (SmallMutableArray s a)))
+  -> u (SmallArray a)
+runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
+
 -- | Create arbitrarily many arrays that may have different types. For
--- a simpler but less general version, see 'runArrays'.
+-- a simpler but less general version, see 'runSmallArrays' or
+-- 'runSmallArraysOf'.
+--
 --
 -- === __Examples__
 --
@@ -995,26 +1010,28 @@ runSmallArrays m = runST $ m >>= traverse unsafeFreezeSmallArray
 -- traversePair :: Applicative h => (forall x. f x -> h (g x)) -> Pair ab f -> h (Pair ab g)
 -- traversePair f (Pair (xs, ys)) = liftA2 (\x y -> Pair (x,y)) (f xs) (f ys)
 -- @
+--
+-- ==== Create arrays, then traverse over them
+--
+-- @
+-- runSmallArraysHetOfThen
+--   :: (forall s1 s2.
+--        ((forall x. MutableArray s1 x -> Compose (ST s2) q (r x)) -> t (MutableArray s1) -> Compose (ST s2) q (u r)))
+--      -- ^ A rank-2 traversal
+--   -> (forall x. SmallArray x -> q (r x))
+--      -- ^ A function to traverse over a container of 'SmallArray's
+--   -> (forall s. ST s (t (SmallMutableArray s)))
+--      -- ^ An 'ST' action producing a rank-2 container of 'SmallMutableArray's.
+--   -> q (u r)
+-- runSmallArraysHetOfThen trav post m = getConst $
+--   runSmallArraysHetOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
+-- @
 runSmallArraysHetOf
-  :: (forall h f g.
-       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g)))
+  :: (forall s1 s2.
+       ((forall x. SmallMutableArray s1 x -> ST s2 (SmallArray x))
+          -> t (SmallMutableArray s1) -> ST s2 (u SmallArray)))
      -- ^ A rank-2 traversal
   -> (forall s. ST s (t (SmallMutableArray s)))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u SmallArray
 runSmallArraysHetOf f m = runST $ m >>= f unsafeFreezeSmallArray
-
--- | Similar to 'runSmallArraysHetOf', but takes a function to traverse over the
--- generated 'SmallArray's as it freezes them.
-runSmallArraysHetOfThen
-  :: Applicative q
-  => (forall h f g.
-       (Applicative h => (forall x. f x -> h (g x)) -> t f -> h (u g)))
-     -- ^ A rank-2 traversal
-  -> (forall x. SmallArray x -> q (r x))
-     -- ^ A function to traverse over a container of 'Array's
-  -> (forall s. ST s (t (SmallMutableArray s)))
-     -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
-  -> q (u r)
-runSmallArraysHetOfThen trav post m =
-  runST $ m >>= getCompose . trav (Compose . fmap post . unsafeFreezeSmallArray)
