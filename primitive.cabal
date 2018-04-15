@@ -32,7 +32,8 @@ Library
   Default-Language: Haskell2010
   Other-Extensions:
         BangPatterns, CPP, DeriveDataTypeable,
-        MagicHash, TypeFamilies, UnboxedTuples, UnliftedFFITypes
+        MagicHash, TypeFamilies, UnboxedTuples, UnliftedFFITypes,
+        KindSignatures, RankNTypes
 
   Exposed-Modules:
         Control.Monad.Primitive
