@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE KindSignatures #-}
 
 -- |
 -- Module : Data.Primitive.SmallArray
@@ -986,7 +987,7 @@ runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
 -- ==== @unzipSmallArray@
 --
 -- @
--- unzipSmallArray :: Array (a, b) -> (Array a, Array b)
+-- unzipSmallArray :: SmallArray (a, b) -> (SmallArray a, SmallArray b)
 -- unzipSmallArray ar =
 --   unPair $ runHetSmallArraysOf traversePair $ do
 --          xs <- newSmallArray sz undefined
@@ -1029,7 +1030,7 @@ runHetSmallArraysOf
        ((forall x. SmallMutableArray s1 x -> ST s2 (SmallArray x))
           -> t (mut s1) -> ST s2 u))
      -- ^ A rank-2 traversal
-  -> (forall s. ST s (t (mut s)))
+  -> (forall s. ST s ((t :: (* -> *) -> *) (mut s)))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u
 runHetSmallArraysOf f m = runST $ m >>= f unsafeFreezeSmallArray

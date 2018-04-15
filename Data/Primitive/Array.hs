@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE KindSignatures #-}
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -951,7 +952,7 @@ runHetArraysOf
   :: (forall s1 s2.
        ((forall x. MutableArray s1 x -> ST s2 (Array x)) -> t (mut s1) -> ST s2 u))
      -- ^ A rank-2 traversal
-  -> (forall s. ST s (t (mut s)))
+  -> (forall s. ST s ((t :: (* -> *) -> *) (mut s)))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u
 runHetArraysOf trav m = runST $ m >>= trav unsafeFreezeArray
