@@ -1,9 +1,6 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
-#if __GLASGOW_HASKELL__ >= 706
-{-# LANGUAGE PolyKinds #-}
-#endif
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -343,6 +340,7 @@ emptyArray# :: (# #) -> Array# a
 emptyArray# _ = case emptyArray of Array ar -> ar
 {-# NOINLINE emptyArray# #-}
 #endif
+
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.Array." ++ fun ++ ": " ++ problem
@@ -818,24 +816,72 @@ runArrays m = runST $ m >>= traverse unsafeFreezeArray
 -- constraint. To produce arrays of varying types, use 'runArraysHetOf'.
 runArraysOf
   :: (forall s1 s2.
-       (MutableArray s1 a -> ST s2 (Array a)) -> t (MutableArray s1 a) -> ST s2 (u (Array a)))
-  -> (forall s. ST s (t (MutableArray s a)))
-  -> u (Array a)
+       (MutableArray s1 a -> ST s2 (Array a)) -> t (mut s1 x) -> ST s2 u)
+  -> (forall s. ST s (t (mut s x)))
+  -> u
+-- See notes below
 runArraysOf trav m = runST $ m >>= trav unsafeFreezeArray
 
 {-
+Why do I believe 'runArraysOf' is safe? The key safety property is
+that we must never modify an array after it is frozen. The first
+thing we do is run the given action, producing something of type
+
+  t (mut s x)
+
+and passing it to trav. We need to make sure that trav just applies
+its function argument (unsafeFreezeArray) to any MutableArrays that
+may contain/produce, and doesn't modify them in any other ways. Consider
+the type of trav:
+
+  trav :: forall s1 s2.
+             (MutableArray s1 a -> ST s2 (Array a))
+          -> t (mut s1 x) -> ST s2 u
+
+trav operates in the state thread labeled s2. We don't let it know that
+the mutable arrays it handles live in the same thread! They're off in
+s1, a whole different universe. So trav can only apply the freeze it's
+passed, or perform whatever actions may ride in on t (mut s x). Can
+the latter happen? Imagine something like
+
+  data T :: Type -> Type where
+    T :: ST s (MutableArray s x) -> T (MutableArray s x)
+
+Can trav pull this open and run the action? No! The state thread in
+T matches the array in T, but it doesn't match the state thread trav
+lives in, so trav can't do anything whatsoever with it.
+
+-----
+
+It's annoying that @t@ takes a @mut s1 x@ argument instead
+of just an @s1@ argument, but this allows 'runArraysOf' to be used directly
+with 'traverse'. The cleaner version can be implemented efficiently on
+top in the following rather disgusting manner:
+
+runArraysOf'
+  :: (forall s1 s2.
+       (MutableArray s1 a -> ST s2 (Array a)) -> t s1 -> ST s2 u)
+  -> (forall s. ST s (t s))
+  -> u
+runArraysOf' trav m = runArraysOf ((. unBar) #. trav) (coerce m)
+
+newtype Bar t x = Bar {unBar :: t (Yuck x)}
+type family Yuck x where
+  Yuck (_ s _) = s
+
+-------
+
 I initially thought we'd need a function like
 
 runArraysOfThen
   :: (forall s1 s2.
-       (MutableArray s1 a -> Compose (ST s2) q r) -> t (MutableArray s1 a) -> Compose (ST s2) q (u r))
+       (MutableArray s1 a -> Compose (ST s2) q r) -> t (MutableArray s1 a) -> Compose (ST s2) q u)
   -> (Array a -> q r)
   -> (forall s. ST s (t (MutableArray s a)))
-  -> q (u r)
+  -> q u
 
-to allow users to traverse over the generated arrays. But because 'runArraysOf'
-allows the traversal function to know that it is producing values of type
-@Array a@, one could just write
+to allow users to traverse over the generated arrays. But in fact,
+one could just write
 
 runArraysOfThen trav post m = getConst $
   runArraysOf (\f -> coerce . getCompose . (trav (Compose . fmap post . f))) m
@@ -886,21 +932,42 @@ clearly not necessary.
 -- @
 -- runArraysHetOfThen
 --   :: (forall s1 s2.
---        ((forall x. MutableArray s1 x -> Compose (ST s2) q (r x)) -> t (MutableArray s1) -> Compose (ST s2) q (u r)))
+--        (    (forall x. MutableArray s1 x -> Compose (ST s2) q (r x))
+--          -> t (mut s1) -> Compose (ST s2) q u))
 --      -- ^ A rank-2 traversal
 --   -> (forall x. Array x -> q (r x))
 --      -- ^ A function to traverse over the container of 'Array's
---   -> (forall s. ST s (t (MutableArray s)))
+--   -> (forall s. ST s (t (mut s)))
 --      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
---   -> q (u r)
+--   -> q u
 -- runArraysHetOfThen trav post m = getConst $
 --   runArraysHetOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
 -- @
 runArraysHetOf
   :: (forall s1 s2.
-       ((forall x. MutableArray s1 x -> ST s2 (Array x)) -> t (MutableArray s1) -> ST s2 (u Array)))
+       ((forall x. MutableArray s1 x -> ST s2 (Array x)) -> t (mut s1) -> ST s2 u))
      -- ^ A rank-2 traversal
-  -> (forall s. ST s (t (MutableArray s)))
+  -> (forall s. ST s (t (mut s)))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
-  -> u Array
+  -> u
 runArraysHetOf trav m = runST $ m >>= trav unsafeFreezeArray
+
+{-
+This alternative version is arguably prettier, but it's not compatible
+with the traversal functions from rank2types or compdata for the same reason
+that the prettier version of 'runArraysOf' isn't compatible with 'traverse'.
+It can be implemented with a bit of ugliness.
+
+runArraysHetOf'
+  :: (forall s1 s2.
+       ((forall x. MutableArray s1 x -> ST s2 (Array x)) -> t s1 -> ST s2 u))
+     -- ^ A rank-2 traversal
+  -> (forall s. ST s (t s))
+     -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+  -> u
+runArraysHetOf' trav m = runArraysHetOf (\f -> trav f . unBaz) (coerce m)
+
+type family Gross ms where
+  Gross (_ s) = s
+newtype Baz t ms = Baz {unBaz :: t (Gross ms)}
+-}

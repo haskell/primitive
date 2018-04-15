@@ -7,9 +7,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
-#if __GLASGOW_HASKELL__ >= 706
-{-# LANGUAGE PolyKinds #-}
-#endif
 
 -- |
 -- Module : Data.Primitive.SmallArray
@@ -967,9 +964,9 @@ runSmallArrays m = runST $ m >>= traverse unsafeFreezeSmallArray
 runSmallArraysOf
   :: (forall s1 s2.
        (SmallMutableArray s1 a -> ST s2 (SmallArray a))
-          -> t (SmallMutableArray s1 a) -> ST s2 (u (SmallArray a)))
-  -> (forall s. ST s (t (SmallMutableArray s a)))
-  -> u (SmallArray a)
+          -> t (mut s1 x) -> ST s2 u)
+  -> (forall s. ST s (t (mut s x)))
+  -> u
 runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
 
 -- | Create arbitrarily many arrays that may have different types. For
@@ -1016,22 +1013,23 @@ runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
 -- @
 -- runSmallArraysHetOfThen
 --   :: (forall s1 s2.
---        ((forall x. MutableArray s1 x -> Compose (ST s2) q (r x)) -> t (MutableArray s1) -> Compose (ST s2) q (u r)))
+--        (   (forall x. SmallMutableArray s1 x -> Compose (ST s2) q (r x))
+--         -> t (mut s1) -> Compose (ST s2) q u))
 --      -- ^ A rank-2 traversal
 --   -> (forall x. SmallArray x -> q (r x))
 --      -- ^ A function to traverse over a container of 'SmallArray's
---   -> (forall s. ST s (t (SmallMutableArray s)))
+--   -> (forall s. ST s (t (mut s)))
 --      -- ^ An 'ST' action producing a rank-2 container of 'SmallMutableArray's.
---   -> q (u r)
+--   -> q u
 -- runSmallArraysHetOfThen trav post m = getConst $
 --   runSmallArraysHetOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
 -- @
 runSmallArraysHetOf
   :: (forall s1 s2.
        ((forall x. SmallMutableArray s1 x -> ST s2 (SmallArray x))
-          -> t (SmallMutableArray s1) -> ST s2 (u SmallArray)))
+          -> t (mut s1) -> ST s2 u))
      -- ^ A rank-2 traversal
-  -> (forall s. ST s (t (SmallMutableArray s)))
+  -> (forall s. ST s (t (mut s)))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
-  -> u SmallArray
+  -> u
 runSmallArraysHetOf f m = runST $ m >>= f unsafeFreezeSmallArray
