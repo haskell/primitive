@@ -17,7 +17,7 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM,
-  freezeArray, thawArray, runArray, runArrays, runArraysOf, runArraysHetOf,
+  freezeArray, thawArray, runArray, runArrays, runArraysOf, runHetArraysOf,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
@@ -804,7 +804,7 @@ instance (Typeable s, Typeable a) => Data (MutableArray s a) where
 -- like  @(c,)@, @'Either' e@, @'Compose' (c,) ('Either' e)@, and
 -- @'Compose' ('Either' e) (c,)@. To use an arbitrary traversal
 -- function, see 'runArraysOf'. To create arrays of varying types,
--- see 'runArraysHetOf'.
+-- see 'runHetArraysOf'.
 runArrays
   :: Traversable t
   => (forall s. ST s (t (MutableArray s a)))
@@ -813,7 +813,11 @@ runArrays m = runST $ m >>= traverse unsafeFreezeArray
 
 -- | Just like 'runArrays', but takes an arbitrary (potentially
 -- type-changing) traversal function instead of requiring a 'Traversable'
--- constraint. To produce arrays of varying types, use 'runArraysHetOf'.
+-- constraint. To produce arrays of varying types, use 'runHetArraysOf'.
+--
+-- @
+-- 'runArrays' m = runArraysOf traverse m
+-- @
 runArraysOf
   :: (forall s1 s2.
        (MutableArray s1 a -> ST s2 (Array a)) -> t (mut s1 x) -> ST s2 u)
@@ -900,7 +904,7 @@ clearly not necessary.
 --
 -- @
 -- newtype Ha t a v = Ha {unHa :: t (v a)}
--- runArrays m = unHa $ runArraysHetOf (\f (Ha t) -> Ha <$> traverse f t) (Ha <$> m)
+-- runArrays m = unHa $ runHetArraysOf (\f (Ha t) -> Ha <$> traverse f t) (Ha <$> m)
 -- @
 --
 -- ==== @unzipArray@
@@ -908,7 +912,7 @@ clearly not necessary.
 -- @
 -- unzipArray :: Array (a, b) -> (Array a, Array b)
 -- unzipArray ar =
---   unPair $ runArraysHetOf traversePair $ do
+--   unPair $ runHetArraysOf traversePair $ do
 --          xs <- newArray sz undefined
 --          ys <- newArray sz undefined
 --          let go k
@@ -930,7 +934,7 @@ clearly not necessary.
 -- ==== Produce a container of arrays and traverse over them
 --
 -- @
--- runArraysHetOfThen
+-- runHetArraysOfThen
 --   :: (forall s1 s2.
 --        (    (forall x. MutableArray s1 x -> Compose (ST s2) q (r x))
 --          -> t (mut s1) -> Compose (ST s2) q u))
@@ -940,17 +944,17 @@ clearly not necessary.
 --   -> (forall s. ST s (t (mut s)))
 --      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
 --   -> q u
--- runArraysHetOfThen trav post m = getConst $
---   runArraysHetOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
+-- runHetArraysOfThen trav post m = getConst $
+--   runHetArraysOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
 -- @
-runArraysHetOf
+runHetArraysOf
   :: (forall s1 s2.
        ((forall x. MutableArray s1 x -> ST s2 (Array x)) -> t (mut s1) -> ST s2 u))
      -- ^ A rank-2 traversal
   -> (forall s. ST s (t (mut s)))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u
-runArraysHetOf trav m = runST $ m >>= trav unsafeFreezeArray
+runHetArraysOf trav m = runST $ m >>= trav unsafeFreezeArray
 
 {-
 This alternative version is arguably prettier, but it's not compatible
@@ -958,14 +962,14 @@ with the traversal functions from rank2types or compdata for the same reason
 that the prettier version of 'runArraysOf' isn't compatible with 'traverse'.
 It can be implemented with a bit of ugliness.
 
-runArraysHetOf'
+runHetArraysOf'
   :: (forall s1 s2.
        ((forall x. MutableArray s1 x -> ST s2 (Array x)) -> t s1 -> ST s2 u))
      -- ^ A rank-2 traversal
   -> (forall s. ST s (t s))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u
-runArraysHetOf' trav m = runArraysHetOf (\f -> trav f . unBaz) (coerce m)
+runHetArraysOf' trav m = runHetArraysOf (\f -> trav f . unBaz) (coerce m)
 
 type family Gross ms where
   Gross (_ s) = s

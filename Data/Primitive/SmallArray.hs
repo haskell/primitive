@@ -54,7 +54,7 @@ module Data.Primitive.SmallArray
   , runSmallArray
   , runSmallArrays
   , runSmallArraysOf
-  , runSmallArraysHetOf
+  , runHetSmallArraysOf
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
@@ -949,7 +949,7 @@ smallArrayFromList l = smallArrayFromListN (length l) l
 -- like  @(c,)@, @'Either' e@, @'Compose' (c,) ('Either' e)@, and
 -- @'Compose' ('Either' e) (c,)@. To supply an arbitrary traversal
 -- function, use 'runSmallArraysOf'. To produce arrays of varying types,
--- use 'runSmallArraysHetOf'.
+-- use 'runHetSmallArraysOf'.
 runSmallArrays
   :: Traversable t
   => (forall s. ST s (t (SmallMutableArray s a)))
@@ -958,9 +958,9 @@ runSmallArrays m = runST $ m >>= traverse unsafeFreezeSmallArray
 
 -- | Just like 'runSmallArrays', but takes an arbitrary (potentially
 -- type-changing) traversal function instead of requiring a 'Traversable'
--- constraint. To produce arrays of varying types, use 'runSmallArraysHetOf'.
+-- constraint. To produce arrays of varying types, use 'runHetSmallArraysOf'.
 --
--- @ runSmallArrays m = runSmallArraysOf traverse m @
+-- @ 'runSmallArrays' m = runSmallArraysOf traverse m @
 runSmallArraysOf
   :: (forall s1 s2.
        (SmallMutableArray s1 a -> ST s2 (SmallArray a))
@@ -980,7 +980,7 @@ runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
 --
 -- @
 -- newtype Ha t a v = Ha {unHa :: t (v a)}
--- runSmallArrays m = unHa $ runSmallArraysHetOf (\f (Ha t) -> Ha <$> traverse f t) (Ha <$> m)
+-- runSmallArrays m = unHa $ runHetSmallArraysOf (\f (Ha t) -> Ha <$> traverse f t) (Ha <$> m)
 -- @
 --
 -- ==== @unzipSmallArray@
@@ -988,7 +988,7 @@ runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
 -- @
 -- unzipSmallArray :: Array (a, b) -> (Array a, Array b)
 -- unzipSmallArray ar =
---   unPair $ runSmallArraysHetOf traversePair $ do
+--   unPair $ runHetSmallArraysOf traversePair $ do
 --          xs <- newSmallArray sz undefined
 --          ys <- newSmallArray sz undefined
 --          let go k
@@ -1011,7 +1011,7 @@ runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
 -- ==== Create arrays, then traverse over them
 --
 -- @
--- runSmallArraysHetOfThen
+-- runHetSmallArraysOfThen
 --   :: (forall s1 s2.
 --        (   (forall x. SmallMutableArray s1 x -> Compose (ST s2) q (r x))
 --         -> t (mut s1) -> Compose (ST s2) q u))
@@ -1021,10 +1021,10 @@ runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
 --   -> (forall s. ST s (t (mut s)))
 --      -- ^ An 'ST' action producing a rank-2 container of 'SmallMutableArray's.
 --   -> q u
--- runSmallArraysHetOfThen trav post m = getConst $
---   runSmallArraysHetOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
+-- runHetSmallArraysOfThen trav post m = getConst $
+--   runHetSmallArraysOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
 -- @
-runSmallArraysHetOf
+runHetSmallArraysOf
   :: (forall s1 s2.
        ((forall x. SmallMutableArray s1 x -> ST s2 (SmallArray x))
           -> t (mut s1) -> ST s2 u))
@@ -1032,4 +1032,4 @@ runSmallArraysHetOf
   -> (forall s. ST s (t (mut s)))
      -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
   -> u
-runSmallArraysHetOf f m = runST $ m >>= f unsafeFreezeSmallArray
+runHetSmallArraysOf f m = runST $ m >>= f unsafeFreezeSmallArray
