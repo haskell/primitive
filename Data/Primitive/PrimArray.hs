@@ -8,6 +8,22 @@
 
 {-# OPTIONS_GHC -Wall #-}
 
+-- |
+-- Module      : Data.Primitive.PrimArray
+-- Copyright   : (c) Roman Leshchinskiy 2009-2012
+-- License     : BSD-style
+--
+-- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
+-- Portability : non-portable
+--
+-- Arrays of unboxed primitive types. The function provided by this module
+-- match the behavior of those provided by @Data.Primitive.ByteArray@, and
+-- the underlying types and primops that back them are the same.
+-- However, the type constructors 'PrimArray' and 'MutablePrimArray' take one additional
+-- argument than their respective counterparts 'ByteArray' and 'MutableByteArray'.
+-- This argument is used to designate the type of element in the array.
+-- Consequently, all function this modules accepts length and incides in
+-- terms of elements, not bytes.
 module Data.Primitive.PrimArray
   ( -- * Types
     PrimArray(..)
@@ -55,6 +71,7 @@ module Data.Primitive.PrimArray
   , filterPrimArray
   , mapMaybePrimArray
     -- * Effectful Map/Create
+    -- $effectfulMapCreate
     -- ** Lazy Applicative
   , traversePrimArray
   , itraversePrimArray
@@ -95,12 +112,21 @@ import Data.Semigroup (Semigroup)
 import qualified Data.Semigroup as SG
 #endif
 
--- | Primitive arrays
+-- | Arrays of unboxed elements. This accepts types like 'Double', 'Char',
+-- 'Int', and 'Word', as well as their fixed-length variants ('Word8',
+-- 'Word16', etc.). Since the elements are unboxed, a 'PrimArray' is strict
+-- in its elements. This differs from the behavior of 'Array', which is lazy
+-- in its elements.
 data PrimArray a = PrimArray ByteArray#
 
--- | Mutable primitive arrays associated with a primitive state token
+-- | Mutable primitive arrays associated with a primitive state token.
+-- These can be written to and read from in a monadic context that supports
+-- sequencing such as 'IO' or 'ST'. Typically, a mutable primitive array will
+-- be built and then convert to an immutable primitive array using
+-- 'unsafeFreezePrimArray'. However, it is also acceptable to simply discard
+-- a mutable primitive array since it lives in managed memory and will be
+-- garbage collected when no longer referenced.
 data MutablePrimArray s a = MutablePrimArray (MutableByteArray# s)
-
 
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =
@@ -127,7 +153,7 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
 
--- | __Note__: For the sake of efficiency, this is not a lexographic
+-- | __Note__: For the sake of efficiency, this is not a lexicographic
 --   ordering. This library makes no guarantees about the particular
 --   ordering used, and it is subject to change between major releases.
 instance (Ord a, Prim a) => Ord (PrimArray a) where
@@ -935,4 +961,10 @@ runSTA !sz = \ (STA m) -> runST $ newPrimArray sz >>= \ (ar :: MutablePrimArray 
 
 unMutablePrimArray :: MutablePrimArray s a -> MutableByteArray# s
 unMutablePrimArray (MutablePrimArray m) = m
+
+{- $effectfulMapCreate
+The naming conventions adopted in this section are explained in the
+documentation of the @Data.Primitive@ module.
+-}
+
 
