@@ -209,21 +209,6 @@ primArrayToList xs = build (\c n -> foldrPrimArray c n xs)
 primArrayToByteArray :: PrimArray a -> PB.ByteArray
 primArrayToByteArray (PrimArray x) = PB.ByteArray x
 
--- only used internally, no error checking
-{-# INLINE primArrayFromBackwardsListN #-}
-primArrayFromBackwardsListN :: forall a. Prim a => Int -> [a] -> PrimArray a
-primArrayFromBackwardsListN len vs = runST run where
-  run :: forall s. ST s (PrimArray a)
-  run = do
-    arr <- newPrimArray len
-    let go :: [a] -> Int -> ST s ()
-        go [] !_ = return ()
-        go (a : as) !ix = do
-          writePrimArray arr ix a
-          go as (ix - 1)
-    go vs (len - 1)
-    unsafeFreezePrimArray arr
-
 byteArrayToPrimArray :: ByteArray -> PrimArray a
 byteArrayToPrimArray (PB.ByteArray x) = PrimArray x
 

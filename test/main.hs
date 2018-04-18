@@ -91,6 +91,7 @@ main = do
     , testGroup "PrimArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (PrimArray Word16)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (PrimArray Word16)))
+      , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (PrimArray Word16)))
 #if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (PrimArray Word16)))
       , TQC.testProperty "foldrPrimArray" (QCCL.foldrProp int16 foldrPrimArray)
