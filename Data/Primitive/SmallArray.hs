@@ -57,7 +57,7 @@ module Data.Primitive.SmallArray
   , sizeofSmallMutableArray
   , smallArrayFromList
   , smallArrayFromListN
-  , unsafeTraverseSmallArray
+  , traverseSmallArrayP
   ) where
 
 
@@ -410,13 +410,13 @@ sizeofSmallMutableArray (SmallMutableArray ma) = sizeofMutableArray ma
 -- "affine" 'PrimMonad' instance. In particular, it must only produce
 -- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
 -- monads, for example, will not work right at all.
-unsafeTraverseSmallArray
+traverseSmallArrayP
   :: PrimMonad m
   => (a -> m b)
   -> SmallArray a
   -> m (SmallArray b)
 #if HAVE_SMALL_ARRAY
-unsafeTraverseSmallArray f = \ !ary ->
+traverseSmallArrayP f = \ !ary ->
   let
     !sz = sizeofSmallArray ary
     go !i !mary
@@ -432,9 +432,9 @@ unsafeTraverseSmallArray f = \ !ary ->
     mary <- newSmallArray sz badTraverseValue
     go 0 mary
 #else
-unsafeTraverseSmallArray f (SmallArray ar) = SmallArray `liftM` unsafeTraverseArray f ar
+traverseSmallArrayP f (SmallArray ar) = SmallArray `liftM` unsafeTraverseArray f ar
 #endif
-{-# INLINE unsafeTraverseSmallArray #-}
+{-# INLINE traverseSmallArrayP #-}
 
 #ifndef HAVE_SMALL_ARRAY
 runSmallArray
@@ -683,8 +683,8 @@ traverseSmallArray f = \ !ary ->
 {-# INLINE [1] traverseSmallArray #-}
 
 {-# RULES
-"traverse/ST" forall (f :: a -> ST s b). traverseSmallArray f = unsafeTraverseSmallArray f
-"traverse/IO" forall (f :: a -> IO b). traverseSmallArray f = unsafeTraverseSmallArray f
+"traverse/ST" forall (f :: a -> ST s b). traverseSmallArray f = traverseSmallArrayP f
+"traverse/IO" forall (f :: a -> IO b). traverseSmallArray f = traverseSmallArrayP f
 "traverse/Id" forall (f :: a -> Identity b). traverseSmallArray f =
    (coerce :: (SmallArray a -> SmallArray (Identity b))
            -> SmallArray a -> Identity (SmallArray b)) (fmap f)
