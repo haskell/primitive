@@ -119,6 +119,9 @@ main = do
       , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
 #endif
       ]
+    -- , testGroup "PrimStorable"
+    --   [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
+    --   ]
     ]
 
 int16 :: Proxy Int16
@@ -275,4 +278,13 @@ iforM_ :: Monad m => [a] -> (Int -> a -> m b) -> m ()
 iforM_ xs0 f = go 0 xs0 where
   go !_ [] = return ()
   go !ix (x : xs) = f ix x >> go (ix + 1) xs
+
+-- TODO: Uncomment this out when GHC 8.6 is release. Also, uncomment
+-- the corresponding PrimStorable test group above.
+--
+-- newtype Derived = Derived Int16
+--   deriving newtype (Prim)
+--   deriving Storable via (PrimStorable Derived)
+
+
 
