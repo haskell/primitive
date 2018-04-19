@@ -13,10 +13,27 @@
    typeclasses from `base` such as `Eq`, `Ord`, `Functor`, `Applicative`,
    `Monad`, `IsList`, `Monoid`, `Foldable`, and `Traversable`.
 
- * Fix the broken `IsList` instance for `ByteArray`.
+ * Fix the broken `IsList` instance for `ByteArray`. The old definition
+   would allocate a byte array of the correct size and then leave the
+   memory unitialized instead of writing the list elements to it.
 
- * Fix the broken `Functor`, `Applicative`, and `Monad` instances for
-   `Array` and `SmallArray`.
+ * Fix the broken `Functor` instance for `Array`. The old definition
+   would allocate an array of the correct size with thunks for erroring
+   installed at every index. It failed to replace these thunks with
+   the result of the function applied to the elements of the argument array.
+
+ * Fix the broken `Applicative` instances of `Array` and `SmallArray`.
+   The old implementation of `<*>` for `Array` failed to initialize
+   some elements but correctly initialized others in the resulting
+   `Array`. It is unclear what the old behavior of `<*>` was for
+   `SmallArray`, but it was incorrect.
+
+ * Fix the broken `Monad` instances for `Array` and `SmallArray`.
+
+ * Fix the implementation of `foldl1` in the `Foldable` instances for
+   `Array` and `SmallArray`. In both cases, the old implementation
+   simply returned the first element of the array and made no use of
+   the other elements in the array.
  
  * Implement `Data.Primitive.Ptr`, implementations of `Ptr` functions
    that require a `Prim` constraint instead of a `Storable` constraint.
