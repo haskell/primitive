@@ -141,8 +141,8 @@ alignment x = I# (alignment# x)
 -- a multi-word data type.
 --
 -- > data Uuid = Uuid Word64 Word64
--- >   deriving Storable via (PrimStorable Statistic)
--- > instance Prim Statistic where ...
+-- >   deriving Storable via (PrimStorable Uuid)
+-- > instance Prim Uuid where ...
 --
 -- Writing the 'Prim' instance is tedious and unavoidable, but the 'Storable'
 -- instance comes for free once the 'Prim' instance is written.
