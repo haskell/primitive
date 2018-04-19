@@ -18,9 +18,7 @@ module Data.Primitive (
   module Data.Primitive.Addr,
   module Data.Primitive.SmallArray,
   module Data.Primitive.UnliftedArray,
-  module Data.Primitive.PrimArray,
-
-  sizeOf, alignment
+  module Data.Primitive.PrimArray
   -- * Naming Conventions
   -- $namingConventions
 ) where
