@@ -45,9 +45,6 @@ main = do
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
-#if MIN_VERSION_base(4,7,0)
-      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
-#endif
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
@@ -55,21 +52,26 @@ main = do
       , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.traversableLaws (Proxy1 :: Proxy1 Array))
 #endif
+#if MIN_VERSION_base(4,7,0)
+      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
+      , TQC.testProperty "mapArray'" (QCCL.mapProp int16 int32 mapArray')
+#endif
       ]
     , testGroup "SmallArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
-#if MIN_VERSION_base(4,7,0)
-      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
-#endif
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.traversableLaws (Proxy1 :: Proxy1 SmallArray))
+#endif
+#if MIN_VERSION_base(4,7,0)
+      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
+      , TQC.testProperty "mapSmallArray'" (QCCL.mapProp int16 int32 mapSmallArray')
 #endif
       ]
     , testGroup "ByteArray"

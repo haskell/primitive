@@ -57,6 +57,7 @@ module Data.Primitive.SmallArray
   , sizeofSmallMutableArray
   , smallArrayFromList
   , smallArrayFromListN
+  , mapSmallArray'
   , unsafeTraverseSmallArray
   ) where
 
@@ -435,6 +436,20 @@ unsafeTraverseSmallArray f = \ !ary ->
 unsafeTraverseSmallArray f (SmallArray ar) = SmallArray `liftM` unsafeTraverseArray f ar
 #endif
 {-# INLINE unsafeTraverseSmallArray #-}
+
+-- | Strict map over the elements of the array.
+mapSmallArray' :: (a -> b) -> SmallArray a -> SmallArray b
+#if HAVE_SMALL_ARRAY
+mapSmallArray' f sa = createSmallArray (length sa) (die "mapSmallArray'" "impossible") $ \smb ->
+  fix ? 0 $ \go i ->
+    when (i < length sa) $ do
+      x <- indexSmallArrayM sa i
+      let !y = f x
+      writeSmallArray smb i y *> go (i+1)
+#else
+mapSmallArray' f (SmallArray ar) = SmallArray (mapArray' f ar)
+#endif
+{-# INLINE mapSmallArray' #-}
 
 #ifndef HAVE_SMALL_ARRAY
 runSmallArray
