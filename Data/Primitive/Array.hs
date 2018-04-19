@@ -568,10 +568,8 @@ mapArray' f a =
              = return ()
              | otherwise
              = do x <- indexArrayM a i
-                  -- We use indexArrayM here so that even if f is lazy
-                  -- in its argument, we do not keep leak references
-                  -- to the old array, which would prevent it from
-                  -- being GCed promptly.
+                  -- We use indexArrayM here so that we will perform the
+                  -- indexing eagerly even if f is lazy.
                   let !y = f x
                   writeArray mb i y >> go (i+1)
      in go 0
