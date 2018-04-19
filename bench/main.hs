@@ -32,6 +32,7 @@ import qualified Array.Traverse.Closure
 -- These are particular scenarios that are tested against the
 -- implementations actually used by primitive.
 import qualified ByteArray.Compare
+import qualified PrimArray.Traverse
 
 main :: IO ()
 main = defaultMain
@@ -48,6 +49,14 @@ main = defaultMain
       [ bench "small" (whnf ByteArray.Compare.benchmark ByteArray.Compare.argumentSmall)
       , bench "medium" (whnf ByteArray.Compare.benchmark ByteArray.Compare.argumentMedium)
       , bench "large" (whnf ByteArray.Compare.benchmark ByteArray.Compare.argumentLarge)
+      ]
+    ]
+  , bgroup "PrimArray"
+    [ bgroup "traverse"
+      [ bgroup "Maybe"
+        [ bench "Applicative" (whnf PrimArray.Traverse.benchmarkApplicative PrimArray.Traverse.argument)
+        , bench "PrimMonad" (whnf PrimArray.Traverse.benchmarkPrimMonad PrimArray.Traverse.argument)
+        ]
       ]
     ]
   ]

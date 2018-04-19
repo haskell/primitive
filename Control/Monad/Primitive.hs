@@ -102,6 +102,7 @@ instance PrimMonad m => PrimMonad (ContT r m) where
   type PrimState (ContT r m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance PrimMonad m => PrimMonad (IdentityT m) where
   type PrimState (IdentityT m) = PrimState m
   primitive = lift . primitive
@@ -109,30 +110,37 @@ instance PrimMonad m => PrimMonad (IdentityT m) where
 instance PrimBase m => PrimBase (IdentityT m) where
   internal (IdentityT m) = internal m
   {-# INLINE internal #-}
+
 instance PrimMonad m => PrimMonad (ListT m) where
   type PrimState (ListT m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance PrimMonad m => PrimMonad (MaybeT m) where
   type PrimState (MaybeT m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance (Error e, PrimMonad m) => PrimMonad (ErrorT e m) where
   type PrimState (ErrorT e m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance PrimMonad m => PrimMonad (ReaderT r m) where
   type PrimState (ReaderT r m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance PrimMonad m => PrimMonad (StateT s m) where
   type PrimState (StateT s m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance (Monoid w, PrimMonad m) => PrimMonad (WriterT w m) where
   type PrimState (WriterT w m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance (Monoid w, PrimMonad m) => PrimMonad (RWST r w s m) where
   type PrimState (RWST r w s m) = PrimState m
   primitive = lift . primitive
@@ -165,10 +173,12 @@ instance PrimMonad m => PrimMonad (Strict.StateT s m) where
   type PrimState (Strict.StateT s m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance (Monoid w, PrimMonad m) => PrimMonad (Strict.WriterT w m) where
   type PrimState (Strict.WriterT w m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance (Monoid w, PrimMonad m) => PrimMonad (Strict.RWST r w s m) where
   type PrimState (Strict.RWST r w s m) = PrimState m
   primitive = lift . primitive
