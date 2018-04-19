@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 #if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE TypeInType #-}
 #endif
@@ -22,6 +23,7 @@ module Data.Primitive.Types (
   sizeOf, alignment,
 
   Addr(..),
+  PrimStorable(..)
 ) where
 
 import Control.Monad.Primitive
@@ -55,7 +57,10 @@ import GHC.Prim
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+import Foreign.Storable (Storable)
 import Numeric
+
+import qualified Foreign.Storable as FS
 
 -- | A machine address
 data Addr = Addr Addr# deriving ( Typeable )
@@ -129,6 +134,28 @@ sizeOf x = I# (sizeOf# x)
 -- | Alignment of values of type @a@. The argument is not used.
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
+
+-- | Newtype that uses a 'Prim' instance to give rise to a 'Storable' instance.
+-- This type is intended to be used with the @DerivingVia@ extension available
+-- in GHC 8.6 and up. For example, consider a user-defined 'Prim' instance for
+-- a multi-word data type.
+--
+-- > data Uuid = Uuid Word64 Word64
+-- >   deriving Storable via (PrimStorable Uuid)
+-- > instance Prim Uuid where ...
+--
+-- Writing the 'Prim' instance is tedious and unavoidable, but the 'Storable'
+-- instance comes for free once the 'Prim' instance is written.
+newtype PrimStorable a = PrimStorable { getPrimStorable :: a }
+
+instance Prim a => Storable (PrimStorable a) where
+  sizeOf _ = sizeOf (undefined :: a)
+  alignment _ = alignment (undefined :: a)
+  peekElemOff (Ptr addr#) (I# i#) =
+    primitive $ \s0# -> case readOffAddr# addr# i# s0# of
+      (# s1, x #) -> (# s1, PrimStorable x #)
+  pokeElemOff (Ptr addr#) (I# i#) (PrimStorable a) = primitive_ $ \s# ->
+    writeOffAddr# addr# i# a s#
 
 #define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, set_arr, idx_addr, rd_addr, wr_addr, set_addr) \
 instance Prim (ty) where {                                      \
