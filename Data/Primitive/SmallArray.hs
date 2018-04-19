@@ -432,7 +432,7 @@ traverseSmallArrayP f = \ !ary ->
     mary <- newSmallArray sz badTraverseValue
     go 0 mary
 #else
-traverseSmallArrayP f (SmallArray ar) = SmallArray `liftM` unsafeTraverseArray f ar
+traverseSmallArrayP f (SmallArray ar) = SmallArray `liftM` traverseArrayP f ar
 #endif
 {-# INLINE traverseSmallArrayP #-}
 
