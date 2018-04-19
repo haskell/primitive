@@ -23,6 +23,7 @@ module Data.Primitive.Array (
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
   fromListN, fromList,
+  mapArray',
   unsafeTraverseArray
 ) where
 
@@ -558,6 +559,19 @@ unsafeTraverseArray f = \ !ary ->
     mary <- newArray sz badTraverseValue
     go 0 mary
 {-# INLINE unsafeTraverseArray #-}
+
+-- | Strict map over the elements of the array.
+mapArray' :: (a -> b) -> Array a -> Array b
+mapArray' f a =
+  createArray (sizeofArray a) (die "mapArray'" "impossible") $ \mb ->
+    let go i | i == sizeofArray a
+             = return ()
+             | otherwise
+             = do x <- indexArrayM a i
+                  let !y = f x
+                  writeArray mb i y >> go (i+1)
+     in go 0
+{-# INLINE mapArray' #-}
 
 arrayFromListN :: Int -> [a] -> Array a
 arrayFromListN n l =
