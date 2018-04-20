@@ -715,6 +715,7 @@ instance Functor SmallArray where
   {-# INLINE fmap #-}
 
   x <$ sa = createSmallArray (length sa) x noOp
+  {-# INLINE (<$) #-}
 
 instance Applicative SmallArray where
   pure x = createSmallArray 1 x noOp

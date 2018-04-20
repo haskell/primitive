@@ -491,6 +491,7 @@ runSTA !sz = \ (STA m) -> runST $ newArray_ sz >>= \ ar -> m (marray# ar)
 
 newArray_ :: Int -> ST s (MutableArray s a)
 newArray_ !n = newArray n badTraverseValue
+{-# INLINE newArray_ #-}
 
 badTraverseValue :: a
 badTraverseValue = die "traverse" "bad indexing"
@@ -606,6 +607,7 @@ fromList = arrayFromList
 #endif
 
 instance Functor Array where
+  {-# INLINE fmap #-}
   fmap f a =
     createArray (sizeofArray a) (die "fmap" "impossible") $ \mb ->
       let go i | i == sizeofArray a
@@ -615,6 +617,7 @@ instance Functor Array where
                     writeArray mb i (f x) >> go (i+1)
        in go 0
 #if MIN_VERSION_base(4,8,0)
+  {-# INLINE (<$) #-}
   e <$ a = createArray (sizeofArray a) e (\ !_ -> pure ())
 #endif
 
