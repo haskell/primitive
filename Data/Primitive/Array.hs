@@ -74,6 +74,8 @@ import Text.ParserCombinators.ReadP
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
 
+import Control.Monad.Trans.Maybe (MaybeT(MaybeT,runMaybeT))
+
 -- | Boxed arrays
 data Array a = Array
   { array# :: Array# a }
@@ -524,6 +526,8 @@ traverseArray f = \ !ary ->
    traverseArrayP f
 "traverse/IO" forall (f :: a -> IO b). traverseArray f =
    traverseArrayP f
+"traverse/Maybe" forall (f :: a -> Maybe b). traverseArray f =
+   (\xs -> runST (runMaybeT (traverseArrayP (MaybeT . return . f) xs)))
  #-}
 #if MIN_VERSION_base(4,8,0)
 {-# RULES
@@ -532,6 +536,8 @@ traverseArray f = \ !ary ->
            -> Array a -> Identity (Array b)) (fmap f)
  #-}
 #endif
+
+
 
 -- | This is the fastest, most straightforward way to traverse
 -- an array, but it only works correctly with a sufficiently
