@@ -24,6 +24,7 @@ module Data.Primitive.Array (
   sizeofArray, sizeofMutableArray,
   fromListN, fromList,
   mapArray',
+  filterArray,
   traverseArrayP
 ) where
 
@@ -574,6 +575,38 @@ mapArray' f a =
                   writeArray mb i y >> go (i+1)
      in go 0
 {-# INLINE mapArray' #-}
+
+-- | Discard elements that do not satisfy the predicate.
+filterArray :: (a -> Bool) -> Array a -> Array a
+filterArray p !arr = runArray $ do
+  let !sz = sizeofArray arr
+  marr <- newArray sz (die "filterArray" "impossible")
+  let go !ixSrc !ixDst = if ixSrc < sz
+        then do
+          a <- indexArrayM arr ixSrc
+          if p a
+            then do
+              writeArray marr ixDst a
+              go (ixSrc + 1) (ixDst + 1)
+            else go (ixSrc + 1) ixDst
+        else return ixDst
+  dstLen <- go 0 0
+  internalResizeMutableArray marr dstLen
+{-# INLINE filterArray #-}
+
+-- Copy elements of an array into a new smaller array. The length
+-- must be less than or equal to the length of the original array but
+-- this precondition is not checked. The original mutable array must
+-- not be reused after being passed to this function, since it may
+-- be aliased. This function is not exported.
+internalResizeMutableArray :: MutableArray s a -> Int -> ST s (MutableArray s a)
+internalResizeMutableArray !a !len = if len == sizeofMutableArray a
+  then return a
+  else do
+    b <- newArray len (die "internalResizeMutableArray" "impossible")
+    copyMutableArray b 0 a 0 len
+    return b
+{-# INLINE internalResizeMutableArray #-}
 
 arrayFromListN :: Int -> [a] -> Array a
 arrayFromListN n l =

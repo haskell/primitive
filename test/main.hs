@@ -55,6 +55,7 @@ main = do
 #if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
       , TQC.testProperty "mapArray'" (QCCL.mapProp int16 int32 mapArray')
+      , TQC.testProperty "filterArray" (QCCL.filterProp int16 filterArray)
 #endif
       ]
     , testGroup "SmallArray"
