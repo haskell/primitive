@@ -24,7 +24,7 @@ module Data.Primitive.Array (
   sizeofArray, sizeofMutableArray,
   fromListN, fromList,
   mapArray',
-  unsafeTraverseArray
+  traverseArrayP
 ) where
 
 import Control.Monad.Primitive
@@ -521,9 +521,9 @@ traverseArray f = \ !ary ->
 
 {-# RULES
 "traverse/ST" forall (f :: a -> ST s b). traverseArray f =
-   unsafeTraverseArray f
+   traverseArrayP f
 "traverse/IO" forall (f :: a -> IO b). traverseArray f =
-   unsafeTraverseArray f
+   traverseArrayP f
  #-}
 #if MIN_VERSION_base(4,8,0)
 {-# RULES
@@ -538,12 +538,12 @@ traverseArray f = \ !ary ->
 -- "affine" 'PrimMonad' instance. In particular, it must only produce
 -- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
 -- monads, for example, will not work right at all.
-unsafeTraverseArray
+traverseArrayP
   :: PrimMonad m
   => (a -> m b)
   -> Array a
   -> m (Array b)
-unsafeTraverseArray f = \ !ary ->
+traverseArrayP f = \ !ary ->
   let
     !sz = sizeofArray ary
     go !i !mary
@@ -558,7 +558,7 @@ unsafeTraverseArray f = \ !ary ->
   in do
     mary <- newArray sz badTraverseValue
     go 0 mary
-{-# INLINE unsafeTraverseArray #-}
+{-# INLINE traverseArrayP #-}
 
 -- | Strict map over the elements of the array.
 mapArray' :: (a -> b) -> Array a -> Array b
