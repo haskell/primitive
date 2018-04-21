@@ -46,6 +46,7 @@ module Data.Primitive.SmallArray
   , copySmallMutableArray
   , indexSmallArray
   , indexSmallArrayM
+  , indexSmallArray##
   , cloneSmallArray
   , cloneSmallMutableArray
   , freezeSmallArray

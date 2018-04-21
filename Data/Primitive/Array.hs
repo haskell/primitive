@@ -16,7 +16,7 @@
 module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
-  newArray, readArray, writeArray, indexArray, indexArrayM,
+  newArray, readArray, writeArray, indexArray, indexArrayM, indexArray##,
   freezeArray, thawArray, runArray,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
