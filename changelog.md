@@ -50,6 +50,9 @@
  * Reexport `Data.Primitive.SmallArray` and `Data.Primitive.UnliftedArray`
    from `Data.Primitive`.
 
+ * Add `runarray`, `runArrays`, `runArraysOf`, `runHetArraysOf`, and
+   equivalent functions for `SmallArray`s.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from

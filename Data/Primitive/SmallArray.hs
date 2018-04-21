@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE KindSignatures #-}
 
 -- |
 -- Module : Data.Primitive.SmallArray
@@ -52,6 +53,9 @@ module Data.Primitive.SmallArray
   , unsafeFreezeSmallArray
   , thawSmallArray
   , runSmallArray
+  , runSmallArrays
+  , runSmallArraysOf
+  , runHetSmallArraysOf
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
@@ -955,3 +959,93 @@ smallArrayFromListN n l = SmallArray (Array.fromListN n l)
 -- | Create a 'SmallArray' from a list.
 smallArrayFromList :: [a] -> SmallArray a
 smallArrayFromList l = smallArrayFromListN (length l) l
+
+-- | Create any number of arrays of the same type within an arbitrary
+-- 'Traversable' context. This will often be useful with traversables
+-- like  @(c,)@, @'Either' e@, @'Compose' (c,) ('Either' e)@, and
+-- @'Compose' ('Either' e) (c,)@. To supply an arbitrary traversal
+-- function, use 'runSmallArraysOf'. To produce arrays of varying types,
+-- use 'runHetSmallArraysOf'.
+runSmallArrays
+  :: Traversable t
+  => (forall s. ST s (t (SmallMutableArray s a)))
+  -> t (SmallArray a)
+runSmallArrays m = runST $ m >>= traverse unsafeFreezeSmallArray
+
+-- | Just like 'runSmallArrays', but takes an arbitrary (potentially
+-- type-changing) traversal function instead of requiring a 'Traversable'
+-- constraint. To produce arrays of varying types, use 'runHetSmallArraysOf'.
+--
+-- @ 'runSmallArrays' m = runSmallArraysOf traverse m @
+runSmallArraysOf
+  :: (forall s1 s2.
+       (SmallMutableArray s1 a -> ST s2 (SmallArray a))
+          -> t (mut s1 x) -> ST s2 u)
+  -> (forall s. ST s (t (mut s x)))
+  -> u
+runSmallArraysOf trav m = runST $ m >>= trav unsafeFreezeSmallArray
+
+-- | Create arbitrarily many arrays that may have different types. For
+-- a simpler but less general version, see 'runSmallArrays' or
+-- 'runSmallArraysOf'.
+--
+--
+-- === __Examples__
+--
+-- ==== @'runSmallArrays'@
+--
+-- @
+-- newtype Ha t a v = Ha {unHa :: t (v a)}
+-- runSmallArrays m = unHa $ runHetSmallArraysOf (\f (Ha t) -> Ha <$> traverse f t) (Ha <$> m)
+-- @
+--
+-- ==== @unzipSmallArray@
+--
+-- @
+-- unzipSmallArray :: SmallArray (a, b) -> (SmallArray a, SmallArray b)
+-- unzipSmallArray ar =
+--   unPair $ runHetSmallArraysOf traversePair $ do
+--          xs <- newSmallArray sz undefined
+--          ys <- newSmallArray sz undefined
+--          let go k
+--                | k == sz = pure (Pair (xs, ys))
+--                | otherwise = do
+--                    (x,y) <- indexSmallArrayM ar k
+--                    writeSmallArray xs k x
+--                    writeSmallArray ys k y
+--                    go (k + 1)
+--          go 0
+--   where sz = sizeofSmallArray ar
+--
+-- data Pair ab v where
+--   Pair :: {unPair :: (v a, v b)} -> Pair (a,b) v
+--
+-- traversePair :: Applicative h => (forall x. f x -> h (g x)) -> Pair ab f -> h (Pair ab g)
+-- traversePair f (Pair (xs, ys)) = liftA2 (\x y -> Pair (x,y)) (f xs) (f ys)
+-- @
+--
+-- ==== Create arrays, then traverse over them
+--
+-- @
+-- runHetSmallArraysOfThen
+--   :: (forall s1 s2.
+--        (   (forall x. SmallMutableArray s1 x -> Compose (ST s2) q (r x))
+--         -> t (mut s1) -> Compose (ST s2) q u))
+--      -- ^ A rank-2 traversal
+--   -> (forall x. SmallArray x -> q (r x))
+--      -- ^ A function to traverse over a container of 'SmallArray's
+--   -> (forall s. ST s (t (mut s)))
+--      -- ^ An 'ST' action producing a rank-2 container of 'SmallMutableArray's.
+--   -> q u
+-- runHetSmallArraysOfThen trav post m = getConst $
+--   runHetSmallArraysOf (\f -> coerce . getCompose . trav (Compose . fmap post . f)) m
+-- @
+runHetSmallArraysOf
+  :: (forall s1 s2.
+       ((forall x. SmallMutableArray s1 x -> ST s2 (SmallArray x))
+          -> t (mut s1) -> ST s2 u))
+     -- ^ A rank-2 traversal
+  -> (forall s. ST s ((t :: (* -> *) -> *) (mut s)))
+     -- ^ An 'ST' action producing a rank-2 container of 'MutableArray's.
+  -> u
+runHetSmallArraysOf f m = runST $ m >>= f unsafeFreezeSmallArray
