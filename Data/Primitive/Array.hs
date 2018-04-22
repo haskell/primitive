@@ -75,6 +75,9 @@ import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
 
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT,runMaybeT))
+import Control.Monad.Trans.Except (ExceptT(ExceptT),runExceptT)
+import Control.Monad.Trans.State.Strict (StateT(StateT),State,runStateT)
+import Control.Monad.Trans.Reader (ReaderT(ReaderT,runReaderT),Reader)
 
 -- | Boxed arrays
 data Array a = Array
@@ -521,6 +524,23 @@ traverseArray f = \ !ary ->
      else runSTA len <$> go 0
 {-# INLINE [1] traverseArray #-}
 
+-- Note on rewrite rules for traverse. Some types admit a traversal that
+-- outperforms the general one that works with all applicatives. Such types
+-- include IO and ST as well as any type constructed by layering sufficiently
+-- affine monad transformers on top of IO or ST. This also includes the types
+-- that correspond to such monad transformers.
+--
+-- For example, MaybeT is sufficiently affine. Consequently, for
+-- 'MaybeT (ST s)' and 'MaybeT IO', the traversal offered by traverseArrayP is
+-- semantically equivalent to traverseArray, but its tail-recursiveness
+-- and lack of closure allocations mean that it performs better. This also
+-- gives us a faster traversal for 'Maybe', since we can hoist an arbitrary
+-- 'Maybe' into 'MaybeT (ST s)', perform the faster traversal, and then run
+-- the effectful computaton to get back to a 'Maybe'.
+--
+-- Rewrite rule are not provided for the lazy State type or for any variant
+-- of Writer. Use of these types is the types is likely to build up thunks
+-- on the heap anyway.
 {-# RULES
 "traverse/ST" forall (f :: a -> ST s b). traverseArray f =
    traverseArrayP f
@@ -528,6 +548,12 @@ traverseArray f = \ !ary ->
    traverseArrayP f
 "traverse/Maybe" forall (f :: a -> Maybe b). traverseArray f =
    (\xs -> runST (runMaybeT (traverseArrayP (MaybeT . return . f) xs)))
+"traverse/Either" forall (f :: a -> Either e b). traverseArray f =
+   (\xs -> runST (runExceptT (traverseArrayP (ExceptT . return . f) xs)))
+"traverse/State" forall (f :: a -> State s b). traverseArray f =
+   (\xs -> StateT (\s0 -> Identity (runST (runStateT (traverseArrayP (hoistState . f) xs) s0))))
+"traverse/Reader" forall (f :: a -> Reader r b). traverseArray f =
+   (\xs -> ReaderT (\s0 -> Identity (runST (runReaderT (traverseArrayP (hoistReader . f) xs) s0))))
  #-}
 #if MIN_VERSION_base(4,8,0)
 {-# RULES
@@ -537,6 +563,17 @@ traverseArray f = \ !ary ->
  #-}
 #endif
 
+-- This is only used internally in a rewrite rule. Ideally, this function
+-- would live in transformers.
+hoistState :: Monad m => State s a -> StateT s m a
+hoistState (StateT f) = StateT (return . runIdentity . f)
+{-# INLINE hoistState #-}
+
+-- This is only used internally in a rewrite rule. Ideally, this function
+-- would live in transformers.
+hoistReader :: Monad m => Reader r a -> ReaderT r m a
+hoistReader (ReaderT f) = ReaderT (return . runIdentity . f)
+{-# INLINE hoistReader #-}
 
 
 -- | This is the fastest, most straightforward way to traverse
