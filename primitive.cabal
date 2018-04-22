@@ -49,6 +49,7 @@ Library
         Data.Primitive.MutVar
 
   Other-Modules:
+        Data.Primitive.Internal.Bit
         Data.Primitive.Internal.Compat
         Data.Primitive.Internal.Operations
 
