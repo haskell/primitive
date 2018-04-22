@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns, ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -59,9 +59,7 @@ import qualified GHC.ST as GHCST
 import qualified Data.Foldable as F
 import Data.Semigroup
 #endif
-#if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity
-#endif
 #if MIN_VERSION_base(4,10,0)
 import GHC.Exts (runRW#)
 #elif MIN_VERSION_base(4,9,0)
@@ -75,7 +73,6 @@ import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
 
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT,runMaybeT))
-import Control.Monad.Trans.Except (ExceptT(ExceptT),runExceptT)
 import Control.Monad.Trans.State.Strict (StateT(StateT),State,runStateT)
 import Control.Monad.Trans.Reader (ReaderT(ReaderT,runReaderT),Reader)
 
@@ -549,7 +546,7 @@ traverseArray f = \ !ary ->
 "traverse/Maybe" forall (f :: a -> Maybe b). traverseArray f =
    (\xs -> runST (runMaybeT (traverseArrayP (MaybeT . return . f) xs)))
 "traverse/Either" forall (f :: a -> Either e b). traverseArray f =
-   (\xs -> runST (runExceptT (traverseArrayP (ExceptT . return . f) xs)))
+   traverseEither f
 "traverse/State" forall (f :: a -> State s b). traverseArray f =
    (\xs -> StateT (\s0 -> Identity (runST (runStateT (traverseArrayP (hoistState . f) xs) s0))))
 "traverse/Reader" forall (f :: a -> Reader r b). traverseArray f =
@@ -574,6 +571,34 @@ hoistState (StateT f) = StateT (return . runIdentity . f)
 hoistReader :: Monad m => Reader r a -> ReaderT r m a
 hoistReader (ReaderT f) = ReaderT (return . runIdentity . f)
 {-# INLINE hoistReader #-}
+
+-- This is required for Either's rewrite rule. It would be
+-- much more concise to use ExceptT just like we use the
+-- other monad transformers in the other rewrite rules, but
+-- ExceptT isn't available on older versions of transformers.
+traverseEither :: forall e a b.
+     (a -> Either e b)
+  -> Array a
+  -> Either e (Array b)
+traverseEither f = \ !ary ->
+  let
+    !sz = sizeofArray ary
+    go :: forall s. Int -> MutableArray s b -> ST s (Either e (Array b))
+    go !i !mary
+      | i == sz = do
+          r <- unsafeFreezeArray mary
+          return (Right r)
+      | otherwise = do
+          a <- indexArrayM ary i
+          case f a of
+            Left e -> return (Left e)
+            Right b -> do
+              writeArray mary i b
+              go (i + 1) mary
+  in runST $ do
+    mary <- newArray sz badTraverseValue
+    go 0 mary
+{-# INLINE traverseEither #-}
 
 
 -- | This is the fastest, most straightforward way to traverse
