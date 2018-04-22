@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns #-}
 module Data.Primitive.Internal.Bit
  (
    MutableBitArray
@@ -11,23 +12,27 @@ module Data.Primitive.Internal.Bit
 import Data.Primitive.ByteArray
 import Control.Monad.Primitive
 import Data.Bits
+import Control.Monad.ST
 
 newtype MutableBitArray s = MBA (MutableByteArray s)
 
-newBitArray :: PrimMonad m => Int -> m (MutableBitArray (PrimState m))
-newBitArray n = do
+newBitArray :: Int -> ST s (MutableBitArray s)
+--newBitArray :: PrimMonad m => Int -> m (MutableBitArray (PrimState m))
+newBitArray !n = do
   let s = ((n + wordSize - 1) `unsafeShiftR` 3)
   mary <- newByteArray s
   fillByteArray mary 0 s 0
   return (MBA mary)
 
-readBitArray :: PrimMonad m => MutableBitArray (PrimState m) -> Int -> m Bool
-readBitArray (MBA mry) i = do
+readBitArray :: MutableBitArray s -> Int -> ST s Bool
+--readBitArray :: PrimMonad m => MutableBitArray (PrimState m) -> Int -> m Bool
+readBitArray !(MBA mry) !i = do
   wd :: Word <- readByteArray mry (whichWord i)
   return $! (((wd `unsafeShiftR` whichBit i) .&. 1) == 1)
 
-setBitArray :: PrimMonad m => MutableBitArray (PrimState m) -> Int -> m ()
-setBitArray (MBA mry) i = do
+setBitArray :: MutableBitArray s -> Int -> ST s ()
+--setBitArray :: PrimMonad m => MutableBitArray (PrimState m) -> Int -> m ()
+setBitArray !(MBA mry) !i = do
   let ww = whichWord i
   wd :: Word <- readByteArray mry ww
   let wd' = wd .|. (1 `unsafeShiftL` (whichBit i))
