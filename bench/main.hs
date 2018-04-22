@@ -19,6 +19,7 @@ import Data.Word
 import Data.Proxy (Proxy(..))
 import Control.DeepSeq
 import Control.Monad.Trans.State.Strict
+import Control.Monad.Trans.Except
 
 -- These are fixed implementations of certain operations. In the event
 -- that primitive changes its implementation of a function, these
@@ -28,6 +29,7 @@ import Control.Monad.Trans.State.Strict
 -- how well different implementation hold up in different scenarios.
 import qualified Array.Traverse.Unsafe
 import qualified Array.Traverse.Closure
+import qualified Array.Traverse.Either
 
 -- These are particular scenarios that are tested against the
 -- implementations actually used by primitive.
@@ -39,8 +41,20 @@ main = defaultMain
   [ bgroup "Array"
     [ bgroup "implementations"
       [ bgroup "traverse"
-        [ bench "closure" (nf (\x -> runST (runStateT (Array.Traverse.Closure.traversePoly cheap x) 0)) numbers)
-        , bench "unsafe" (nf (\x -> runST (runStateT (Array.Traverse.Unsafe.traversePoly cheap x) 0)) numbers)
+        [ bgroup "general"
+          [ bench "closure" (nf (\x -> runST (runStateT (Array.Traverse.Closure.traversePoly cheap x) 0)) numbers)
+          , bench "unsafe" (nf (\x -> runST (runStateT (Array.Traverse.Unsafe.traversePoly cheap x) 0)) numbers)
+          ]
+        , bgroup "Either"
+          [ bench "ExceptT"
+              ( nf
+                ( either id (flip indexArray 0)
+                . (\xs -> runST (runExceptT (Array.Traverse.Unsafe.traversePoly (ExceptT . return . (\x -> if x < 0 then Left 0 else Right x)) xs)))
+                )
+                numbers
+              )
+          , bench "inlined" (nf (either id (flip indexArray 0) . Array.Traverse.Either.traverseEither (\x -> if x < 0 then Left 0 else Right x)) numbers)
+          ]
         ]
       ]
     ]

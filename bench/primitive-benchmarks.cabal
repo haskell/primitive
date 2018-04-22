@@ -38,6 +38,7 @@ benchmark bench
   other-modules:
     Array.Traverse.Closure
     Array.Traverse.Unsafe
+    Array.Traverse.Either
     ByteArray.Compare
     PrimArray.Traverse
   build-depends:
