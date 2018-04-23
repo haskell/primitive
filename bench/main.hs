@@ -54,6 +54,7 @@ main = defaultMain
                 numbers
               )
           , bench "inlined" (nf (either id (flip indexArray 0) . Array.Traverse.Either.traverseEither (\x -> if x < 0 then Left 0 else Right x)) numbers)
+          , bench "closure" (nf (either id (flip indexArray 0) . Array.Traverse.Closure.traversePoly (\x -> if x < 0 then Left 0 else Right x)) numbers)
           ]
         ]
       ]
