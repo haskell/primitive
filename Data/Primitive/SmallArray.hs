@@ -58,7 +58,11 @@ module Data.Primitive.SmallArray
   , smallArrayFromList
   , smallArrayFromListN
   , mapSmallArray'
+  , imapSmallArray
+  , imapSmallArray'
+  , itraverseSmallArray
   , traverseSmallArrayP
+  , itraverseSmallArrayP
   ) where
 
 
@@ -437,7 +441,42 @@ traverseSmallArrayP f (SmallArray ar) = SmallArray `liftM` traverseArrayP f ar
 #endif
 {-# INLINE traverseSmallArrayP #-}
 
+-- | This is the fastest, most straightforward way to traverse
+-- an array with an index, but it only works correctly with a sufficiently
+-- "affine" 'PrimMonad' instance. In particular, it must only produce
+-- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- monads, for example, will not work right at all.
+--
+-- @since 0.6.4.1
+itraverseSmallArrayP
+  :: PrimMonad m
+  => (Int -> a -> m b)
+  -> SmallArray a
+  -> m (SmallArray b)
+#if HAVE_SMALL_ARRAY
+itraverseSmallArrayP f = \ !ary ->
+  let
+    !sz = sizeofSmallArray ary
+    go !i !mary
+      | i == sz
+      = unsafeFreezeSmallArray mary
+      | otherwise
+      = do
+          a <- indexSmallArrayM ary i
+          b <- f i a
+          writeSmallArray mary i b
+          go (i + 1) mary
+  in do
+    mary <- newSmallArray sz badTraverseValue
+    go 0 mary
+#else
+itraverseSmallArrayP f (SmallArray ar) = SmallArray `liftM` itraverseArrayP f ar
+#endif
+{-# INLINE itraverseSmallArrayP #-}
+
 -- | Strict map over the elements of the array.
+--
+-- @since 0.6.4.1
 mapSmallArray' :: (a -> b) -> SmallArray a -> SmallArray b
 #if HAVE_SMALL_ARRAY
 mapSmallArray' f sa = createSmallArray (length sa) (die "mapSmallArray'" "impossible") $ \smb ->
@@ -450,6 +489,37 @@ mapSmallArray' f sa = createSmallArray (length sa) (die "mapSmallArray'" "imposs
 mapSmallArray' f (SmallArray ar) = SmallArray (mapArray' f ar)
 #endif
 {-# INLINE mapSmallArray' #-}
+
+-- | Lazy indexed map over the elements of the array.
+--
+-- @since 0.6.4.1
+imapSmallArray :: (Int -> a -> b) -> SmallArray a -> SmallArray b
+#if HAVE_SMALL_ARRAY
+imapSmallArray f sa = createSmallArray (length sa) (die "mapSmallArray" "impossible") $ \smb ->
+  fix ? 0 $ \go i ->
+    when (i < length sa) $ do
+      x <- indexSmallArrayM sa i
+      writeSmallArray smb i (f i x) *> go (i+1)
+#else
+imapSmallArray f (SmallArray ar) = SmallArray (imapArray f ar)
+#endif
+{-# INLINE imapSmallArray #-}
+
+-- | Strict indexed map over the elements of the array.
+--
+-- @since 0.6.4.1
+imapSmallArray' :: (Int -> a -> b) -> SmallArray a -> SmallArray b
+#if HAVE_SMALL_ARRAY
+imapSmallArray' f sa = createSmallArray (length sa) (die "imapSmallArray'" "impossible") $ \smb ->
+  fix ? 0 $ \go i ->
+    when (i < length sa) $ do
+      x <- indexSmallArrayM sa i
+      let !y = f i x
+      writeSmallArray smb i y *> go (i+1)
+#else
+imapSmallArray' f (SmallArray ar) = SmallArray (imapArray' f ar)
+#endif
+{-# INLINE imapSmallArray' #-}
 
 #ifndef HAVE_SMALL_ARRAY
 runSmallArray
@@ -703,6 +773,36 @@ traverseSmallArray f = \ !ary ->
 "traverse/Id" forall (f :: a -> Identity b). traverseSmallArray f =
    (coerce :: (SmallArray a -> SmallArray (Identity b))
            -> SmallArray a -> Identity (SmallArray b)) (fmap f)
+ #-}
+
+-- | Traverse a 'SmallArray' using the indices. When applicable,
+-- 'itraverseSmallArrayP' will likely be more efficient.
+--
+-- @since 0.6.4.1
+itraverseSmallArray
+  :: Applicative f
+  => (Int -> a -> f b) -> SmallArray a -> f (SmallArray b)
+itraverseSmallArray f = \ !ary ->
+  let
+    !len = sizeofSmallArray ary
+    go !i
+      | i == len
+      = pure $ STA $ \mary -> unsafeFreezeSmallArray (SmallMutableArray mary)
+      | (# x #) <- indexSmallArray## ary i
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writeSmallArray (SmallMutableArray mary) i b >> m mary)
+               (f i x) (go (i + 1))
+  in if len == 0
+     then pure emptySmallArray
+     else runSTA len <$> go 0
+{-# INLINE [1] itraverseSmallArray #-}
+
+{-# RULES
+"itraverse/ST" forall (f :: Int -> a -> ST s b). itraverseSmallArray f = itraverseSmallArrayP f
+"itraverse/IO" forall (f :: Int -> a -> IO b). itraverseSmallArray f = itraverseSmallArrayP f
+"itraverse/Id" forall (f :: Int -> a -> Identity b). itraverseSmallArray f =
+   (coerce :: (SmallArray a -> SmallArray (Identity b))
+           -> SmallArray a -> Identity (SmallArray b)) (imapSmallArray f)
  #-}
 
 
