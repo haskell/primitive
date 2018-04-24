@@ -1,7 +1,6 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE GADTs, ConstraintKinds #-}
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -523,26 +522,24 @@ traverseArray f = \ !ary ->
      else runSTA len <$> go 0
 {-# INLINE [1] traverseArray #-}
 
-{-# RULES
-"toWonk" [~1] traverseArray
-  = traverseArrayWonk (WonkP (\(Dict :: Dict (PrimMonad f)) (g :: a -> f b) -> traverseArrayP g))
-"wonkIO" forall (w :: WonkP IO f).
-  traverseArrayWonk w = runWonkP w Dict
-"wonkST" forall (w :: WonkP (ST s) f).
-  traverseArrayWonk w = runWonkP w Dict
-"wonkMaybeT" forall (w :: WonkP (MaybeT m) f).
-  traverseArrayWonk w = traverseArrayWonk (WonkP (\(Dict :: Dict (PrimMonad m)) -> runWonkP w Dict))
-"wonkStateT" forall (w :: WonkP (StateT s m) f).
-  traverseArrayWonk w = traverseArrayWonk (WonkP (\(Dict :: Dict (PrimMonad m)) -> runWonkP w Dict))
-"wonkIdentityT" forall (w :: WonkP (IdentityT m) f).
-  traverseArrayWonk w = traverseArrayWonk (WonkP (\(Dict :: Dict (PrimMonad m)) -> runWonkP w Dict))
- #-}
-
-data Dict c where
-  Dict :: c => Dict c
-
 newtype WonkP m f = WonkP
-  { runWonkP :: forall a b. Dict (PrimMonad m) -> (a -> f b) -> Array a -> f (Array b) }
+  { runWonkP :: forall a b. PrimMonad m => (a -> f b) -> Array a -> f (Array b) }
+
+{-# RULES
+"toWonk" [~1] traverseArray = traverseArrayWonk (WonkP traverseArrayP :: WonkP f f)
+
+"wonkIO" forall (w :: WonkP IO f).
+  traverseArrayWonk w = runWonkP w
+"wonkST" forall (w :: WonkP (ST s) f).
+  traverseArrayWonk w = runWonkP w
+
+"wonkMaybeT" forall (w :: WonkP (MaybeT m) f).
+  traverseArrayWonk w = traverseArrayWonk (WonkP (runWonkP w) :: WonkP m f)
+"wonkStateT" forall (w :: WonkP (StateT s m) f).
+  traverseArrayWonk w = traverseArrayWonk (WonkP (runWonkP w) :: WonkP m f)
+"wonkIdentityT" forall (w :: WonkP (IdentityT m) f).
+  traverseArrayWonk w = traverseArrayWonk (WonkP (runWonkP w) :: WonkP m f)
+ #-}
 
 traverseArrayWonk
   :: Applicative f
