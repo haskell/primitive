@@ -72,6 +72,8 @@ import Text.ParserCombinators.ReadP
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
 
+import Data.Functor.Compose
+import Control.Monad (join)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT,runMaybeT))
 import Control.Monad.Trans.State.Strict (StateT(StateT),State,runStateT)
 import Control.Monad.Trans.Reader (ReaderT(ReaderT,runReaderT),Reader)
@@ -559,6 +561,218 @@ traverseArray f = \ !ary ->
            -> Array a -> Identity (Array b)) (fmap f)
  #-}
 #endif
+
+
+{-# RULES
+"traverse/MaybeT/init" forall (f :: a -> MaybeT m b). traverseArray f = runTraverseMonad (initMaybeT (traverseArray f) f)
+"traverse/MaybeT/pop" forall (t :: TraverseMonad p n (MaybeT m) a b). runTraverseMonad t = runTraverseMonad (popMaybeT t)
+"traverse/IO/run" forall (t :: TraverseMonad p n IO a b). runTraverseMonad t = finalizeTraverseMonadIO t
+"traverse/ST/run" forall (t :: TraverseMonad p n (ST s) a b). runTraverseMonad t = finalizeTraverseMonadST t
+ #-}
+
+-- "traverse/Maybe/run" forall (t :: TraverseMonad p n Maybe a b). runTraverseMonad t = (\xs -> runST (getCompose (finalizeTraverseMonadST (finalMaybe t) xs)))
+
+-- type variables: full, inner (starts as empty), outer (starts with everything), from, to
+data TraverseMonad p n m a b = TraverseMonad
+  (Array a -> p (Array b))
+  -- original traversal, used if we run into an unrecognized monad or monad transformer
+  (a -> p b)
+  -- original traverse function
+  (forall x. (forall y z. (y -> z) -> m y -> m z) -> m (n x) -> p x)
+  -- given an implementation of fmap for m, convert the split stack back to the original type
+  (forall x. (forall y z. (y -> z) -> m y -> m z) -> p x -> m (n x))
+  -- convert original type to split stack
+  (forall x y. (forall z. z -> m z) -> (forall w z. m w -> (w -> m z) -> m z) -> m (n x) -> (x -> m (n y)) -> m (n y))
+  -- lift monadic bind, needs both pure and bind of underlying monad
+  (forall x. (forall y z. (y -> z) -> m y -> m z) -> m x -> m (n x))
+  -- lift, given fmap
+  -- (forall s x. (forall f y. Applicative f => m (f y) -> f (m y)) -> m (n (ST s x)) -> ST s (m (n x)))
+  (forall s x y. (forall z. z -> (m z)) -> (forall w z s'. ST s' (m w) -> (w -> ST s' (m z)) -> (ST s' (m z))) -> ST s (m (n x)) -> (x -> ST s (m (n y))) -> ST s (m (n y)))
+  -- traverse in ST
+  -- this is needed to make base monads other than IO or ST (like Maybe) work
+
+runTraverseMonad :: TraverseMonad p n m a b -> Array a -> p (Array b)
+runTraverseMonad (TraverseMonad f _ _ _ _ _ _) = f
+{-# NOINLINE[1] runTraverseMonad #-}
+
+initMaybeT ::
+     (Array a -> MaybeT m (Array b))
+  -> (a -> MaybeT m b)
+  -> TraverseMonad (MaybeT m) Maybe m a b
+initMaybeT f t = TraverseMonad f t (\_ -> MaybeT) (\_ -> runMaybeT)
+  (\pure' bind' m g -> bind' m $ \mx -> case mx of
+    Nothing -> pure' Nothing
+    Just x -> g x
+  )
+  (\fmap' x -> fmap' Just x)
+  (\pure' bind' m g -> bind' m $ \mx -> case mx of
+    Nothing -> return (pure' Nothing)
+    Just x -> g x
+  )
+
+popMaybeT ::
+     TraverseMonad p n (MaybeT m) a b
+  -> TraverseMonad p (Compose Maybe n) m a b
+popMaybeT (TraverseMonad f t trans transBack liftBind lift' liftBindST) = TraverseMonad f t
+  (\fmap' x -> trans (liftMapMaybeT fmap') (MaybeT (fmap' getCompose x)))
+  (\fmap' x -> fmap' Compose (runMaybeT (transBack (liftMapMaybeT fmap') x)))
+  (\pure' bind' m g -> fmapFromPureBind pure' bind' Compose
+    (runMaybeT (liftBind (liftPureMaybeT pure') (liftBindMaybeT pure' bind') (MaybeT (fmapFromPureBind pure' bind' getCompose m)) (\x -> MaybeT (fmapFromPureBind pure' bind' getCompose (g x)))))
+  )
+  (\fmap' x -> fmap' Compose (runMaybeT (lift' (liftMapMaybeT fmap') (MaybeT (fmap' Just x)))))
+  (\pure' bind' m g -> fmapFromPureBindST pure' bind' Compose
+    (fmap runMaybeT (liftBindST (liftPureMaybeT pure') (liftBindMaybeT_ST pure' bind') (fmap MaybeT (fmapFromPureBindST pure' bind' getCompose m)) (\x -> fmap MaybeT (fmapFromPureBindST pure' bind' getCompose (g x)))))
+  )
+
+finalMaybe ::
+     TraverseMonad p n Maybe a b
+  -> TraverseMonad (Compose (ST s) p) (Compose Maybe n) (ST s) a b
+finalMaybe (TraverseMonad f t trans transBack liftBind lift' liftBindST) = TraverseMonad
+  (\arr -> Compose (return (f arr)))
+  (\a -> Compose (return (t a)))
+  (\_ x -> Compose (fmap (\(Compose mn) -> trans fmap mn) x))
+  (\_ (Compose x) -> fmap (\p -> Compose (transBack fmap p)) x)
+  (\_ _ v g -> do
+    Compose mn <- v
+    r <- liftBindST pure bindMaybeST (return mn) (\y -> fmap getCompose (g y))
+    return (Compose r)
+  )
+  (\_ x -> fmap (Compose . lift' fmap . Just) x)
+  (\_ _ m g -> return (fmap Compose (liftBindST Just bindMaybeST (fmap getCompose (join m)) (\y -> fmap getCompose (join (g y))))))
+
+bindMaybeST :: ST s (Maybe a) -> (a -> ST s (Maybe b)) -> ST s (Maybe b)
+bindMaybeST sm g = do
+  m <- sm
+  case m of
+    Nothing -> pure Nothing
+    Just a -> g a
+
+-- finalMaybe ::
+--      TraverseMonad p n Maybe a b
+--   -> TraverseMonad (Compose (ST s) p) (Compose Maybe n) (ST s) a b
+-- finalMaybe (TraverseMonad f t trans transBack liftBind lift' trav) = TraverseMonad
+--   (\arr -> Compose (return (f arr)))
+--   (\a -> Compose (return (t a)))
+--   (\_ x -> Compose (fmap (\(Compose mn) -> trans fmap mn) x))
+--   (\_ (Compose x) -> fmap (\p -> Compose (transBack fmap p)) x)
+--   (\_ _ v g -> do
+--     Compose mn <- v
+--     let y = fmapTwiceFromPureBind (lift' fmap . Just) (liftBind pure (>>=)) g mn
+--     fmap (Compose . joinTwiceFromBind (liftBind pure (>>=)) . fmapTwiceFromPureBind (lift' fmap . Just) (liftBind pure (>>=)) getCompose) (trav sequenceA y)
+--   )
+--   (\_ x -> fmap (Compose . lift' fmap . Just) x)
+--   (\_ -> error "uheotn")
+
+liftPureMaybeT :: (forall a. a -> m a) -> b -> MaybeT m b
+liftPureMaybeT pure' = MaybeT . pure' . Just
+
+liftPureMaybeT_ST :: (forall a. a -> m a) -> b -> ST s (MaybeT m b)
+liftPureMaybeT_ST pure' = return . MaybeT . pure' . Just
+
+liftMapMaybeT ::
+     (forall a b. (a -> b) -> m a -> m b)
+  -> (x -> y) -> MaybeT m x -> MaybeT m y
+liftMapMaybeT fmap' f (MaybeT m) = MaybeT (fmap' (fmap f) m)
+
+liftBindMaybeT ::
+     (forall a. a -> m a)
+  -> (forall a b. m a -> (a -> m b) -> m b)
+  -> MaybeT m x -> (x -> MaybeT m y) -> MaybeT m y
+liftBindMaybeT pure' bind' (MaybeT m) g = MaybeT $ bind' m $ \mx -> case mx of
+    Nothing -> pure' Nothing
+    Just x -> runMaybeT (g x)
+
+liftBindMaybeT_ST ::
+     (forall a. a -> m a)
+  -> (forall a b. ST s (m a) -> (a -> ST s (m b)) -> ST s (m b))
+  -> ST s (MaybeT m x) -> (x -> ST s (MaybeT m y)) -> ST s (MaybeT m y)
+liftBindMaybeT_ST pure' bind' sma g = fmap MaybeT $ bind' (fmap runMaybeT sma) $ \ma -> case ma of
+  Nothing -> return (pure' Nothing)
+  Just a -> fmap runMaybeT (g a)
+
+fmapFromPureBind ::
+     (forall x. x -> m x)
+  -> (forall x y. m x -> (x -> m y) -> m y)
+  -> (a -> b) -> m a -> m b
+fmapFromPureBind pure' bind' f ma = bind' ma (\z -> pure' (f z))
+
+fmapFromPureBindST ::
+     (forall x. x -> m x)
+  -> (forall x y. ST s (m x) -> (x -> ST s (m y)) -> ST s (m y))
+  -> (a -> b) -> ST s (m a) -> ST s (m b)
+fmapFromPureBindST pure' bind' f ma = bind' ma (\z -> return (pure' (f z)))
+
+fmapTwiceFromPureBind ::
+     (forall x. x -> m (n x))
+  -> (forall x y. m (n x) -> (x -> m (n y)) -> m (n y))
+  -> (a -> b) -> m (n a) -> m (n b)
+fmapTwiceFromPureBind pure' bind' f ma = bind' ma (\z -> pure' (f z))
+
+joinTwiceFromBind ::
+     (forall x y. m (n x) -> (x -> m (n y)) -> m (n y))
+  -> m (n (m (n a)))
+  -> m (n a)
+joinTwiceFromBind bind' ma = bind' ma id
+
+
+finalizeTraverseMonadIO :: forall p n a b. TraverseMonad p n IO a b -> Array a -> p (Array b)
+finalizeTraverseMonadIO (TraverseMonad _ f trans transBack liftBind lift' _) = \ !ary ->
+  trans fmap
+  ( let
+      !sz = sizeofArray ary
+      go :: Int -> MutableArray RealWorld b -> IO (n (Array b))
+      go !i !mary
+        | i == sz = lift' fmap (unsafeFreezeArray mary)
+        | otherwise =
+            liftBind pure (>>=) (lift' fmap (indexArrayM ary i)) $ \a -> 
+            liftBind pure (>>=) (transBack fmap (f a)) $ \b -> 
+            liftBind pure (>>=) (lift' fmap (writeArray mary i b)) $ \_ -> 
+            go (i + 1) mary
+    in liftBind pure (>>=) (lift' fmap (newArray sz badTraverseValue)) $ \mary ->
+       go 0 mary
+  )
+{-# INLINE finalizeTraverseMonadIO #-}
+
+finalizeTraverseMonadST :: forall s p n a b. TraverseMonad p n (ST s) a b -> Array a -> p (Array b)
+finalizeTraverseMonadST (TraverseMonad _ f trans transBack liftBind lift' _) = \ !ary ->
+  trans fmap
+  ( let
+      !sz = sizeofArray ary
+      go :: Int -> MutableArray s b -> ST s (n (Array b))
+      go !i !mary
+        | i == sz = lift' fmap (unsafeFreezeArray mary)
+        | otherwise =
+            liftBind pure (>>=) (lift' fmap (indexArrayM ary i)) $ \a -> 
+            liftBind pure (>>=) (transBack fmap (f a)) $ \b -> 
+            liftBind pure (>>=) (lift' fmap (writeArray mary i b)) $ \_ -> 
+            go (i + 1) mary
+    in liftBind pure (>>=) (lift' fmap (newArray sz badTraverseValue)) $ \mary ->
+       go 0 mary
+  )
+{-# INLINE finalizeTraverseMonadST #-}
+
+
+
+-- finalizeTraverseMonadMaybe :: forall p n a b. TraverseMonad p n Maybe a b -> Array a -> p (Array b)
+-- finalizeTraverseMonadMaybe (TraverseMonad _ f trans transBack liftBind lift') = \ !ary ->
+--   runST
+--   ( let
+--       !sz = sizeofArray ary
+--       go :: Int -> MutableArray s b -> ST s (Maybe (n (Array b)))
+--       go !i !mary
+--         | i == sz = do
+--             result <- unsafeFreezeArray mary
+--             return (lift' fmap (Just result))
+--         | otherwise = case indexArray## ary i of
+--             (# a #) -> 
+--               liftBind pure (>>=) (transBack fmap (f a)) $ \b -> 
+--               liftBind pure (>>=) (lift' fmap (writeArray mary i b)) $ \_ -> 
+--               go (i + 1) mary
+--     in do mary <- newArray sz badTraverseValue
+--           mnary <- go 0 mary
+--           return (trans fmap mnary)
+--   )
+-- {-# INLINE finalizeTraverseMonadMaybe #-}
 
 -- This is only used internally in a rewrite rule. Ideally, this function
 -- would live in transformers.
