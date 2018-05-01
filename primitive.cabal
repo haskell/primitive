@@ -47,6 +47,7 @@ Library
         Data.Primitive.Addr
         Data.Primitive.Ptr
         Data.Primitive.MutVar
+        Data.Primitive.StableName
 
   Other-Modules:
         Data.Primitive.Internal.Compat
