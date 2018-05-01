@@ -10,7 +10,7 @@ module Array.Traverse.Closure
 import Control.Applicative
 import Control.Monad.ST
 import Data.Primitive.Array
-import GHC.Exts (indexArray#,Int(..),MutableArray#)
+import GHC.Exts (Int(..),MutableArray#)
 
 {-# INLINE traversePoly #-}
 traversePoly
@@ -47,6 +47,3 @@ runSTA !sz = \ (STA m) -> runST $ newArray_ sz >>= \ ar -> m (marray# ar)
 newArray_ :: Int -> ST s (MutableArray s a)
 newArray_ !n = newArray n badTraverseValue
 
-indexArray## :: Array a -> Int -> (# a #)
-indexArray## arr (I# i) = indexArray# (array# arr) i
-{-# INLINE indexArray## #-}

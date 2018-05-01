@@ -46,6 +46,7 @@ module Data.Primitive.SmallArray
   , copySmallMutableArray
   , indexSmallArray
   , indexSmallArrayM
+  , indexSmallArray##
   , cloneSmallArray
   , cloneSmallMutableArray
   , freezeSmallArray
@@ -242,14 +243,16 @@ indexSmallArray (SmallArray a) = indexArray a
 #endif
 {-# INLINE indexSmallArray #-}
 
-#if HAVE_SMALL_ARRAY
 -- | Read a value from the immutable array at the given index, returning
 -- the result in an unboxed unary tuple. This is currently used to implement
 -- folds.
 indexSmallArray## :: SmallArray a -> Int -> (# a #)
+#if HAVE_SMALL_ARRAY
 indexSmallArray## (SmallArray ary) (I# i) = indexSmallArray# ary i
-{-# INLINE indexSmallArray## #-}
+#else
+indexSmallArray## (SmallArray a) = indexArray## a
 #endif
+{-# INLINE indexSmallArray## #-}
 
 -- | Create a copy of a slice of an immutable array.
 cloneSmallArray
