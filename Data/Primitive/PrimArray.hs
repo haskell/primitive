@@ -54,6 +54,9 @@ module Data.Primitive.PrimArray
   , getSizeofMutablePrimArray
   , sizeofMutablePrimArray
   , sizeofPrimArray
+    -- * Atomics
+  , casIntPrimArray
+  , casWordPrimArray
     -- * Folding
   , foldrPrimArray
   , foldrPrimArray'
@@ -89,8 +92,8 @@ module Data.Primitive.PrimArray
   ) where
 
 import GHC.Prim
-import GHC.Base ( Int(..) )
-import GHC.Exts (build)
+import GHC.Base ( Int(..), Word(..))
+import GHC.Exts (build,int2Word#,word2Int#)
 import GHC.Ptr
 import Data.Primitive.Internal.Compat (isTrue#)
 import Data.Primitive.Types
@@ -450,6 +453,32 @@ indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
+
+-- | Given an array, an offset in Int units, the expected old value, and the new value,
+-- perform an atomic compare and swap i.e. write the new value if the current value matches
+-- the provided old value. Returns the value of the element before the operation. Implies
+-- a full memory barrier.
+casIntPrimArray :: PrimMonad m
+  => MutablePrimArray (PrimState m) Int -- ^ prim array
+  -> Int -- ^ index
+  -> Int -- ^ expected old value
+  -> Int -- ^ new value
+  -> m Int
+{-# INLINE casIntPrimArray #-}
+casIntPrimArray (MutablePrimArray arr#) (I# i#) (I# old#) (I# new#) =
+  primitive $ \s0 -> case casIntArray# arr# i# old# new# s0 of
+    (# s1, r #) -> (# s1, I# r #)
+
+casWordPrimArray :: PrimMonad m
+  => MutablePrimArray (PrimState m) Word -- ^ prim array
+  -> Int -- ^ index
+  -> Word -- ^ expected old value
+  -> Word -- ^ new value
+  -> m Word
+{-# INLINE casWordPrimArray #-}
+casWordPrimArray (MutablePrimArray arr#) (I# i#) (W# old#) (W# new#) =
+  primitive $ \s0 -> case casIntArray# arr# i# (word2Int# old#) (word2Int# new#) s0 of
+    (# s1, r #) -> (# s1, W# (int2Word# r) #)
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}
