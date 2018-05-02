@@ -70,9 +70,7 @@ readMVar (MVar mvar#) = primitive $ \ s# -> readMVar# mvar# s#
 -- |Put a value into an 'MVar'.  If the 'MVar' is currently full,
 -- 'putMVar' will wait until it becomes empty.
 putMVar :: PrimMonad m => MVar (PrimState m) a -> a -> m ()
-putMVar (MVar mvar#) x = primitive $ \ s# ->
-  case putMVar# mvar# x s# of
-    s2# -> (# s2#, () #)
+putMVar (MVar mvar#) x = primitive_ (putMVar# mvar# x)
 
 -- |A non-blocking version of 'takeMVar'.  The 'tryTakeMVar' function
 -- returns immediately, with 'Nothing' if the 'MVar' was empty, or
