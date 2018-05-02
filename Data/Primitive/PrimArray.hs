@@ -54,6 +54,8 @@ module Data.Primitive.PrimArray
   , getSizeofMutablePrimArray
   , sizeofMutablePrimArray
   , sizeofPrimArray
+    -- * Atomics
+  , casPrimArray
     -- * Folding
   , foldrPrimArray
   , foldrPrimArray'
@@ -450,6 +452,22 @@ indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
+
+-- | Given an array, an offset in Int units, the expected old value, and the new value,
+-- perform an atomic compare and swap i.e. write the new value if the current value matches
+-- the provided old value. Returns the value of the element before the operation. Implies
+-- a full memory barrier.
+casPrimArray :: (PrimMonad m, PrimMach a)
+  => MutablePrimArray (PrimState m) Int -- ^ prim array
+  -> Int -- ^ index
+  -> a -- ^ expected old value
+  -> a -- ^ new value
+  -> m a
+{-# INLINE casPrimArray #-}
+casPrimArray (MutablePrimArray arr#) (I# i#) old new =
+  primitive $ \s0 -> case casIntArray# arr# i# (primMachToInt# old) (primMachToInt# new) s0 of
+    (# s1, r #) -> (# s1, primMachFromInt# r #)
+
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}

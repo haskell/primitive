@@ -20,6 +20,7 @@
 
 module Data.Primitive.Types (
   Prim(..),
+  PrimMach(..),
   sizeOf, alignment,
 
   Addr(..),
@@ -134,6 +135,21 @@ sizeOf x = I# (sizeOf# x)
 -- | Alignment of values of type @a@. The argument is not used.
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
+
+-- | Class of types supporting primitive operations that are isomorphic to
+-- a machine integer. Such types support compare-and-swap and other atomic
+-- operations.
+class Prim a => PrimMach a where
+  primMachToInt# :: a -> Int#
+  primMachFromInt# :: Int# -> a
+
+instance PrimMach Int where
+  primMachToInt# (I# i) = i
+  primMachFromInt# = I#
+
+instance PrimMach Word where
+  primMachToInt# (W# i) = word2Int# i
+  primMachFromInt# i = W# (int2Word# i)
 
 -- | Newtype that uses a 'Prim' instance to give rise to a 'Storable' instance.
 -- This type is intended to be used with the @DerivingVia@ extension available
