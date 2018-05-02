@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 
@@ -25,16 +26,25 @@ module Data.Primitive.MVar
   , isEmptyMVar
   , newEmptyMVar
   , putMVar
+#if __GLASGOW_HASKELL__ >= 708
   , readMVar
+#endif
   , takeMVar
   , tryPutMVar
+#if __GLASGOW_HASKELL__ >= 708
   , tryReadMVar
+#endif
   , tryTakeMVar
   ) where
 
 import Control.Monad.Primitive
-import GHC.Exts (MVar#,newMVar#,takeMVar#,readMVar#,sameMVar#,putMVar#,
-  tryTakeMVar#,isEmptyMVar#,tryReadMVar#,tryPutMVar#,isTrue#,(/=#))
+import Data.Primitive.Internal.Compat (isTrue#)
+import GHC.Exts (MVar#,newMVar#,takeMVar#,sameMVar#,putMVar#,tryTakeMVar#,
+  isEmptyMVar#,tryPutMVar#,(/=#))
+
+#if __GLASGOW_HASKELL__ >= 708
+import GHC.Exts (readMVar#,tryReadMVar#)
+#endif
 
 data MVar s a = MVar (MVar# s a)
 
@@ -61,11 +71,16 @@ newMVar value =
 takeMVar :: PrimMonad m => MVar (PrimState m) a -> m a
 takeMVar (MVar mvar#) = primitive $ \ s# -> takeMVar# mvar# s#
 
+#if __GLASGOW_HASKELL__ >= 708
 -- | Atomically read the contents of an 'MVar'.  If the 'MVar' is
 -- currently empty, 'readMVar' will wait until it is full.
 -- 'readMVar' is guaranteed to receive the next 'putMVar'.
+--
+-- This function is only available when compiling with GHC 7.8
+-- or newer.
 readMVar :: PrimMonad m => MVar (PrimState m) a -> m a
 readMVar (MVar mvar#) = primitive $ \ s# -> readMVar# mvar# s#
+#endif
 
 -- |Put a value into an 'MVar'.  If the 'MVar' is currently full,
 -- 'putMVar' will wait until it becomes empty.
@@ -92,16 +107,19 @@ tryPutMVar (MVar mvar#) x = primitive $ \ s# ->
         (# s, 0# #) -> (# s, False #)
         (# s, _  #) -> (# s, True #)
 
+#if __GLASGOW_HASKELL__ >= 708
 -- | A non-blocking version of 'readMVar'.  The 'tryReadMVar' function
 -- returns immediately, with 'Nothing' if the 'MVar' was empty, or
 -- @'Just' a@ if the 'MVar' was full with contents @a@.
 --
--- @since 4.7.0.0
+-- This function is only available when compiling with GHC 7.8
+-- or newer.
 tryReadMVar :: PrimMonad m => MVar (PrimState m) a -> m (Maybe a)
 tryReadMVar (MVar m) = primitive $ \ s ->
     case tryReadMVar# m s of
         (# s', 0#, _ #) -> (# s', Nothing #)      -- MVar is empty
         (# s', _,  a #) -> (# s', Just a  #)      -- MVar is full
+#endif
 
 -- | Check whether a given 'MVar' is empty.
 --
