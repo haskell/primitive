@@ -30,6 +30,7 @@ module Data.Primitive.PrimArray
   , MutablePrimArray(..)
     -- * Allocation
   , newPrimArray
+  , emptyPrimArray
   , resizeMutablePrimArray
 #if __GLASGOW_HASKELL__ >= 710
   , shrinkMutablePrimArray
@@ -226,7 +227,8 @@ instance Monoid (PrimArray a) where
 #endif
   mconcat = byteArrayToPrimArray . mconcat . map primArrayToByteArray
 
--- | The empty primitive array.
+-- | The empty primitive array. This is the same as 'mempty', but it
+-- does not incur a @'Monoid' a@ constraint.
 emptyPrimArray :: PrimArray a
 {-# NOINLINE emptyPrimArray #-}
 emptyPrimArray = runST $ primitive $ \s0# -> case newByteArray# 0# s0# of
