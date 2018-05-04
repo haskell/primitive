@@ -90,6 +90,7 @@ import Control.Monad.Primitive
 
 import Control.Monad.ST (runST,ST)
 
+import Data.Monoid (Monoid,mappend)
 import Data.Primitive.Internal.Compat ( isTrue# )
 
 import qualified Data.List as L
@@ -100,6 +101,7 @@ import qualified Data.Primitive.ByteArray as BA
 import qualified Data.Primitive.PrimArray as PA
 import qualified Data.Primitive.SmallArray as SA
 import qualified Data.Primitive.MutVar as MV
+import qualified Data.Monoid
 import qualified GHC.MVar as GM (MVar(..))
 import qualified GHC.Conc as GC (TVar(..))
 import qualified GHC.Stable as GSP (StablePtr(..))
