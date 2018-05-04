@@ -858,11 +858,12 @@ instance Monoid (SmallArray a) where
 #if !(MIN_VERSION_base(4,11,0))
   mappend = (<|>)
 #endif
-  mconcat sas = createSmallArray n (die "mconcat" "impossible") $ \sma ->
-    fix ? 0 ? sas $ \go off l -> case l of
-      [] -> return ()
-      sa:stk -> copySmallArray sma off sa 0 (length sa) *> go (off+1) stk
-   where n = sum . fmap length $ sas
+  mconcat l = createSmallArray n (die "mconcat" "impossible") $ \ma ->
+    let go !_  [    ] = return ()
+        go off (a:as) =
+          copySmallArray ma off a 0 (sizeofSmallArray a) >> go (off + sizeofSmallArray a) as
+     in go 0 l
+   where n = sum . fmap length $ l
 
 instance IsList (SmallArray a) where
   type Item (SmallArray a) = a

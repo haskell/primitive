@@ -34,6 +34,9 @@
    `Array` and `SmallArray`. In both cases, the old implementation
    simply returned the first element of the array and made no use of
    the other elements in the array.
+
+ * Fix the implementation of `mconcat` in the `Monoid` instance for
+   `SmallArray`.
  
  * Implement `Data.Primitive.Ptr`, implementations of `Ptr` functions
    that require a `Prim` constraint instead of a `Storable` constraint.
