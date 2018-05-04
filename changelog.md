@@ -50,6 +50,9 @@
  * Reexport `Data.Primitive.SmallArray` and `Data.Primitive.UnliftedArray`
    from `Data.Primitive`.
 
+ * Add fold functions and map function to `Data.Primitive.UnliftedArray`.
+   Add typeclass instances for `IsList`, `Ord`, and `Show`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
