@@ -28,7 +28,7 @@ import Data.Semigroup (stimes)
 #endif
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
-import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,(===))
+import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,(===),CoArbitrary,Function)
 import qualified Test.Tasty.QuickCheck as TQC
 import qualified Test.QuickCheck as QC
 import qualified Test.QuickCheck.Classes as QCC
@@ -121,6 +121,19 @@ main = do
       , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
 #endif
       ]
+    , testGroup "UnliftedArray"
+      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
+      , lawsToTest (QCC.ordLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
+      , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
+#if MIN_VERSION_base(4,7,0)
+      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
+      , TQC.testProperty "mapUnliftedArray" (QCCL.mapProp arrInt16 arrInt32 mapUnliftedArray)
+      , TQC.testProperty "foldrUnliftedArray" (QCCL.foldrProp arrInt16 foldrUnliftedArray)
+      , TQC.testProperty "foldrUnliftedArray'" (QCCL.foldrProp arrInt16 foldrUnliftedArray')
+      , TQC.testProperty "foldlUnliftedArray" (QCCL.foldlProp arrInt16 foldlUnliftedArray)
+      , TQC.testProperty "foldlUnliftedArray'" (QCCL.foldlProp arrInt16 foldlUnliftedArray')
+#endif
+      ]
     -- , testGroup "PrimStorable"
     --   [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
     --   ]
@@ -131,6 +144,12 @@ int16 = Proxy
 
 int32 :: Proxy Int32
 int32 = Proxy
+
+arrInt16 :: Proxy (PrimArray Int16)
+arrInt16 = Proxy
+
+arrInt32 :: Proxy (PrimArray Int16)
+arrInt32 = Proxy
 
 -- Tests that using resizeByteArray to shrink a byte array produces
 -- the same results as calling Data.List.take on the list that the
@@ -275,6 +294,16 @@ instance (Arbitrary a, Prim a) => Arbitrary (PrimArray a) where
         writePrimArray a ix x
       unsafeFreezePrimArray a
 
+instance (Arbitrary a, PrimUnlifted a) => Arbitrary (UnliftedArray a) where
+  arbitrary = do
+    xs <- QC.vector =<< QC.choose (0,3)
+    return (unliftedArrayFromList xs)
+
+instance (Prim a, CoArbitrary a) => CoArbitrary (PrimArray a) where
+  coarbitrary x = QC.coarbitrary (primArrayToList x)
+
+instance (Prim a, Function a) => Function (PrimArray a) where
+  function = QC.functionMap primArrayToList primArrayFromList
 
 iforM_ :: Monad m => [a] -> (Int -> a -> m b) -> m ()
 iforM_ xs0 f = go 0 xs0 where

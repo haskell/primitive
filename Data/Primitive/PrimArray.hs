@@ -54,6 +54,10 @@ module Data.Primitive.PrimArray
   , getSizeofMutablePrimArray
   , sizeofMutablePrimArray
   , sizeofPrimArray
+    -- * List Conversion
+  , primArrayToList
+  , primArrayFromList
+  , primArrayFromListN
     -- * Folding
   , foldrPrimArray
   , foldrPrimArray'
@@ -171,7 +175,7 @@ instance (Ord a, Prim a) => Ord (PrimArray a) where
 #if MIN_VERSION_base(4,7,0)
 instance Prim a => IsList (PrimArray a) where
   type Item (PrimArray a) = a
-  fromList xs = primArrayFromListN (L.length xs) xs
+  fromList = primArrayFromList
   fromListN = primArrayFromListN
   toList = primArrayToList
 #endif
@@ -183,6 +187,9 @@ instance (Show a, Prim a) => Show (PrimArray a) where
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.PrimArray." ++ fun ++ ": " ++ problem
+
+primArrayFromList :: Prim a => [a] -> PrimArray a
+primArrayFromList vs = primArrayFromListN (L.length vs) vs
 
 primArrayFromListN :: forall a. Prim a => Int -> [a] -> PrimArray a
 primArrayFromListN len vs = runST run where
