@@ -4,22 +4,16 @@
 {-# LANGUAGE UnboxedTuples #-}
 
 -- |
--- Module      : Data.Primitive.ByteArray
--- Copyright   : (c) Roman Leshchinskiy 2009-2012
--- License     : BSD-style
---
--- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
+-- Module      : Data.Primitive.MVar
+-- License     : BSD2
 -- Portability : non-portable
 --
 -- Primitive operations on @MVar@. This module provides a similar interface
 -- to "Control.Concurrent.MVar". However, the functions are generalized to
 -- work in any 'PrimMonad' instead of only working in 'IO'. Note that all
--- of the functions here are completely deterministic. It is only the
--- introduction of @forkIO@ that brings nondeterminism into the picture.
--- Users who are interesting in using these functions in 'ST' will likely
--- want to roll their own 'ST' variant of @forkIO@. Since such a function
--- eschews that determinism expected by users of 'ST' (and users of
--- 'primitive'), it is left to the user to implement it. 
+-- of the functions here are completely deterministic. Users of 'MVar' are
+-- responsible for designing abstractions that guarantee determinism in
+-- the presence of multi-threading.
 module Data.Primitive.MVar
   ( MVar(..)
   , newMVar
@@ -51,14 +45,14 @@ data MVar s a = MVar (MVar# s a)
 instance Eq (MVar s a) where
   (MVar mvar1#) == (MVar mvar2#) = isTrue# (sameMVar# mvar1# mvar2#)
 
--- | Create an 'MVar' which is initially empty.
+-- | Create a new 'MVar' that is initially empty.
 newEmptyMVar :: PrimMonad m => m (MVar (PrimState m) a)
 newEmptyMVar = primitive $ \ s# ->
   case newMVar# s# of
     (# s2#, svar# #) -> (# s2#, MVar svar# #)
 
 
--- |Create an 'MVar' which contains the supplied value.
+-- | Create a new 'MVar' that holds the supplied argument.
 newMVar :: PrimMonad m => a -> m (MVar (PrimState m) a)
 newMVar value =
   newEmptyMVar >>= \ mvar ->
