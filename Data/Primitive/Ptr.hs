@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -25,10 +26,15 @@ module Data.Primitive.Ptr (
 
   -- * Block operations
   copyPtr, movePtr, setPtr
+
+#if __GLASGOW_HASKELL__ >= 708
+  , copyPtrToMutablePrimArray
+#endif
 ) where
 
 import Control.Monad.Primitive
 import Data.Primitive.Types
+import Data.Primitive.PrimArray (MutablePrimArray(..))
 
 import GHC.Base ( Int(..) )
 import GHC.Prim
@@ -97,3 +103,20 @@ setPtr :: (Prim a, PrimMonad m) => Ptr a -> Int -> a -> m ()
 setPtr (Ptr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
 
 
+#if __GLASGOW_HASKELL__ >= 708
+-- | Copy from a pointer to a mutable primitive array.
+-- The offset and length are given in elements of type @a@.
+-- This function is only available when building with GHC 7.8
+-- or newer.
+copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
+  => MutablePrimArray (PrimState m) a -- ^ destination array
+  -> Int -- ^ destination offset
+  -> Ptr a -- ^ source pointer
+  -> Int -- ^ number of elements
+  -> m ()
+{-# INLINE copyPtrToMutablePrimArray #-}
+copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) = 
+  primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
+  where
+  siz# = sizeOf# (undefined :: a)
+#endif
