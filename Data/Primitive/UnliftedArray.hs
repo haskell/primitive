@@ -109,6 +109,11 @@ import qualified GHC.Weak as GW (Weak(..))
 import qualified GHC.Conc.Sync as GCS (ThreadId(..))
 import qualified GHC.Exts as E
 
+#if MIN_VERSION_base(4,9,0)
+import Data.Semigroup (Semigroup)
+import qualified Data.Semigroup
+#endif
+
 -- | Immutable arrays that efficiently store types that are simple wrappers
 -- around unlifted primitive types. The values of the unlifted type are
 -- stored directly, eliminating a layer of indirection.
