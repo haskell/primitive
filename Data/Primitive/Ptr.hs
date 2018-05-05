@@ -34,7 +34,9 @@ module Data.Primitive.Ptr (
 
 import Control.Monad.Primitive
 import Data.Primitive.Types
+#if __GLASGOW_HASKELL__ >= 708
 import Data.Primitive.PrimArray (MutablePrimArray(..))
+#endif
 
 import GHC.Base ( Int(..) )
 import GHC.Prim
