@@ -20,9 +20,7 @@ module Data.Primitive.MVar
   , isEmptyMVar
   , newEmptyMVar
   , putMVar
-#if __GLASGOW_HASKELL__ >= 708
   , readMVar
-#endif
   , takeMVar
   , tryPutMVar
 #if __GLASGOW_HASKELL__ >= 708
@@ -65,15 +63,23 @@ newMVar value =
 takeMVar :: PrimMonad m => MVar (PrimState m) a -> m a
 takeMVar (MVar mvar#) = primitive $ \ s# -> takeMVar# mvar# s#
 
-#if __GLASGOW_HASKELL__ >= 708
 -- | Atomically read the contents of an 'MVar'.  If the 'MVar' is
 -- currently empty, 'readMVar' will wait until it is full.
 -- 'readMVar' is guaranteed to receive the next 'putMVar'.
 --
--- This function is only available when compiling with GHC 7.8
--- or newer.
+-- /Compatibility note:/ On GHCs prior to 7.8, 'readMVar' is a combination
+-- of 'takeMVar' and 'putMVar'.  This means that in the presence of
+-- other threads attempting to 'putMVar', 'readMVar' may block.
+-- Furthermore, 'readMVar' might not receive the next 'putMVar' if there
+-- is already a pending thread blocked on 'takeMVar'.
 readMVar :: PrimMonad m => MVar (PrimState m) a -> m a
+#if __GLASGOW_HASKELL__ >= 708
 readMVar (MVar mvar#) = primitive $ \ s# -> readMVar# mvar# s#
+#else
+readMVar mv = do
+  a <- takeMVar mv
+  putMVar mv a
+  return a
 #endif
 
 -- |Put a value into an 'MVar'.  If the 'MVar' is currently full,
