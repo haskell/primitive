@@ -23,9 +23,7 @@ module Data.Primitive.MVar
   , readMVar
   , takeMVar
   , tryPutMVar
-#if __GLASGOW_HASKELL__ >= 708
   , tryReadMVar
-#endif
   , tryTakeMVar
   ) where
 
@@ -107,18 +105,27 @@ tryPutMVar (MVar mvar#) x = primitive $ \ s# ->
         (# s, 0# #) -> (# s, False #)
         (# s, _  #) -> (# s, True #)
 
-#if __GLASGOW_HASKELL__ >= 708
 -- | A non-blocking version of 'readMVar'.  The 'tryReadMVar' function
 -- returns immediately, with 'Nothing' if the 'MVar' was empty, or
 -- @'Just' a@ if the 'MVar' was full with contents @a@.
 --
--- This function is only available when compiling with GHC 7.8
+-- This behaves differently in a concurrent setting when
+-- compiling when GHC older than 7.8. See the documentation for 'readMVar'.
 -- or newer.
 tryReadMVar :: PrimMonad m => MVar (PrimState m) a -> m (Maybe a)
+#if __GLASGOW_HASKELL__ >= 708
 tryReadMVar (MVar m) = primitive $ \ s ->
     case tryReadMVar# m s of
         (# s', 0#, _ #) -> (# s', Nothing #)      -- MVar is empty
         (# s', _,  a #) -> (# s', Just a  #)      -- MVar is full
+#else
+tryReadMVar mv = do
+  ma <- tryTakeMVar mv
+  case ma of
+    Just a -> do
+      putMVar mv a
+      return (Just a)
+    Nothing -> return Nothing
 #endif
 
 -- | Check whether a given 'MVar' is empty.
