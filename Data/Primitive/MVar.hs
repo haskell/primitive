@@ -65,11 +65,16 @@ takeMVar (MVar mvar#) = primitive $ \ s# -> takeMVar# mvar# s#
 -- currently empty, 'readMVar' will wait until it is full.
 -- 'readMVar' is guaranteed to receive the next 'putMVar'.
 --
+-- /Multiple Wakeup:/ 'readMVar' is multiple-wakeup, so when multiple readers
+-- are blocked on an 'MVar', all of them are woken up at the same time.
+--
 -- /Compatibility note:/ On GHCs prior to 7.8, 'readMVar' is a combination
--- of 'takeMVar' and 'putMVar'.  This means that in the presence of
--- other threads attempting to 'putMVar', 'readMVar' may block.
--- Furthermore, 'readMVar' might not receive the next 'putMVar' if there
--- is already a pending thread blocked on 'takeMVar'.
+-- of 'takeMVar' and 'putMVar'. Consequently, its behavior differs in the
+-- following ways:
+--
+-- * It is single-wakeup instead multiple-wakeup.
+-- * It might not receive the value from the next call to 'putMVar' if
+--   there is already a pending thread blocked on 'takeMVar'.
 readMVar :: PrimMonad m => MVar (PrimState m) a -> m a
 #if __GLASGOW_HASKELL__ >= 708
 readMVar (MVar mvar#) = primitive $ \ s# -> readMVar# mvar# s#
@@ -109,9 +114,9 @@ tryPutMVar (MVar mvar#) x = primitive $ \ s# ->
 -- returns immediately, with 'Nothing' if the 'MVar' was empty, or
 -- @'Just' a@ if the 'MVar' was full with contents @a@.
 --
--- This behaves differently in a concurrent setting when
--- compiling when GHC older than 7.8. See the documentation for 'readMVar'.
--- or newer.
+-- /Compatibility note:/ On GHCs prior to 7.8, 'tryReadMVar' is a combination
+-- of 'tryTakeMVar' and 'putMVar'. This means that in the presence of other
+-- threads attempting to 'putMVar', 'tryReadMVar' may block.
 tryReadMVar :: PrimMonad m => MVar (PrimState m) a -> m (Maybe a)
 #if __GLASGOW_HASKELL__ >= 708
 tryReadMVar (MVar m) = primitive $ \ s ->
