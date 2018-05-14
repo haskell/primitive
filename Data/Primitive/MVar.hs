@@ -39,7 +39,7 @@ import GHC.Exts (readMVar#,tryReadMVar#)
 data MVar s a = MVar (MVar# s a)
 
 instance Eq (MVar s a) where
-  (MVar mvar1#) == (MVar mvar2#) = isTrue# (sameMVar# mvar1# mvar2#)
+  MVar mvar1# == MVar mvar2# = isTrue# (sameMVar# mvar1# mvar2#)
 
 -- | Create a new 'MVar' that is initially empty.
 newEmptyMVar :: PrimMonad m => m (MVar (PrimState m) a)
