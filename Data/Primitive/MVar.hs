@@ -72,9 +72,11 @@ takeMVar (MVar mvar#) = primitive $ \ s# -> takeMVar# mvar# s#
 -- of 'takeMVar' and 'putMVar'. Consequently, its behavior differs in the
 -- following ways:
 --
--- * It is single-wakeup instead multiple-wakeup.
+-- * It is single-wakeup instead of multiple-wakeup.
 -- * It might not receive the value from the next call to 'putMVar' if
 --   there is already a pending thread blocked on 'takeMVar'.
+-- * If another thread puts a value in the 'MVar' in between the
+--   calls to 'takeMVar' and 'putMVar', that value may be overridden.
 readMVar :: PrimMonad m => MVar (PrimState m) a -> m a
 #if __GLASGOW_HASKELL__ >= 708
 readMVar (MVar mvar#) = primitive $ \ s# -> readMVar# mvar# s#
@@ -115,8 +117,14 @@ tryPutMVar (MVar mvar#) x = primitive $ \ s# ->
 -- @'Just' a@ if the 'MVar' was full with contents @a@.
 --
 -- /Compatibility note:/ On GHCs prior to 7.8, 'tryReadMVar' is a combination
--- of 'tryTakeMVar' and 'putMVar'. This means that in the presence of other
--- threads attempting to 'putMVar', 'tryReadMVar' may block.
+-- of 'tryTakeMVar' and 'putMVar'. Consequently, its behavior differs in the
+-- following ways:
+--
+-- * It is single-wakeup instead of multiple-wakeup.
+-- * In the presence of other threads calling 'putMVar', 'tryReadMVar'
+--   may block.
+-- * If another thread puts a value in the 'MVar' in between the
+--   calls to 'tryTakeMVar' and 'putMVar', that value may be overridden.
 tryReadMVar :: PrimMonad m => MVar (PrimState m) a -> m (Maybe a)
 #if __GLASGOW_HASKELL__ >= 708
 tryReadMVar (MVar m) = primitive $ \ s ->
