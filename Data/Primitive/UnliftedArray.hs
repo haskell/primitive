@@ -61,6 +61,7 @@ module Data.Primitive.UnliftedArray
   , unsafeFreezeUnliftedArray
   , freezeUnliftedArray
   , thawUnliftedArray
+  , runUnliftedArray
   , sameMutableUnliftedArray
   , copyUnliftedArray
   , copyMutableUnliftedArray
@@ -201,8 +202,10 @@ instance PrimUnlifted GCS.ThreadId where
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.UnliftedArray." ++ fun ++ ": " ++ problem
 
--- | Creates a new 'MutableUnliftedArray'. This function is unsafe, because it
--- allows access to the raw contents of the underlying 'ArrayArray#'.
+-- | Creates a new 'MutableUnliftedArray'. This function is unsafe because it
+-- initializes all elements of the array as pointers to the array itself. Attempting
+-- to read one of these elements before writing to it is in effect an unsafe
+-- coercion from the @MutableUnliftedArray s a@ to the element type.
 unsafeNewUnliftedArray
   :: (PrimMonad m)
   => Int -- ^ size
@@ -393,6 +396,13 @@ thawUnliftedArray src off len = do
   return dst
 {-# inline thawUnliftedArray #-}
 
+-- | Execute a stateful computation and freeze the resulting array.
+runUnliftedArray
+  :: (forall s. ST s (MutableUnliftedArray s a))
+  -> UnliftedArray a
+runUnliftedArray m = runST $ m >>= unsafeFreezeUnliftedArray
+{-# inline runUnliftedArray #-}
+
 -- | Creates a copy of a portion of an 'UnliftedArray'
 cloneUnliftedArray
   :: UnliftedArray a -- ^ source
@@ -400,7 +410,7 @@ cloneUnliftedArray
   -> Int -- ^ length
   -> UnliftedArray a
 cloneUnliftedArray src off len =
-  runST $ thawUnliftedArray src off len >>= unsafeFreezeUnliftedArray
+  runUnliftedArray (thawUnliftedArray src off len)
 {-# inline cloneUnliftedArray #-}
 
 -- | Creates a new 'MutableUnliftedArray' containing a copy of a portion of
@@ -456,15 +466,15 @@ instance PrimUnlifted a => Monoid (UnliftedArray a) where
 #endif
 
 emptyUnliftedArray :: UnliftedArray a
-emptyUnliftedArray = runST $ unsafeNewUnliftedArray 0 >>= unsafeFreezeUnliftedArray
+emptyUnliftedArray = runUnliftedArray (unsafeNewUnliftedArray 0)
 {-# NOINLINE emptyUnliftedArray #-}
 
 concatUnliftedArray :: UnliftedArray a -> UnliftedArray a -> UnliftedArray a
-concatUnliftedArray x y = runST $ do
+concatUnliftedArray x y = runUnliftedArray $ do
   m <- unsafeNewUnliftedArray (sizeofUnliftedArray x + sizeofUnliftedArray y)
   copyUnliftedArray m 0 x 0 (sizeofUnliftedArray x)
   copyUnliftedArray m (sizeofUnliftedArray x) y 0 (sizeofUnliftedArray y)
-  unsafeFreezeUnliftedArray m
+  return m
 
 -- | Lazy right-associated fold over the elements of an 'UnliftedArray'.
 {-# INLINE foldrUnliftedArray #-}
@@ -510,7 +520,7 @@ mapUnliftedArray :: (PrimUnlifted a, PrimUnlifted b)
   => (a -> b)
   -> UnliftedArray a
   -> UnliftedArray b
-mapUnliftedArray f arr = runST $ do
+mapUnliftedArray f arr = runUnliftedArray $ do
   let !sz = sizeofUnliftedArray arr
   marr <- unsafeNewUnliftedArray sz
   let go !ix = if ix < sz
@@ -520,7 +530,7 @@ mapUnliftedArray f arr = runST $ do
           go (ix + 1)
         else return ()
   go 0
-  unsafeFreezeUnliftedArray marr
+  return marr
 
 -- | Convert the unlifted array to a list.
 {-# INLINE unliftedArrayToList #-}
@@ -531,12 +541,15 @@ unliftedArrayFromList :: PrimUnlifted a => [a] -> UnliftedArray a
 unliftedArrayFromList xs = unliftedArrayFromListN (L.length xs) xs
 
 unliftedArrayFromListN :: forall a. PrimUnlifted a => Int -> [a] -> UnliftedArray a
-unliftedArrayFromListN len vs = runST run where
-  run :: forall s. ST s (UnliftedArray a)
+unliftedArrayFromListN len vs = runUnliftedArray run where
+  run :: forall s. ST s (MutableUnliftedArray s a)
   run = do
     arr <- unsafeNewUnliftedArray len
     let go :: [a] -> Int -> ST s ()
         go [] !ix = if ix == len
+          -- The size check is mandatory since failure to initialize all elements
+          -- introduces the possibility of a segfault happening when someone attempts
+          -- to read the unitialized element. See the docs for unsafeNewUnliftedArray.
           then return ()
           else die "unliftedArrayFromListN" "list length less than specified size"
         go (a : as) !ix = if ix < len
@@ -545,7 +558,7 @@ unliftedArrayFromListN len vs = runST run where
             go as (ix + 1)
           else die "unliftedArrayFromListN" "list length greater than specified size"
     go vs 0
-    unsafeFreezeUnliftedArray arr
+    return arr
 
 
 #if MIN_VERSION_base(4,7,0)
