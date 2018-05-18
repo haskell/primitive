@@ -117,6 +117,12 @@ import Data.Semigroup (Semigroup)
 import qualified Data.Semigroup
 #endif
 
+#if MIN_VERSION_base(4,10,0)
+import GHC.Exts (runRW#)
+#elif MIN_VERSION_base(4,9,0)
+import GHC.Base (runRW#)
+#endif
+
 -- | Immutable arrays that efficiently store types that are simple wrappers
 -- around unlifted primitive types. The values of the unlifted type are
 -- stored directly, eliminating a layer of indirection.
@@ -443,7 +449,7 @@ runUnliftedArray m = UnliftedArray (runUnliftedArray# m)
 runUnliftedArray#
   :: (forall s. ST s (MutableUnliftedArray s a))
   -> ArrayArray#
-runUnliftedArray# m = case E.runRW# $ \s ->
+runUnliftedArray# m = case runRW# $ \s ->
   case unST m s of { (# s', MutableUnliftedArray mary# #) ->
   unsafeFreezeArrayArray# mary# s'} of (# _, ary# #) -> ary#
 
