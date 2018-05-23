@@ -379,6 +379,9 @@ arrayLiftCompare elemCompare a1 a2 = loop 0
     = elemCompare x1 x2 `mappend` loop (i+1)
     | otherwise = compare (sizeofArray a1) (sizeofArray a2)
 
+-- | __Note__: This library provides no guarantees about the particular ordering
+-- used. Users should not rely on it being the same as the ordering used for
+-- lists. It is subject to change between major versions.
 instance Ord a => Ord (Array a) where
   compare a1 a2 = arrayLiftCompare compare a1 a2
 

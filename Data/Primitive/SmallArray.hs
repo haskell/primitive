@@ -573,6 +573,9 @@ instance Ord1 SmallArray where
 #endif
 #endif
 
+-- | __Note__: This library provides no guarantees about the particular ordering
+-- used. Users should not rely on it being the same as the ordering used for
+-- lists. It is subject to change between major versions.
 instance Ord a => Ord (SmallArray a) where
   compare sa1 sa2 = smallArrayLiftCompare compare sa1 sa2
 

@@ -157,9 +157,9 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
 
--- | __Note__: For the sake of efficiency, this is not a lexicographic
---   ordering. This library makes no guarantees about the particular
---   ordering used, and it is subject to change between major releases.
+-- | __Note__: This library provides no guarantees about the particular ordering
+-- used. Users should not rely on it being the same as the ordering used for
+-- lists. It is subject to change between major versions.
 instance (Ord a, Prim a) => Ord (PrimArray a) where
   compare a1@(PrimArray ba1#) a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = EQ
