@@ -496,6 +496,9 @@ instance (Eq a, PrimUnlifted a) => Eq (UnliftedArray a) where
      | i < 0 = True
      | otherwise = indexUnliftedArray aa1 i == indexUnliftedArray aa2 i && loop (i-1)
 
+-- | __Note__: This library provides no guarantees about the particular ordering
+-- used. Users should not rely on it being the same as the ordering used for
+-- lists. It is subject to change between major versions.
 instance (Ord a, PrimUnlifted a) => Ord (UnliftedArray a) where
   compare a1 a2 = loop 0
     where
