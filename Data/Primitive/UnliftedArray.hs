@@ -1,6 +1,11 @@
-{-# Language MagicHash #-}
-{-# Language UnboxedTuples #-}
+{-# Language BangPatterns #-}
+{-# Language CPP #-}
 {-# Language DeriveDataTypeable #-}
+{-# Language MagicHash #-}
+{-# Language RankNTypes #-}
+{-# Language ScopedTypeVariables #-}
+{-# Language TypeFamilies #-}
+{-# Language UnboxedTuples #-}
 
 -- |
 -- Module      : Data.Primitive.UnliftedArray
@@ -39,9 +44,11 @@
 -- that are eligible to be stored.
 
 module Data.Primitive.UnliftedArray
-  ( UnliftedArray(..)
+  ( -- * Types
+    UnliftedArray(..)
   , MutableUnliftedArray(..)
   , PrimUnlifted(..)
+    -- * Operations
   , unsafeNewUnliftedArray
   , newUnliftedArray
   , setUnliftedArray
@@ -54,37 +61,67 @@ module Data.Primitive.UnliftedArray
   , unsafeFreezeUnliftedArray
   , freezeUnliftedArray
   , thawUnliftedArray
+  , runUnliftedArray
   , sameMutableUnliftedArray
   , copyUnliftedArray
   , copyMutableUnliftedArray
   , cloneUnliftedArray
   , cloneMutableUnliftedArray
+    -- * List Conversion
+  , unliftedArrayToList
+  , unliftedArrayFromList
+  , unliftedArrayFromListN
+    -- * Folding
+  , foldrUnliftedArray
+  , foldrUnliftedArray'
+  , foldlUnliftedArray
+  , foldlUnliftedArray'
+    -- * Mapping
+  , mapUnliftedArray
 -- Missing operations:
 --  , unsafeThawUnliftedArray
   ) where
 
 import Data.Typeable
+import Control.Applicative
 
 import GHC.Prim
-import GHC.Base (Int(..))
+import GHC.Base (Int(..),build)
 
 import Control.Monad.Primitive
 
-import Control.Monad.ST (runST)
+import Control.Monad.ST (runST,ST)
 
+import Data.Monoid (Monoid,mappend)
 import Data.Primitive.Internal.Compat ( isTrue# )
 
+import qualified Data.List as L
 import           Data.Primitive.Array (Array)
 import qualified Data.Primitive.Array as A
 import           Data.Primitive.ByteArray (ByteArray)
 import qualified Data.Primitive.ByteArray as BA
+import qualified Data.Primitive.PrimArray as PA
 import qualified Data.Primitive.SmallArray as SA
 import qualified Data.Primitive.MutVar as MV
+import qualified Data.Monoid
 import qualified GHC.MVar as GM (MVar(..))
 import qualified GHC.Conc as GC (TVar(..))
 import qualified GHC.Stable as GSP (StablePtr(..))
 import qualified GHC.Weak as GW (Weak(..))
 import qualified GHC.Conc.Sync as GCS (ThreadId(..))
+import qualified GHC.Exts as E
+import qualified GHC.ST as GHCST
+
+#if MIN_VERSION_base(4,9,0)
+import Data.Semigroup (Semigroup)
+import qualified Data.Semigroup
+#endif
+
+#if MIN_VERSION_base(4,10,0)
+import GHC.Exts (runRW#)
+#elif MIN_VERSION_base(4,9,0)
+import GHC.Base (runRW#)
+#endif
 
 -- | Immutable arrays that efficiently store types that are simple wrappers
 -- around unlifted primitive types. The values of the unlifted type are
@@ -130,6 +167,14 @@ instance PrimUnlifted (BA.MutableByteArray s) where
   toArrayArray# (BA.MutableByteArray mba#) = unsafeCoerce# mba#
   fromArrayArray# aa# = BA.MutableByteArray (unsafeCoerce# aa#)
 
+instance PrimUnlifted (PA.PrimArray a) where
+  toArrayArray# (PA.PrimArray ba#) = unsafeCoerce# ba#
+  fromArrayArray# aa# = PA.PrimArray (unsafeCoerce# aa#)
+
+instance PrimUnlifted (PA.MutablePrimArray s a) where
+  toArrayArray# (PA.MutablePrimArray mba#) = unsafeCoerce# mba#
+  fromArrayArray# aa# = PA.MutablePrimArray (unsafeCoerce# aa#)
+
 instance PrimUnlifted (SA.SmallArray a) where
   toArrayArray# (SA.SmallArray sa#) = unsafeCoerce# sa#
   fromArrayArray# aa# = SA.SmallArray (unsafeCoerce# aa#)
@@ -162,8 +207,13 @@ instance PrimUnlifted GCS.ThreadId where
   toArrayArray# (GCS.ThreadId tv#) = unsafeCoerce# tv#
   fromArrayArray# tv# = GCS.ThreadId (unsafeCoerce# tv#)
 
--- | Creates a new 'MutableUnliftedArray'. This function is unsafe, because it
--- allows access to the raw contents of the underlying 'ArrayArray#'.
+die :: String -> String -> a
+die fun problem = error $ "Data.Primitive.UnliftedArray." ++ fun ++ ": " ++ problem
+
+-- | Creates a new 'MutableUnliftedArray'. This function is unsafe because it
+-- initializes all elements of the array as pointers to the array itself. Attempting
+-- to read one of these elements before writing to it is in effect an unsafe
+-- coercion from the @MutableUnliftedArray s a@ to the element type.
 unsafeNewUnliftedArray
   :: (PrimMonad m)
   => Int -- ^ size
@@ -354,6 +404,63 @@ thawUnliftedArray src off len = do
   return dst
 {-# inline thawUnliftedArray #-}
 
+#if !MIN_VERSION_base(4,9,0)
+unsafeCreateUnliftedArray
+  :: Int
+  -> (forall s. MutableUnliftedArray s a -> ST s ())
+  -> UnliftedArray a
+unsafeCreateUnliftedArray 0 _ = emptyUnliftedArray
+unsafeCreateUnliftedArray n f = runUnliftedArray $ do
+  mary <- unsafeNewUnliftedArray n
+  f mary
+  pure mary
+
+-- | Execute a stateful computation and freeze the resulting array.
+runUnliftedArray
+  :: (forall s. ST s (MutableUnliftedArray s a))
+  -> UnliftedArray a
+runUnliftedArray m = runST $ m >>= unsafeFreezeUnliftedArray
+
+#else /* Below, runRW# is available. */
+
+-- This low-level business is designed to work with GHC's worker-wrapper
+-- transformation. A lot of the time, we don't actually need an Array
+-- constructor. By putting it on the outside, and being careful about
+-- how we special-case the empty array, we can make GHC smarter about this.
+-- The only downside is that separately created 0-length arrays won't share
+-- their Array constructors, although they'll share their underlying
+-- Array#s.
+unsafeCreateUnliftedArray
+  :: Int
+  -> (forall s. MutableUnliftedArray s a -> ST s ())
+  -> UnliftedArray a
+unsafeCreateUnliftedArray 0 _ = UnliftedArray (emptyArrayArray# (# #))
+unsafeCreateUnliftedArray n f = runUnliftedArray $ do
+  mary <- unsafeNewUnliftedArray n
+  f mary
+  pure mary
+
+-- | Execute a stateful computation and freeze the resulting array.
+runUnliftedArray
+  :: (forall s. ST s (MutableUnliftedArray s a))
+  -> UnliftedArray a
+runUnliftedArray m = UnliftedArray (runUnliftedArray# m)
+
+runUnliftedArray#
+  :: (forall s. ST s (MutableUnliftedArray s a))
+  -> ArrayArray#
+runUnliftedArray# m = case runRW# $ \s ->
+  case unST m s of { (# s', MutableUnliftedArray mary# #) ->
+  unsafeFreezeArrayArray# mary# s'} of (# _, ary# #) -> ary#
+
+unST :: ST s a -> State# s -> (# State# s, a #)
+unST (GHCST.ST f) = f
+
+emptyArrayArray# :: (# #) -> ArrayArray#
+emptyArrayArray# _ = case emptyUnliftedArray of UnliftedArray ar -> ar
+{-# NOINLINE emptyArrayArray# #-}
+#endif
+
 -- | Creates a copy of a portion of an 'UnliftedArray'
 cloneUnliftedArray
   :: UnliftedArray a -- ^ source
@@ -361,7 +468,7 @@ cloneUnliftedArray
   -> Int -- ^ length
   -> UnliftedArray a
 cloneUnliftedArray src off len =
-  runST $ thawUnliftedArray src off len >>= unsafeFreezeUnliftedArray
+  runUnliftedArray (thawUnliftedArray src off len)
 {-# inline cloneUnliftedArray #-}
 
 -- | Creates a new 'MutableUnliftedArray' containing a copy of a portion of
@@ -388,3 +495,130 @@ instance (Eq a, PrimUnlifted a) => Eq (UnliftedArray a) where
    loop i
      | i < 0 = True
      | otherwise = indexUnliftedArray aa1 i == indexUnliftedArray aa2 i && loop (i-1)
+
+instance (Ord a, PrimUnlifted a) => Ord (UnliftedArray a) where
+  compare a1 a2 = loop 0
+    where
+    mn = sizeofUnliftedArray a1 `min` sizeofUnliftedArray a2
+    loop i
+      | i < mn
+      , x1 <- indexUnliftedArray a1 i
+      , x2 <- indexUnliftedArray a2 i
+      = compare x1 x2 `mappend` loop (i+1)
+      | otherwise = compare (sizeofUnliftedArray a1) (sizeofUnliftedArray a2)
+
+instance (Show a, PrimUnlifted a) => Show (UnliftedArray a) where
+  showsPrec p a = showParen (p > 10) $
+    showString "fromListN " . shows (sizeofUnliftedArray a) . showString " "
+      . shows (unliftedArrayToList a)
+
+#if MIN_VERSION_base(4,9,0)
+instance PrimUnlifted a => Semigroup (UnliftedArray a) where
+  (<>) = concatUnliftedArray
+#endif
+
+instance PrimUnlifted a => Monoid (UnliftedArray a) where
+  mempty = emptyUnliftedArray
+#if !(MIN_VERSION_base(4,11,0))
+  mappend = concatUnliftedArray
+#endif
+
+emptyUnliftedArray :: UnliftedArray a
+emptyUnliftedArray = runUnliftedArray (unsafeNewUnliftedArray 0)
+{-# NOINLINE emptyUnliftedArray #-}
+
+concatUnliftedArray :: UnliftedArray a -> UnliftedArray a -> UnliftedArray a
+concatUnliftedArray x y = unsafeCreateUnliftedArray (sizeofUnliftedArray x + sizeofUnliftedArray y) $ \m -> do
+  copyUnliftedArray m 0 x 0 (sizeofUnliftedArray x)
+  copyUnliftedArray m (sizeofUnliftedArray x) y 0 (sizeofUnliftedArray y)
+
+-- | Lazy right-associated fold over the elements of an 'UnliftedArray'.
+{-# INLINE foldrUnliftedArray #-}
+foldrUnliftedArray :: forall a b. PrimUnlifted a => (a -> b -> b) -> b -> UnliftedArray a -> b
+foldrUnliftedArray f z arr = go 0
+  where
+    !sz = sizeofUnliftedArray arr
+    go !i
+      | sz > i = f (indexUnliftedArray arr i) (go (i+1))
+      | otherwise = z
+
+-- | Strict right-associated fold over the elements of an 'UnliftedArray.
+{-# INLINE foldrUnliftedArray' #-}
+foldrUnliftedArray' :: forall a b. PrimUnlifted a => (a -> b -> b) -> b -> UnliftedArray a -> b
+foldrUnliftedArray' f z0 arr = go (sizeofUnliftedArray arr - 1) z0
+  where
+    go !i !acc
+      | i < 0 = acc
+      | otherwise = go (i - 1) (f (indexUnliftedArray arr i) acc)
+
+-- | Lazy left-associated fold over the elements of an 'UnliftedArray'.
+{-# INLINE foldlUnliftedArray #-}
+foldlUnliftedArray :: forall a b. PrimUnlifted a => (b -> a -> b) -> b -> UnliftedArray a -> b
+foldlUnliftedArray f z arr = go (sizeofUnliftedArray arr - 1)
+  where
+    go !i
+      | i < 0 = z
+      | otherwise = f (go (i - 1)) (indexUnliftedArray arr i)
+
+-- | Strict left-associated fold over the elements of an 'UnliftedArray'.
+{-# INLINE foldlUnliftedArray' #-}
+foldlUnliftedArray' :: forall a b. PrimUnlifted a => (b -> a -> b) -> b -> UnliftedArray a -> b
+foldlUnliftedArray' f z0 arr = go 0 z0
+  where
+    !sz = sizeofUnliftedArray arr
+    go !i !acc
+      | i < sz = go (i + 1) (f acc (indexUnliftedArray arr i))
+      | otherwise = acc
+
+-- | Map over the elements of an 'UnliftedArray'.
+{-# INLINE mapUnliftedArray #-}
+mapUnliftedArray :: (PrimUnlifted a, PrimUnlifted b)
+  => (a -> b)
+  -> UnliftedArray a
+  -> UnliftedArray b
+mapUnliftedArray f arr = unsafeCreateUnliftedArray sz $ \marr -> do
+  let go !ix = if ix < sz
+        then do
+          let b = f (indexUnliftedArray arr ix)
+          writeUnliftedArray marr ix b
+          go (ix + 1)
+        else return ()
+  go 0
+  where
+  !sz = sizeofUnliftedArray arr
+
+-- | Convert the unlifted array to a list.
+{-# INLINE unliftedArrayToList #-}
+unliftedArrayToList :: PrimUnlifted a => UnliftedArray a -> [a]
+unliftedArrayToList xs = build (\c n -> foldrUnliftedArray c n xs)
+
+unliftedArrayFromList :: PrimUnlifted a => [a] -> UnliftedArray a
+unliftedArrayFromList xs = unliftedArrayFromListN (L.length xs) xs
+
+unliftedArrayFromListN :: forall a. PrimUnlifted a => Int -> [a] -> UnliftedArray a
+unliftedArrayFromListN len vs = unsafeCreateUnliftedArray len run where
+  run :: forall s. MutableUnliftedArray s a -> ST s ()
+  run arr = do
+    let go :: [a] -> Int -> ST s ()
+        go [] !ix = if ix == len
+          -- The size check is mandatory since failure to initialize all elements
+          -- introduces the possibility of a segfault happening when someone attempts
+          -- to read the unitialized element. See the docs for unsafeNewUnliftedArray.
+          then return ()
+          else die "unliftedArrayFromListN" "list length less than specified size"
+        go (a : as) !ix = if ix < len
+          then do
+            writeUnliftedArray arr ix a
+            go as (ix + 1)
+          else die "unliftedArrayFromListN" "list length greater than specified size"
+    go vs 0
+
+
+#if MIN_VERSION_base(4,7,0)
+instance PrimUnlifted a => E.IsList (UnliftedArray a) where
+  type Item (UnliftedArray a) = a
+  fromList = unliftedArrayFromList
+  fromListN = unliftedArrayFromListN
+  toList = unliftedArrayToList
+#endif
+
