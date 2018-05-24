@@ -446,12 +446,9 @@ instance Eq ByteArray where
       n1 = sizeofByteArray ba1
       n2 = sizeofByteArray ba2
 
--- Note: On GHC 8.4, the primop compareByteArrays# performs a check for pointer
--- equality as a shortcut, so the check here is actually redundant. However, it
--- is included here because it is likely better to check for pointer equality
--- before checking for length equality. Getting the length requires deferencing
--- the pointers, which could cause accesses to memory that is not in the cache.
--- By contrast, a pointer equality check is always extremely cheap.
+-- | Non-lexicographic ordering. This compares the lengths of
+-- the byte arrays first and uses a lexicographic ordering if
+-- the lengths are equal.
 instance Ord ByteArray where
   ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = EQ
@@ -460,6 +457,12 @@ instance Ord ByteArray where
     where
       n1 = sizeofByteArray ba1
       n2 = sizeofByteArray ba2
+-- Note: On GHC 8.4, the primop compareByteArrays# performs a check for pointer
+-- equality as a shortcut, so the check here is actually redundant. However, it
+-- is included here because it is likely better to check for pointer equality
+-- before checking for length equality. Getting the length requires deferencing
+-- the pointers, which could cause accesses to memory that is not in the cache.
+-- By contrast, a pointer equality check is always extremely cheap.
 
 appendByteArray :: ByteArray -> ByteArray -> ByteArray
 appendByteArray a b = runST $ do

@@ -573,6 +573,7 @@ instance Ord1 SmallArray where
 #endif
 #endif
 
+-- | Lexicographic ordering
 instance Ord a => Ord (SmallArray a) where
   compare sa1 sa2 = smallArrayLiftCompare compare sa1 sa2
 

@@ -496,6 +496,7 @@ instance (Eq a, PrimUnlifted a) => Eq (UnliftedArray a) where
      | i < 0 = True
      | otherwise = indexUnliftedArray aa1 i == indexUnliftedArray aa2 i && loop (i-1)
 
+-- | Lexicographic ordering
 instance (Ord a, PrimUnlifted a) => Ord (UnliftedArray a) where
   compare a1 a2 = loop 0
     where
