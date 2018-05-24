@@ -162,10 +162,9 @@ alignment x = I# (alignment# x)
 -- >          s2 -> case writeOffAddr# addr# ((3# *# i#) +# 2# ) c s2 of
 -- >            s3 -> s3
 -- >   setOffAddr# = defaultSetOffAddr#
-defaultSetByteArray# :: forall s a. Prim a => MutableByteArray# s -> Int# -> Int# -> a -> State# s -> State# s
+defaultSetByteArray# :: Prim a => MutableByteArray# s -> Int# -> Int# -> a -> State# s -> State# s
 defaultSetByteArray# arr# i# len# ident = go 0#
   where
-  go :: Int# -> State# s -> State# s
   go ix# s0 = if isTrue# (ix# <# len#)
     then case writeByteArray# arr# (i# +# ix#) ident s0 of
       s1 -> go (ix# +# 1#) s1
@@ -174,10 +173,9 @@ defaultSetByteArray# arr# i# len# ident = go 0#
 -- | An implementation of 'setOffAddr#' that calls 'writeOffAddr#'
 -- to set each element. The documentation of 'defaultSetByteArray#'
 -- provides an example of how to use this.
-defaultSetOffAddr# :: forall s a. Prim a => Addr# -> Int# -> Int# -> a -> State# s -> State# s
+defaultSetOffAddr# :: Prim a => Addr# -> Int# -> Int# -> a -> State# s -> State# s
 defaultSetOffAddr# addr# i# len# ident = go 0#
   where
-  go :: Int# -> State# s -> State# s
   go ix# s0 = if isTrue# (ix# <# len#)
     then case writeOffAddr# addr# (i# +# ix#) ident s0 of
       s1 -> go (ix# +# 1#) s1
