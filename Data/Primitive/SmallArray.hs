@@ -850,6 +850,7 @@ instance MonadFix SmallArray where
       err = error "mfix for Data.Primitive.SmallArray applied to strict function."
 
 #if MIN_VERSION_base(4,9,0)
+-- | @since 0.6.3.0
 instance Sem.Semigroup (SmallArray a) where
   (<>) = (<|>)
   sconcat = mconcat . toList

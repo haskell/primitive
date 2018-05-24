@@ -78,6 +78,8 @@ class Monad m => PrimMonad m where
 -- Unlike 'PrimMonad', this typeclass requires that the @Monad@ be fully
 -- expressed as a state transformer, therefore disallowing other monad
 -- transformers on top of the base @IO@ or @ST@.
+--
+-- @since 0.6.0.0
 class PrimMonad m => PrimBase m where
   -- | Expose the internal structure of the monad
   internal :: m a -> State# (PrimState m) -> (# State# (PrimState m), a #)
@@ -98,6 +100,7 @@ instance PrimBase IO where
   internal (IO p) = p
   {-# INLINE internal #-}
 
+-- | @since 0.6.3.0
 instance PrimMonad m => PrimMonad (ContT r m) where
   type PrimState (ContT r m) = PrimState m
   primitive = lift . primitive
@@ -107,6 +110,8 @@ instance PrimMonad m => PrimMonad (IdentityT m) where
   type PrimState (IdentityT m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
+-- | @since 0.6.2.0
 instance PrimBase m => PrimBase (IdentityT m) where
   internal (IdentityT m) = internal m
   {-# INLINE internal #-}
@@ -154,6 +159,7 @@ instance PrimMonad m => PrimMonad (ExceptT e m) where
 #endif
 
 #if MIN_VERSION_transformers(0,5,3)
+-- | @since 0.6.3.0
 instance ( Monoid w
          , PrimMonad m
 # if !(MIN_VERSION_base(4,8,0))
@@ -216,11 +222,15 @@ primToST :: PrimBase m => m a -> ST (PrimState m) a
 primToST = primToPrim
 
 -- | Convert an 'IO' action to a 'PrimMonad'.
+-- 
+-- @since 0.6.2.0
 ioToPrim :: (PrimMonad m, PrimState m ~ RealWorld) => IO a -> m a
 {-# INLINE ioToPrim #-}
 ioToPrim = primToPrim
 
 -- | Convert an 'ST' action to a 'PrimMonad'.
+--
+-- @since 0.6.2.0
 stToPrim :: PrimMonad m => ST (PrimState m) a -> m a
 {-# INLINE stToPrim #-}
 stToPrim = primToPrim
@@ -244,12 +254,16 @@ unsafePrimToIO = unsafePrimToPrim
 
 -- | Convert an 'ST' action with an arbitraty state token to any 'PrimMonad'.
 -- This operation is highly unsafe!
+-- 
+-- @since 0.6.2.0
 unsafeSTToPrim :: PrimMonad m => ST s a -> m a
 {-# INLINE unsafeSTToPrim #-}
 unsafeSTToPrim = unsafePrimToPrim
 
 -- | Convert an 'IO' action to any 'PrimMonad'. This operation is highly
 -- unsafe!
+--
+-- @since 0.6.2.0
 unsafeIOToPrim :: PrimMonad m => IO a -> m a
 {-# INLINE unsafeIOToPrim #-}
 unsafeIOToPrim = unsafePrimToPrim
@@ -272,6 +286,8 @@ touch x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
 -- | Create an action to force a value; generalizes 'Control.Exception.evaluate'
+--
+-- @since 0.6.2.0
 evalPrim :: forall a m . PrimMonad m => a -> m a
 #if MIN_VERSION_base(4,4,0)
 evalPrim a = primitive (\s -> seq# a s)

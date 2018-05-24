@@ -128,10 +128,14 @@ class Prim a where
   setOffAddr# :: Addr# -> Int# -> Int# -> a -> State# s -> State# s
 
 -- | Size of values of type @a@. The argument is not used.
+--
+-- @since 0.6.3.0
 sizeOf :: Prim a => a -> Int
 sizeOf x = I# (sizeOf# x)
 
 -- | Alignment of values of type @a@. The argument is not used.
+--
+-- @since 0.6.3.0
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
 
