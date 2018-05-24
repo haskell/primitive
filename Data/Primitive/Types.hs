@@ -20,7 +20,7 @@
 
 module Data.Primitive.Types (
   Prim(..),
-  sizeOf, alignment,
+  sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#,
 
   Addr(..),
   PrimStorable(..)
@@ -134,6 +134,54 @@ sizeOf x = I# (sizeOf# x)
 -- | Alignment of values of type @a@. The argument is not used.
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
+
+-- | An implementation of 'setByteArray#' that calls 'writeByteArray#'
+-- to set each element. This is helpful when writing a 'Prim' instance
+-- for a multi-word data type for which there is no cpu-accelerated way
+-- to broadcast a value to contiguous memory. It is typically used
+-- alongside 'defaultSetOffAddr#'. For example:
+--
+-- > data Trip = Trip Int Int Int
+-- >
+-- > instance Prim Trip
+-- >   sizeOf# _ = 3# *# sizeOf# (undefined :: Int)
+-- >   alignment# _ = alignment# (undefined :: Int)
+-- >   indexByteArray# arr# i# = ...
+-- >   readByteArray# arr# i# = ...
+-- >   writeByteArray# arr# i# (Trip a b c) =
+-- >     \s0 -> case writeByteArray# arr# (3# *# i#) a s0 of
+-- >        s1 -> case writeByteArray# arr# ((3# *# i#) +# 1#) b s1 of
+-- >          s2 -> case writeByteArray# arr# ((3# *# i#) +# 2# ) c s2 of
+-- >            s3 -> s3
+-- >   setByteArray# = defaultSetByteArray#
+-- >   indexOffAddr# addr# i# = ...
+-- >   readOffAddr# addr# i# = ...
+-- >   writeOffAddr# addr# i# (Trip a b c) =
+-- >     \s0 -> case writeOffAddr# addr# (3# *# i#) a s0 of
+-- >        s1 -> case writeOffAddr# addr# ((3# *# i#) +# 1#) b s1 of
+-- >          s2 -> case writeOffAddr# addr# ((3# *# i#) +# 2# ) c s2 of
+-- >            s3 -> s3
+-- >   setOffAddr# = defaultSetOffAddr#
+defaultSetByteArray# :: forall s a. Prim a => MutableByteArray# s -> Int# -> Int# -> a -> State# s -> State# s
+defaultSetByteArray# arr# i# len# ident = go 0#
+  where
+  go :: Int# -> State# s -> State# s
+  go ix# s0 = if isTrue# (ix# <# len#)
+    then case writeByteArray# arr# (i# +# ix#) ident s0 of
+      s1 -> go (ix# +# 1#) s1
+    else s0
+
+-- | An implementation of 'setOffAddr#' that calls 'writeOffAddr#'
+-- to set each element. The documentation of 'defaultSetByteArray#'
+-- provides an example of how to use this.
+defaultSetOffAddr# :: forall s a. Prim a => Addr# -> Int# -> Int# -> a -> State# s -> State# s
+defaultSetOffAddr# addr# i# len# ident = go 0#
+  where
+  go :: Int# -> State# s -> State# s
+  go ix# s0 = if isTrue# (ix# <# len#)
+    then case writeOffAddr# addr# (i# +# ix#) ident s0 of
+      s1 -> go (ix# +# 1#) s1
+    else s0
 
 -- | Newtype that uses a 'Prim' instance to give rise to a 'Storable' instance.
 -- This type is intended to be used with the @DerivingVia@ extension available
