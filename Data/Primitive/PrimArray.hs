@@ -24,6 +24,8 @@
 -- This argument is used to designate the type of element in the array.
 -- Consequently, all function this modules accepts length and incides in
 -- terms of elements, not bytes.
+--
+-- @since 0.6.4.0
 module Data.Primitive.PrimArray
   ( -- * Types
     PrimArray(..)
@@ -142,6 +144,7 @@ sameByteArray ba1 ba2 =
       _ -> False
 #endif
 
+-- | @since 0.6.4.0
 instance (Eq a, Prim a) => Eq (PrimArray a) where
   a1@(PrimArray ba1#) == a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = True
@@ -160,6 +163,8 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
 -- | __Note__: For the sake of efficiency, this is not a lexicographic
 --   ordering. This library makes no guarantees about the particular
 --   ordering used, and it is subject to change between major releases.
+--   
+--   @since 0.6.4.0
 instance (Ord a, Prim a) => Ord (PrimArray a) where
   compare a1@(PrimArray ba1#) a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = EQ
@@ -173,6 +178,7 @@ instance (Ord a, Prim a) => Ord (PrimArray a) where
       | otherwise = compare (indexPrimArray a1 i) (indexPrimArray a2 i) <> loop (i-1)
 
 #if MIN_VERSION_base(4,7,0)
+-- | @since 0.6.4.0
 instance Prim a => IsList (PrimArray a) where
   type Item (PrimArray a) = a
   fromList = primArrayFromList
@@ -180,6 +186,7 @@ instance Prim a => IsList (PrimArray a) where
   toList = primArrayToList
 #endif
 
+-- | @since 0.6.4.0
 instance (Show a, Prim a) => Show (PrimArray a) where
   showsPrec p a = showParen (p > 10) $
     showString "fromListN " . shows (sizeofPrimArray a) . showString " "
@@ -220,12 +227,14 @@ byteArrayToPrimArray :: ByteArray -> PrimArray a
 byteArrayToPrimArray (PB.ByteArray x) = PrimArray x
 
 #if MIN_VERSION_base(4,9,0)
+-- | @since 0.6.4.0
 instance Semigroup (PrimArray a) where
   x <> y = byteArrayToPrimArray (primArrayToByteArray x SG.<> primArrayToByteArray y)
   sconcat = byteArrayToPrimArray . SG.sconcat . fmap primArrayToByteArray
   stimes i arr = byteArrayToPrimArray (SG.stimes i (primArrayToByteArray arr))
 #endif
 
+-- | @since 0.6.4.0
 instance Monoid (PrimArray a) where
   mempty = emptyPrimArray
 #if !(MIN_VERSION_base(4,11,0))

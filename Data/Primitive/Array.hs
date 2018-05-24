@@ -357,6 +357,7 @@ instance Eq a => Eq (Array a) where
   a1 == a2 = arrayLiftEq (==) a1 a2
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+-- | @since 0.6.4.0
 instance Eq1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = arrayLiftEq
@@ -383,6 +384,7 @@ instance Ord a => Ord (Array a) where
   compare a1 a2 = arrayLiftCompare compare a1 a2
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+-- | @since 0.6.4.0
 instance Ord1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = arrayLiftCompare
@@ -766,6 +768,7 @@ instance Show a => Show (Array a) where
   showsPrec p a = arrayLiftShowsPrec showsPrec showList p a
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+-- | @since 0.6.4.0
 instance Show1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftShowsPrec = arrayLiftShowsPrec
@@ -787,6 +790,7 @@ instance Read a => Read (Array a) where
   readsPrec = arrayLiftReadsPrec readsPrec readList
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
+-- | @since 0.6.4.0
 instance Read1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftReadsPrec = arrayLiftReadsPrec

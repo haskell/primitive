@@ -13,6 +13,7 @@
 --
 -- Primitive operations on machine addresses
 --
+-- @since 0.6.4.0
 
 module Data.Primitive.Ptr (
   -- * Types
