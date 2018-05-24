@@ -36,7 +36,7 @@ test-suite test
                , tasty-quickcheck
                , tagged
                , transformers >= 0.3
-               , quickcheck-classes >= 0.4.9
+               , quickcheck-classes >= 0.4.11
   ghc-options: -O2
 
 source-repository head
