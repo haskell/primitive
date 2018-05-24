@@ -129,13 +129,15 @@ class Prim a where
 
 -- | Size of values of type @a@. The argument is not used.
 --
--- @since 0.6.3.0
+-- This function has existed since 0.1, but was moved from 'Data.Primitive'
+-- to 'Data.Primitive.Types' in version 0.6.3.0
 sizeOf :: Prim a => a -> Int
 sizeOf x = I# (sizeOf# x)
 
 -- | Alignment of values of type @a@. The argument is not used.
 --
--- @since 0.6.3.0
+-- This function has existed since 0.1, but was moved from 'Data.Primitive'
+-- to 'Data.Primitive.Types' in version 0.6.3.0
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
 
