@@ -157,7 +157,7 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
 
--- | Lexicographic ordering
+-- | Lexicographic ordering. Subject to change between major versions.
 instance (Ord a, Prim a) => Ord (PrimArray a) where
   compare a1@(PrimArray ba1#) a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = EQ

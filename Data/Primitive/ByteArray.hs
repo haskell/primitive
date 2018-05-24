@@ -448,7 +448,7 @@ instance Eq ByteArray where
 
 -- | Non-lexicographic ordering. This compares the lengths of
 -- the byte arrays first and uses a lexicographic ordering if
--- the lengths are equal.
+-- the lengths are equal. Subject to change between major versions.
 instance Ord ByteArray where
   ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = EQ
