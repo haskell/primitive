@@ -155,6 +155,8 @@ sameMutableByteArray (MutableByteArray arr#) (MutableByteArray brr#)
 -- Moreover, no reference to the old one should be kept in order to allow
 -- garbage collection of the original 'MutableByteArray' in case a new
 -- 'MutableByteArray' had to be allocated.
+--
+-- @since 0.6.4.0
 resizeMutableByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
                  -> m (MutableByteArray (PrimState m))
@@ -220,12 +222,16 @@ sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr
 --   be moved by the garbage collector. It is safe to use 'byteArrayContents'
 --   on such byte arrays. This function is only available when compiling with
 --   GHC 8.2 or newer.
+--
+--   @since 0.6.4.0
 isByteArrayPinned :: ByteArray -> Bool
 {-# INLINE isByteArrayPinned #-}
 isByteArrayPinned (ByteArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
 
 -- | Check whether or not the mutable byte array is pinned. This function is
 --   only available when compiling with GHC 8.2 or newer.
+--
+--   @since 0.6.4.0
 isMutableByteArrayPinned :: MutableByteArray s -> Bool
 {-# INLINE isMutableByteArrayPinned #-}
 isMutableByteArrayPinned (MutableByteArray marr#) = isTrue# (Exts.isMutableByteArrayPinned# marr#)
@@ -315,6 +321,8 @@ copyMutableByteArray (MutableByteArray dst#) doff
 -- | Copy a slice of a byte array to an unmanaged address. These must not
 --   overlap. This function is only available when compiling with GHC 7.8
 --   or newer.
+--
+--   @since 0.6.4.0
 copyByteArrayToAddr
   :: PrimMonad m
   => Addr -- ^ destination
@@ -329,6 +337,8 @@ copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff sz
 -- | Copy a slice of a mutable byte array to an unmanaged address. These must
 --   not overlap. This function is only available when compiling with GHC 7.8
 --   or newer.
+--
+--   @since 0.6.4.0
 copyMutableByteArrayToAddr
   :: PrimMonad m
   => Addr -- ^ destination
