@@ -167,10 +167,12 @@ instance PrimUnlifted (BA.MutableByteArray s) where
   toArrayArray# (BA.MutableByteArray mba#) = unsafeCoerce# mba#
   fromArrayArray# aa# = BA.MutableByteArray (unsafeCoerce# aa#)
 
+-- | @since 0.6.4.0
 instance PrimUnlifted (PA.PrimArray a) where
   toArrayArray# (PA.PrimArray ba#) = unsafeCoerce# ba#
   fromArrayArray# aa# = PA.PrimArray (unsafeCoerce# aa#)
 
+-- | @since 0.6.4.0
 instance PrimUnlifted (PA.MutablePrimArray s a) where
   toArrayArray# (PA.MutablePrimArray mba#) = unsafeCoerce# mba#
   fromArrayArray# aa# = PA.MutablePrimArray (unsafeCoerce# aa#)
@@ -187,22 +189,27 @@ instance PrimUnlifted (MV.MutVar s a) where
   toArrayArray# (MV.MutVar mv#) = unsafeCoerce# mv#
   fromArrayArray# aa# = MV.MutVar (unsafeCoerce# aa#)
 
+-- | @since 0.6.4.0
 instance PrimUnlifted (GM.MVar a) where
   toArrayArray# (GM.MVar mv#) = unsafeCoerce# mv#
   fromArrayArray# mv# = GM.MVar (unsafeCoerce# mv#)
 
+-- | @since 0.6.4.0
 instance PrimUnlifted (GC.TVar a) where
   toArrayArray# (GC.TVar tv#) = unsafeCoerce# tv#
   fromArrayArray# tv# = GC.TVar (unsafeCoerce# tv#)
 
+-- | @since 0.6.4.0
 instance PrimUnlifted (GSP.StablePtr a) where
   toArrayArray# (GSP.StablePtr tv#) = unsafeCoerce# tv#
   fromArrayArray# tv# = GSP.StablePtr (unsafeCoerce# tv#)
 
+-- | @since 0.6.4.0
 instance PrimUnlifted (GW.Weak a) where
   toArrayArray# (GW.Weak tv#) = unsafeCoerce# tv#
   fromArrayArray# tv# = GW.Weak (unsafeCoerce# tv#)
 
+-- | @since 0.6.4.0
 instance PrimUnlifted GCS.ThreadId where
   toArrayArray# (GCS.ThreadId tv#) = unsafeCoerce# tv#
   fromArrayArray# tv# = GCS.ThreadId (unsafeCoerce# tv#)
@@ -497,6 +504,8 @@ instance (Eq a, PrimUnlifted a) => Eq (UnliftedArray a) where
      | otherwise = indexUnliftedArray aa1 i == indexUnliftedArray aa2 i && loop (i-1)
 
 -- | Lexicographic ordering. Subject to change between major versions.
+--
+--   @since 0.6.4.0
 instance (Ord a, PrimUnlifted a) => Ord (UnliftedArray a) where
   compare a1 a2 = loop 0
     where
@@ -508,16 +517,19 @@ instance (Ord a, PrimUnlifted a) => Ord (UnliftedArray a) where
       = compare x1 x2 `mappend` loop (i+1)
       | otherwise = compare (sizeofUnliftedArray a1) (sizeofUnliftedArray a2)
 
+-- | @since 0.6.4.0
 instance (Show a, PrimUnlifted a) => Show (UnliftedArray a) where
   showsPrec p a = showParen (p > 10) $
     showString "fromListN " . shows (sizeofUnliftedArray a) . showString " "
       . shows (unliftedArrayToList a)
 
 #if MIN_VERSION_base(4,9,0)
+-- | @since 0.6.4.0
 instance PrimUnlifted a => Semigroup (UnliftedArray a) where
   (<>) = concatUnliftedArray
 #endif
 
+-- | @since 0.6.4.0
 instance PrimUnlifted a => Monoid (UnliftedArray a) where
   mempty = emptyUnliftedArray
 #if !(MIN_VERSION_base(4,11,0))
@@ -616,6 +628,7 @@ unliftedArrayFromListN len vs = unsafeCreateUnliftedArray len run where
 
 
 #if MIN_VERSION_base(4,7,0)
+-- | @since 0.6.4.0
 instance PrimUnlifted a => E.IsList (UnliftedArray a) where
   type Item (UnliftedArray a) = a
   fromList = unliftedArrayFromList

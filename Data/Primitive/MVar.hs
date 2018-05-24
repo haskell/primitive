@@ -14,6 +14,8 @@
 -- of the functions here are completely deterministic. Users of 'MVar' are
 -- responsible for designing abstractions that guarantee determinism in
 -- the presence of multi-threading.
+--
+-- @since 0.6.4.0
 module Data.Primitive.MVar
   ( MVar(..)
   , newMVar
