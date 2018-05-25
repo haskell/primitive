@@ -739,6 +739,7 @@ instance MonadFix Array where
       err = error "mfix for Data.Primitive.Array applied to strict function."
 
 #if MIN_VERSION_base(4,9,0)
+-- | @since 0.6.3.0
 instance Semigroup (Array a) where
   (<>) = (<|>)
   sconcat = mconcat . F.toList

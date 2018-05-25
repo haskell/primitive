@@ -407,6 +407,7 @@ instance Typeable s => Data (MutableByteArray s) where
   gunfold _ _ = error "gunfold"
   dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.MutableByteArray"
 
+-- | @since 0.6.3.0
 instance Show ByteArray where
   showsPrec _ ba =
       showString "[" . go 0
@@ -447,6 +448,7 @@ sameByteArray ba1 ba2 =
       0# -> False
 #endif
 
+-- | @since 0.6.3.0
 instance Eq ByteArray where
   ba1@(ByteArray ba1#) == ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = True
@@ -459,6 +461,8 @@ instance Eq ByteArray where
 -- | Non-lexicographic ordering. This compares the lengths of
 -- the byte arrays first and uses a lexicographic ordering if
 -- the lengths are equal. Subject to change between major versions.
+-- 
+-- @since 0.6.3.0
 instance Ord ByteArray where
   ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = EQ
@@ -531,6 +535,7 @@ instance Monoid ByteArray where
   mconcat = concatByteArray
 
 #if __GLASGOW_HASKELL__ >= 708
+-- | @since 0.6.3.0
 instance Exts.IsList ByteArray where
   type Item ByteArray = Word8
 
