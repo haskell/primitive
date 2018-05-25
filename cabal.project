@@ -2,5 +2,4 @@ packages: .
           ./test
           ./bench
 package quickcheck-classes
-  flags: -aeson -semigroupoids -fsemirings
-  
+  flags: -aeson -semigroupoids -semirings
