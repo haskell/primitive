@@ -56,6 +56,9 @@
  * Add fold functions and map function to `Data.Primitive.UnliftedArray`.
    Add typeclass instances for `IsList`, `Ord`, and `Show`.
 
+ * Add `defaultSetByteArray#` and `defaultSetOffAddr#` to
+   `Data.Primitive.Types`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from

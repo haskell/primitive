@@ -3,4 +3,3 @@ packages: .
           ./bench
 package quickcheck-classes
   flags: -aeson -semigroupoids -semirings
-  

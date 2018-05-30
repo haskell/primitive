@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -133,6 +134,9 @@ main = do
       , TQC.testProperty "foldlUnliftedArray" (QCCL.foldlProp arrInt16 foldlUnliftedArray)
       , TQC.testProperty "foldlUnliftedArray'" (QCCL.foldlProp arrInt16 foldlUnliftedArray')
 #endif
+      ]
+    , testGroup "DefaultSetMethod"
+      [ lawsToTest (QCC.primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
     -- , testGroup "PrimStorable"
     --   [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
@@ -309,6 +313,23 @@ iforM_ :: Monad m => [a] -> (Int -> a -> m b) -> m ()
 iforM_ xs0 f = go 0 xs0 where
   go !_ [] = return ()
   go !ix (x : xs) = f ix x >> go (ix + 1) xs
+
+newtype DefaultSetMethod = DefaultSetMethod Int16
+  deriving (Eq,Show,Arbitrary)
+
+instance Prim DefaultSetMethod where
+  sizeOf# _ = sizeOf# (undefined :: Int16)
+  alignment# _ = alignment# (undefined :: Int16)
+  indexByteArray# arr ix = DefaultSetMethod (indexByteArray# arr ix)
+  readByteArray# arr ix s0 = case readByteArray# arr ix s0 of
+    (# s1, n #) -> (# s1, DefaultSetMethod n #)
+  writeByteArray# arr ix (DefaultSetMethod n) s0 = writeByteArray# arr ix n s0
+  setByteArray# = defaultSetByteArray#
+  indexOffAddr# addr off = DefaultSetMethod (indexOffAddr# addr off)
+  readOffAddr# addr off s0 = case readOffAddr# addr off s0 of
+    (# s1, n #) -> (# s1, DefaultSetMethod n #)
+  writeOffAddr# addr off (DefaultSetMethod n) s0 = writeOffAddr# addr off n s0
+  setOffAddr# = defaultSetOffAddr#
 
 -- TODO: Uncomment this out when GHC 8.6 is release. Also, uncomment
 -- the corresponding PrimStorable test group above.
