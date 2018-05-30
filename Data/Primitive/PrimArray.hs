@@ -160,22 +160,20 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
 
--- | __Note__: For the sake of efficiency, this is not a lexicographic
---   ordering. This library makes no guarantees about the particular
---   ordering used, and it is subject to change between major releases.
---   
+-- | Lexicographic ordering. Subject to change between major versions.
+-- 
 --   @since 0.6.4.0
 instance (Ord a, Prim a) => Ord (PrimArray a) where
   compare a1@(PrimArray ba1#) a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = EQ
-    | sz1 /= sz2 = compare sz1 sz2
-    | otherwise = loop (quot sz1 (sizeOf (undefined :: a)) - 1)
+    | otherwise = loop 0
     where
     sz1 = PB.sizeofByteArray (ByteArray ba1#)
     sz2 = PB.sizeofByteArray (ByteArray ba2#)
+    sz = quot (min sz1 sz2) (sizeOf (undefined :: a))
     loop !i
-      | i < 0 = EQ
-      | otherwise = compare (indexPrimArray a1 i) (indexPrimArray a2 i) <> loop (i-1)
+      | i < sz = compare (indexPrimArray a1 i) (indexPrimArray a2 i) <> loop (i+1)
+      | otherwise = compare sz1 sz2
 
 #if MIN_VERSION_base(4,7,0)
 -- | @since 0.6.4.0

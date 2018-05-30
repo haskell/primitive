@@ -503,7 +503,9 @@ instance (Eq a, PrimUnlifted a) => Eq (UnliftedArray a) where
      | i < 0 = True
      | otherwise = indexUnliftedArray aa1 i == indexUnliftedArray aa2 i && loop (i-1)
 
--- | @since 0.6.4.0
+-- | Lexicographic ordering. Subject to change between major versions.
+--
+--   @since 0.6.4.0
 instance (Ord a, PrimUnlifted a) => Ord (UnliftedArray a) where
   compare a1 a2 = loop 0
     where
