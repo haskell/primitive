@@ -60,7 +60,9 @@
    `Data.Primitive.Types`.
 
  * Add `Data.Primitive.MVar`, a replacement for `Control.Concurrent.MVar`
-   that can run in any `PrimMonad` instead of just `IO`.
+   that can run in any `PrimMonad` instead of just `IO`. It is not a full
+   replacement. Notably, it's missing masking functions and support for
+   adding finalizers.
 
 ## Changes in version 0.6.3.0
 
