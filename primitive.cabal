@@ -1,5 +1,5 @@
 Name:           primitive
-Version:        0.6.3.0
+Version:        0.6.4.0
 License:        BSD3
 License-File:   LICENSE
 
@@ -57,13 +57,12 @@ Library
                , ghc-prim >= 0.2 && < 0.6
                , transformers >= 0.2 && < 0.6
 
-  Ghc-Options: -O2 -Wall
+  Ghc-Options: -O2
 
   Include-Dirs: cbits
   Install-Includes: primitive-memops.h
   includes: primitive-memops.h
   c-sources: cbits/primitive-memops.c
-  cc-options: -O3 -fomit-frame-pointer -Wall
   if !os(solaris)
       cc-options: -ftree-vectorize
   if arch(i386) || arch(x86_64)

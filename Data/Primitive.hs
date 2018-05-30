@@ -12,13 +12,14 @@
 --
 module Data.Primitive (
   -- * Re-exports
-  module Data.Primitive.Types,
-  module Data.Primitive.Array,
-  module Data.Primitive.ByteArray,
-  module Data.Primitive.Addr,
-  module Data.Primitive.SmallArray,
-  module Data.Primitive.UnliftedArray,
-  module Data.Primitive.PrimArray
+  module Data.Primitive.Types
+  ,module Data.Primitive.Array
+  ,module Data.Primitive.ByteArray
+  ,module Data.Primitive.Addr
+  ,module Data.Primitive.SmallArray
+  ,module Data.Primitive.UnliftedArray
+  ,module Data.Primitive.PrimArray
+  ,module Data.Primitive.MutVar
   -- * Naming Conventions
   -- $namingConventions
 ) where
@@ -30,6 +31,7 @@ import Data.Primitive.Addr
 import Data.Primitive.SmallArray
 import Data.Primitive.UnliftedArray
 import Data.Primitive.PrimArray
+import Data.Primitive.MutVar
 
 {- $namingConventions
 For historical reasons, this library embraces the practice of suffixing
