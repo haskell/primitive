@@ -59,6 +59,9 @@
  * Add `defaultSetByteArray#` and `defaultSetOffAddr#` to
    `Data.Primitive.Types`.
 
+ * Add `Data.Primitive.MVar`, a replacement for `Control.Concurrent.MVar`
+   that can run in any `PrimMonad` instead of just `IO`.
+
 ## Changes in version 0.6.3.0
 
  * Add `PrimMonad` instances for `ContT`, `AccumT`, and `SelectT` from
