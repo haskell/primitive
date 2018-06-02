@@ -5,27 +5,25 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Control.Applicative
 import Control.Monad
-import Control.Monad.Fix (fix)
-import Control.Monad.Primitive
 import Control.Monad.ST
-import Data.Monoid
 import Data.Primitive
-import Data.Primitive.Array
-import Data.Primitive.ByteArray
-import Data.Primitive.Types
-import Data.Primitive.SmallArray
-import Data.Primitive.PrimArray
 import Data.Word
 import Data.Proxy (Proxy(..))
 import GHC.Int
 import GHC.IO
 import GHC.Prim
 import Data.Function (on)
+#if !(MIN_VERSION_base(4,8,0))
+import Data.Monoid (Monoid(..))
+#endif
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (stimes)
+#endif
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Monoid ((<>))
 #endif
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
@@ -205,7 +203,7 @@ intsLessThan :: Int -> [Int]
 intsLessThan i = if i < 1
   then []
   else (i - 1) : intsLessThan (i - 1)
-  
+
 byteArrayCompareProp :: QC.Property
 byteArrayCompareProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
   compareLengthFirst xs ys === compare (byteArrayFromList xs) (byteArrayFromList ys)
@@ -265,7 +263,7 @@ testByteArray = do
 mkByteArray :: Prim a => [a] -> ByteArray
 mkByteArray xs = runST $ do
     marr <- newByteArray (length xs * sizeOf (head xs))
-    sequence $ zipWith (writeByteArray marr) [0..] xs
+    sequence_ $ zipWith (writeByteArray marr) [0..] xs
     unsafeFreezeByteArray marr
 
 instance Arbitrary1 Array where

@@ -3,20 +3,11 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 import Gauge
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Primitive
 import Control.Monad.ST
-import Data.Monoid
 import Data.Primitive
-import Data.Primitive.Array
-import Data.Primitive.ByteArray
-import Data.Primitive.Types
-import Data.Primitive.SmallArray
-import Data.Word
-import Data.Proxy (Proxy(..))
 import Control.DeepSeq
 import Control.Monad.Trans.State.Strict
 

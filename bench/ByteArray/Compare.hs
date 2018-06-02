@@ -9,7 +9,6 @@ module ByteArray.Compare
   ) where
 
 import Data.Primitive
-import Data.Primitive.UnliftedArray
 import Data.Word
 import Control.Monad
 import Control.Monad.ST (runST)
