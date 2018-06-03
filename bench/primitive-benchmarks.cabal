@@ -21,7 +21,7 @@ Tested-With:
   GHC == 7.10.3,
   GHC == 8.0.2,
   GHC == 8.2.2,
-  GHC == 8.4.2
+  GHC == 8.4.3
 
 flag primitive-benchmarks
   default: True
