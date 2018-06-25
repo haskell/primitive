@@ -39,6 +39,7 @@ benchmark bench
     Array.Traverse.Closure
     Array.Traverse.Unsafe
     ByteArray.Compare
+    PrimArray.Compare
     PrimArray.Traverse
   build-depends:
       base >= 4.8 && < 4.12
