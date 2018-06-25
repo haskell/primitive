@@ -159,6 +159,7 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
     loop !i
       | i < 0 = True
       | otherwise = indexPrimArray a1 i == indexPrimArray a2 i && loop (i-1)
+  {-# INLINE (==) #-}
 
 -- | Lexicographic ordering. Subject to change between major versions.
 -- 
@@ -174,6 +175,7 @@ instance (Ord a, Prim a) => Ord (PrimArray a) where
     loop !i
       | i < sz = compare (indexPrimArray a1 i) (indexPrimArray a2 i) <> loop (i+1)
       | otherwise = compare sz1 sz2
+  {-# INLINE compare #-}
 
 #if MIN_VERSION_base(4,7,0)
 -- | @since 0.6.4.0
