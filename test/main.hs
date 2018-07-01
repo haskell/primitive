@@ -7,6 +7,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE TypeInType #-}
+#endif
+
 import Control.Monad
 import Control.Monad.ST
 import Data.Primitive
@@ -24,6 +31,9 @@ import Data.Semigroup (stimes)
 #endif
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Monoid ((<>))
+#endif
+#if __GLASGOW_HASKELL__ >= 805
+import Foreign.Storable (Storable)
 #endif
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
@@ -136,9 +146,11 @@ main = do
     , testGroup "DefaultSetMethod"
       [ lawsToTest (QCC.primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
-    -- , testGroup "PrimStorable"
-    --   [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
-    --   ]
+#if __GLASGOW_HASKELL__ >= 805
+    , testGroup "PrimStorable"
+      [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
+      ]
+#endif
     ]
 
 int16 :: Proxy Int16
@@ -329,12 +341,9 @@ instance Prim DefaultSetMethod where
   writeOffAddr# addr off (DefaultSetMethod n) s0 = writeOffAddr# addr off n s0
   setOffAddr# = defaultSetOffAddr#
 
--- TODO: Uncomment this out when GHC 8.6 is release. Also, uncomment
--- the corresponding PrimStorable test group above.
---
--- newtype Derived = Derived Int16
---   deriving newtype (Prim)
---   deriving Storable via (PrimStorable Derived)
-
-
-
+#if __GLASGOW_HASKELL__ >= 805
+newtype Derived = Derived Int16
+  deriving stock (Eq, Show)
+  deriving newtype (Arbitrary, Prim)
+  deriving Storable via (PrimStorable Derived)
+#endif
