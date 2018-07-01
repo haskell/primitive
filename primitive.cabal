@@ -26,7 +26,8 @@ Tested-With:
   GHC == 7.10.3,
   GHC == 8.0.2,
   GHC == 8.2.2,
-  GHC == 8.4.3
+  GHC == 8.4.3,
+  GHC == 8.6.1
 
 Library
   Default-Language: Haskell2010
