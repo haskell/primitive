@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
-{-# LANGUAGE InstanceSigs, ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 #if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE TypeInType #-}
 #endif
@@ -143,11 +143,8 @@ alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
 
 instance Prim a => Prim (Complex a) where
-  sizeOf# :: Complex a -> Int# 
   sizeOf# _ = 2# *# sizeOf# (undefined :: a)
-  alignment# :: Complex a -> Int#
   alignment# _ = alignment# (undefined :: a)
-  indexByteArray# :: ByteArray# -> Int# -> Complex a 
   indexByteArray# arr# i# =
     let x = indexByteArray# arr# (2# *# i# +# 0#)
         y = indexByteArray# arr# (2# *# i# +# 1#)
