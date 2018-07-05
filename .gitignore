@@ -21,3 +21,6 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 stack.yaml
+*.swm
+*.swo
+*.swp
