@@ -36,6 +36,7 @@ import Data.Primitive.Internal.Operations
 import Foreign.Ptr (IntPtr, intPtrToPtr, ptrToIntPtr, WordPtr, wordPtrToPtr, ptrToWordPtr)
 import Foreign.C.Types
 import System.Posix.Types
+import Data.Complex
 
 import GHC.Word (Word8(..), Word16(..), Word32(..), Word64(..))
 import GHC.Int (Int8(..), Int16(..), Int32(..), Int64(..))
@@ -51,7 +52,6 @@ import qualified Foreign.Storable as FS
 
 import GHC.IO (IO(..))
 import qualified GHC.Exts
-
 
 import Control.Applicative (Const(..))
 import Data.Functor.Identity (Identity(..))
@@ -183,6 +183,47 @@ alignmentOfType = I# (alignmentOfType# (Proxy :: Proxy a))
 -- to 'Data.Primitive.Types' in version 0.6.3.0.
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
+
+-- | @since 0.6.5.0
+instance Prim a => Prim (Complex a) where
+  sizeOf# _ = 2# *# sizeOf# (undefined :: a)
+  alignment# _ = alignment# (undefined :: a)
+  indexByteArray# arr# i# =
+    let x = indexByteArray# arr# (2# *# i#)
+        y = indexByteArray# arr# (2# *# i# +# 1#)
+    in x :+ y
+  readByteArray# arr# i# =
+    \s0 -> case readByteArray# arr# (2# *# i#) s0 of
+       (# s1#, x #) -> case readByteArray# arr# (2# *# i# +# 1#) s1# of
+          (# s2#, y #) -> (# s2#, x :+ y #)
+  writeByteArray# arr# i# (a :+ b) =
+    \s0 -> case writeByteArray# arr# (2# *# i#) a s0 of
+       s1 -> case writeByteArray# arr# (2# *# i# +# 1#) b s1 of
+         s2 -> s2
+  setByteArray# = defaultSetByteArray#
+  indexOffAddr# addr# i# =
+    let x = indexOffAddr# addr# (2# *# i#)
+        y = indexOffAddr# addr# (2# *# i# +# 1#)
+    in x :+ y
+  readOffAddr# addr# i# =
+    \s0 -> case readOffAddr# addr# (2# *# i#) s0 of
+       (# s1, x #) -> case readOffAddr# addr# (2# *# i# +# 1#) s1 of
+         (# s2, y #) -> (# s2, x :+ y #)
+  writeOffAddr# addr# i# (a :+ b) =
+    \s0 -> case writeOffAddr# addr# (2# *# i#) a s0 of
+       s1 -> case writeOffAddr# addr# (2# *# i# +# 1#) b s1 of
+         s2 -> s2
+  setOffAddr# = defaultSetOffAddr#
+  {-# INLINE sizeOf# #-}
+  {-# INLINE alignment# #-}
+  {-# INLINE indexByteArray# #-}
+  {-# INLINE readByteArray# #-}
+  {-# INLINE writeByteArray# #-}
+  {-# INLINE setByteArray# #-}
+  {-# INLINE indexOffAddr# #-}
+  {-# INLINE readOffAddr# #-}
+  {-# INLINE writeOffAddr# #-}
+  {-# INLINE setOffAddr# #-}
 
 -- | An implementation of 'setByteArray#' that calls 'writeByteArray#'
 -- to set each element. This is helpful when writing a 'Prim' instance
