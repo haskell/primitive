@@ -6,6 +6,8 @@
 
   * Use `mutableByteArrayContents#` in GHC 9.2+
 
+  * Add `Prim` instance for `Complex`.
+
   * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
     from `GHC.Exts`.
 

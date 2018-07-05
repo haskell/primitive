@@ -18,6 +18,7 @@
 
 import Control.Monad
 import Control.Monad.ST
+import Data.Complex
 import Data.Primitive
 import Data.Word
 import Data.Proxy (Proxy(..))
@@ -152,6 +153,9 @@ main = do
     , testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
+    , testGroup "Complex"
+      [ lawsToTest (primLaws (Proxy :: Proxy (Complex Double)))
+      ]
 #if __GLASGOW_HASKELL__ >= 805
     , testGroup "PrimStorable"
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
@@ -179,15 +183,29 @@ main = do
       , renameLawsToTest "Min" (primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
       , renameLawsToTest "Max" (primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
       ]
+    , testGroup "Newtypes"
+      [ lawsToTest (primLaws (Proxy :: Proxy (Const Int16 Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Down Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Identity Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Monoid.Product Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Semigroup.First Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
+      , lawsToTest (primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
+      ]
     ]
 
 deriving instance Arbitrary a => Arbitrary (Down a)
 -- Const, Dual, Sum, Product: all have Arbitrary instances defined
 -- in QuickCheck itself
+#if MIN_VERSION_base(4,9,0)
 deriving instance Arbitrary a => Arbitrary (Semigroup.First a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Last a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Min a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Max a)
+#endif
 
 word8 :: Proxy Word8
 word8 = Proxy
