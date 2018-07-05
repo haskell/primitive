@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE InstanceSigs, ScopedTypeVariables #-}
 #if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE TypeInType #-}
 #endif
@@ -31,6 +31,7 @@ import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
 import Foreign.C.Types
 import System.Posix.Types
+import Data.Complex
 
 import GHC.Base (
     Int(..), Char(..),
@@ -140,6 +141,39 @@ sizeOf x = I# (sizeOf# x)
 -- to 'Data.Primitive.Types' in version 0.6.3.0
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
+
+instance Prim a => Prim (Complex a) where
+  sizeOf# :: Complex a -> Int# 
+  sizeOf# _ = 2# *# sizeOf# (undefined :: a)
+  alignment# :: Complex a -> Int#
+  alignment# _ = alignment# (undefined :: a)
+  indexByteArray# :: ByteArray# -> Int# -> Complex a 
+  indexByteArray# arr# i# =
+    let x = indexByteArray# arr# (2# *# i# +# 0#)
+        y = indexByteArray# arr# (2# *# i# +# 1#)
+    in x :+ y
+  readByteArray# arr# i# =
+    \s0 -> case readByteArray# arr# (2# *# i# +# 0#) s0 of
+       (# s1#, x #) -> case readByteArray# arr# (2# *# i# +# 1#) s1# of
+          (# s2#, y #) -> (# s2#, x :+ y #)
+  writeByteArray# arr# i# (a :+ b) =
+    \s0 -> case writeByteArray# arr# (2# *# i# +# 0#) a s0 of
+       s1 -> case writeByteArray# arr# (2# *# i# +# 1#) b s1 of
+         s2 -> s2
+  setByteArray# = defaultSetByteArray#
+  indexOffAddr# addr# i# =
+    let x = indexOffAddr# addr# (2# *# i# +# 0#)
+        y = indexOffAddr# addr# (2# *# i# +# 1#)
+    in x :+ y
+  readOffAddr# addr# i# =
+    \s0 -> case readOffAddr# addr# (2# *# i# +# 0#) s0 of
+       (# s1, x #) -> case readOffAddr# addr# (2# *# i# +# 1#) s1 of
+         (# s2, y #) -> (# s2, x :+ y #)
+  writeOffAddr# addr# i# (a :+ b) =
+    \s0 -> case writeOffAddr# addr# (2# *# i# +# 0#) a s0 of
+       s1 -> case writeOffAddr# addr# (2# *# i# +# 1#) b s1 of
+         s2 -> s2
+  setOffAddr# = defaultSetOffAddr#
 
 -- | An implementation of 'setByteArray#' that calls 'writeByteArray#'
 -- to set each element. This is helpful when writing a 'Prim' instance
