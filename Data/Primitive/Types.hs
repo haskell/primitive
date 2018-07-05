@@ -62,6 +62,20 @@ import Numeric
 
 import qualified Foreign.Storable as FS
 
+import Control.Applicative (Const(..))
+#if MIN_VERSION_base(4,8,0)
+import Data.Functor.Identity (Identity(..))
+import qualified Data.Monoid as Monoid
+#endif
+#if MIN_VERSION_base(4,6,0)
+import Data.Ord (Down(..))
+#else
+import GHC.Exts (Down(..))
+#endif
+#if MIN_VERSION_base(4,9,0)
+import qualified Data.Semigroup as Semigroup
+#endif
+
 -- | A machine address
 data Addr = Addr Addr# deriving ( Typeable )
 
@@ -393,3 +407,18 @@ deriving instance Prim CKey
 deriving instance Prim CTimer
 #endif
 deriving instance Prim Fd
+
+deriving instance Prim a => Prim (Const a b)
+deriving instance Prim a => Prim (Down a)
+#if MIN_VERSION_base(4,8,0)
+deriving instance Prim a => Prim (Identity a)
+deriving instance Prim a => Prim (Monoid.Dual a)
+deriving instance Prim a => Prim (Monoid.Sum a)
+deriving instance Prim a => Prim (Monoid.Product a)
+#endif
+#if MIN_VERSION_base(4,9,0)
+deriving instance Prim a => Prim (Semigroup.First a)
+deriving instance Prim a => Prim (Semigroup.Last a)
+deriving instance Prim a => Prim (Semigroup.Min a)
+deriving instance Prim a => Prim (Semigroup.Max a)
+#endif

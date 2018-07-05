@@ -5,6 +5,8 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 #if __GLASGOW_HASKELL__ >= 805
@@ -23,11 +25,22 @@ import GHC.Int
 import GHC.IO
 import GHC.Prim
 import Data.Function (on)
+import Control.Applicative (Const(..))
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
 #endif
+#if MIN_VERSION_base(4,8,0)
+import Data.Functor.Identity (Identity(..))
+import qualified Data.Monoid as Monoid
+#endif
+#if MIN_VERSION_base(4,6,0)
+import Data.Ord (Down(..))
+#else
+import GHC.Exts (Down(..))
+#endif
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (stimes)
+import qualified Data.Semigroup as Semigroup
 #endif
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Monoid ((<>))
@@ -151,7 +164,41 @@ main = do
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
       ]
 #endif
+    , testGroup "Newtypes"
+      [ lawsToTest (QCC.primLaws (Proxy :: Proxy (Const Int16 Int16)))
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Down Int16)))
+#if MIN_VERSION_base(4,8,0)
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Identity Int16)))
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Product Int16)))
+#endif
+#if MIN_VERSION_base(4,9,0)
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.First Int16)))
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
+      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
+#endif
+      ]
     ]
+
+deriving instance Arbitrary a => Arbitrary (Down a)
+-- Const, Dual, Sum, Product: all have Arbitrary instances defined
+-- in QuickCheck itself
+#if MIN_VERSION_base(4,9,0)
+deriving instance Arbitrary a => Arbitrary (Semigroup.First a)
+deriving instance Arbitrary a => Arbitrary (Semigroup.Last a)
+deriving instance Arbitrary a => Arbitrary (Semigroup.Min a)
+deriving instance Arbitrary a => Arbitrary (Semigroup.Max a)
+#endif
+
+#if !MIN_VERSION_base(4,7,0)
+deriving instance Show a => Show (Down a)
+#endif
+#if !MIN_VERSION_base(4,8,0)
+deriving instance Show a => Show (Const a b)
+deriving instance Eq a => Eq (Const a b)
+#endif
 
 int16 :: Proxy Int16
 int16 = Proxy
