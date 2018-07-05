@@ -48,6 +48,7 @@ import Data.Monoid ((<>))
 #if __GLASGOW_HASKELL__ >= 805
 import Foreign.Storable (Storable)
 #endif
+import Data.Orphans ()
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
 import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,(===),CoArbitrary,Function)
@@ -190,14 +191,6 @@ deriving instance Arbitrary a => Arbitrary (Semigroup.First a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Last a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Min a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Max a)
-#endif
-
-#if !MIN_VERSION_base(4,7,0)
-deriving instance Show a => Show (Down a)
-#endif
-#if !MIN_VERSION_base(4,8,0)
-deriving instance Show a => Show (Const a b)
-deriving instance Eq a => Eq (Const a b)
 #endif
 
 int16 :: Proxy Int16
