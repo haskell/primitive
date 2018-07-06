@@ -408,17 +408,27 @@ deriving instance Prim CTimer
 #endif
 deriving instance Prim Fd
 
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Const a b)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Down a)
 #if MIN_VERSION_base(4,8,0)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Identity a)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Monoid.Dual a)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Monoid.Sum a)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Monoid.Product a)
 #endif
 #if MIN_VERSION_base(4,9,0)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Semigroup.First a)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Semigroup.Last a)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Semigroup.Min a)
+-- | @since 0.6.4.1
 deriving instance Prim a => Prim (Semigroup.Max a)
 #endif
