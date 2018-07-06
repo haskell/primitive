@@ -1,3 +1,7 @@
+## Changes in version 0.6.4.1
+
+ * Add `Prim` instance for `Complex`.
+
 ## Changes in version 0.6.4.0
 
  * Introduce `Data.Primitive.PrimArray`, which offers types and function
