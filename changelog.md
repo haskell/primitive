@@ -1,3 +1,13 @@
+## Changes in version 0.6.4.1
+
+ * Add instances for the following newtypes from `base`:
+   `Const`, `Identity`, `Down`, `Dual`, `Sum`, `Product`,
+   `First`, `Last`, `Min`, `Max`
+
+ * Add `base-orphans` dependency to test suite to accomodate
+   older versions of GHC not having instances of `Show` and `Eq`
+   for some of the above newtypes.
+
 ## Changes in version 0.6.4.0
 
  * Introduce `Data.Primitive.PrimArray`, which offers types and function
