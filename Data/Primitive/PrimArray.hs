@@ -66,6 +66,8 @@ module Data.Primitive.PrimArray
   , foldlPrimArray
   , foldlPrimArray'
   , foldlPrimArrayM'
+  , foldMapPrimArray
+  , foldMapPrimArray'
     -- * Effectful Folding
   , traversePrimArray_
   , itraversePrimArray_
@@ -466,6 +468,16 @@ indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
+
+-- | Lazily map each element of the primitive array to a monoid, and combine the results.
+foldMapPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldMapPrimArray #-}
+foldMapPrimArray f = foldrPrimArray (\a acc -> acc `mappend` f a) mempty
+
+-- | Strictly map each element of the primitive array to a monoid, and combine the results.
+foldMapPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldMapPrimArray' #-}
+foldMapPrimArray' f = foldlPrimArray' (\ !acc x -> acc `mappend` f x) mempty
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}
