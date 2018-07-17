@@ -25,7 +25,7 @@ module Data.Primitive.MutVar (
 ) where
 
 import Control.Monad.Primitive ( PrimMonad(..), primitive_ )
-import GHC.Prim ( MutVar#, sameMutVar#, newMutVar#,
+import GHC.Exts ( MutVar#, sameMutVar#, newMutVar#,
                   readMutVar#, writeMutVar#, atomicModifyMutVar# )
 import Data.Primitive.Internal.Compat ( isTrue# )
 import Data.Typeable ( Typeable )
@@ -83,4 +83,3 @@ modifyMutVar' :: PrimMonad m => MutVar (PrimState m) a -> (a -> a) -> m ()
 modifyMutVar' (MutVar mv#) g = primitive_ $ \s# ->
   case readMutVar# mv# s# of
     (# s'#, a #) -> let a' = g a in a' `seq` writeMutVar# mv# a' s'#
-
