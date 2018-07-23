@@ -252,7 +252,7 @@ unsafePrimToIO :: PrimBase m => m a -> IO a
 {-# INLINE unsafePrimToIO #-}
 unsafePrimToIO = unsafePrimToPrim
 
--- | Convert an 'ST' action with an arbitraty state token to any 'PrimMonad'.
+-- | Convert an 'ST' action with an arbitrary state token to any 'PrimMonad'.
 -- This operation is highly unsafe!
 -- 
 -- @since 0.6.2.0
