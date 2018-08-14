@@ -68,7 +68,8 @@ atomicModifyMutVar' mv f = do
   b <- atomicModifyMutVar mv force
   b `seq` return b
   where
-    force x = let (a, b) = f x in (a, a `seq` b)
+    force x = case f x of
+                v@(x',_) -> x' `seq` v
 
 -- | Mutate the contents of a 'MutVar'
 modifyMutVar :: PrimMonad m => MutVar (PrimState m) a -> (a -> a) -> m ()
