@@ -42,6 +42,11 @@
 -- 'MutableUnliftedArray' are parameterized by the type of arrays they contain, and
 -- the coercions necessary are abstracted into a class, 'PrimUnlifted', of things
 -- that are eligible to be stored.
+--
+-- Note: In a previous release, there was a `PrimUnlifted` instance for
+-- `StablePtr`. However, since `StablePtr#` is not of kind `TYPE UnliftedRep`,
+-- and is treated very differently by the garbage collector, this instance was
+-- unsound, and it has been removed.
 
 module Data.Primitive.UnliftedArray
   ( -- * Types
@@ -106,7 +111,6 @@ import qualified Data.Primitive.MutVar as MV
 import qualified Data.Monoid
 import qualified GHC.MVar as GM (MVar(..))
 import qualified GHC.Conc as GC (TVar(..))
-import qualified GHC.Stable as GSP (StablePtr(..))
 import qualified GHC.Weak as GW (Weak(..))
 import qualified GHC.Conc.Sync as GCS (ThreadId(..))
 import qualified GHC.Exts as E
@@ -198,11 +202,6 @@ instance PrimUnlifted (GM.MVar a) where
 instance PrimUnlifted (GC.TVar a) where
   toArrayArray# (GC.TVar tv#) = unsafeCoerce# tv#
   fromArrayArray# tv# = GC.TVar (unsafeCoerce# tv#)
-
--- | @since 0.6.4.0
-instance PrimUnlifted (GSP.StablePtr a) where
-  toArrayArray# (GSP.StablePtr tv#) = unsafeCoerce# tv#
-  fromArrayArray# tv# = GSP.StablePtr (unsafeCoerce# tv#)
 
 -- | @since 0.6.4.0
 instance PrimUnlifted (GW.Weak a) where

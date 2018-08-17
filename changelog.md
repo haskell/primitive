@@ -1,3 +1,9 @@
+## Changes in version 0.?.?.?
+  
+  * Remove the `PrimUnlifted` instance for `StablePtr`. This instance would
+    cause the GC to crash if someone actually put `StablePtr`s inside
+    an `UnliftedArray`.
+
 ## Changes in version 0.6.4.1
 
  * Add instances for the following newtypes from `base`:
