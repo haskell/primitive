@@ -182,12 +182,28 @@ instance PrimUnlifted (PA.MutablePrimArray s a) where
   fromArrayArray# aa# = PA.MutablePrimArray (unsafeCoerce# aa#)
 
 instance PrimUnlifted (SA.SmallArray a) where
-  toArrayArray# (SA.SmallArray sa#) = unsafeCoerce# sa#
-  fromArrayArray# aa# = SA.SmallArray (unsafeCoerce# aa#)
+#if __GLASGOW_HASKELL__ >= 710
+  toArrayArray# (SA.SmallArray sa#) =
+    unsafeCoerce# (sa# :: SmallArray# a)
+  fromArrayArray# aa# =
+    SA.SmallArray (unsafeCoerce# aa# :: SmallArray# a)
+#else
+  -- SmallArray is a newtype around Array.
+  toArrayArray# (SA.SmallArray sa) = toArrayArray# sa
+  fromArrayArray# aa# = SA.SmallArray (fromArrayArray# aa#)
+#endif
 
 instance PrimUnlifted (SA.SmallMutableArray s a) where
-  toArrayArray# (SA.SmallMutableArray sma#) = unsafeCoerce# sma#
-  fromArrayArray# aa# = SA.SmallMutableArray (unsafeCoerce# aa#)
+#if __GLASGOW_HASKELL__ >= 710
+  toArrayArray# (SA.SmallMutableArray sma#) =
+    unsafeCoerce# (sma# :: SmallMutableArray# s a)
+  fromArrayArray# aa# =
+    SA.SmallMutableArray (unsafeCoerce# aa# :: SmallMutableArray# s a)
+#else
+  -- SmallMutableArray is a newtype around MutableArray
+  toArrayArray# (SA.SmallMutableArray sa) = toArrayArray# sa
+  fromArrayArray# aa# = SA.SmallMutableArray (fromArrayArray# aa#)
+#endif
 
 instance PrimUnlifted (MV.MutVar s a) where
   toArrayArray# (MV.MutVar mv#) = unsafeCoerce# mv#
