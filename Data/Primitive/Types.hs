@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 #if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE TypeInType #-}
+{-# LANGUAGE DeriveGeneric #-}
 #endif
 
 #include "HsBaseConfig.h"
@@ -48,6 +49,9 @@ import GHC.Int (
 import GHC.Ptr (
     Ptr(..), FunPtr(..)
   )
+import GHC.Stable (
+    StablePtr(..)
+  )
 
 import GHC.Prim
 #if __GLASGOW_HASKELL__ >= 706
@@ -75,9 +79,21 @@ import GHC.Exts (Down(..))
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Semigroup
 #endif
+#if __GLASGOW_HASKELL__ >= 800
+import GHC.Generics
+#endif
 
 -- | A machine address
-data Addr = Addr Addr# deriving ( Typeable )
+data Addr = Addr Addr#
+
+#if __GLASGOW_HASKELL__ < 710
+deriving instance Typeable Addr
+#endif
+
+#if __GLASGOW_HASKELL__ >= 800
+-- | @since TODO
+deriving instance Generic Addr
+#endif
 
 instance Show Addr where
   showsPrec _ (Addr a) =
@@ -308,6 +324,9 @@ derivePrim(Addr, Addr, sIZEOF_PTR, aLIGNMENT_PTR,
 derivePrim(Ptr a, Ptr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
+derivePrim(StablePtr a, StablePtr, sIZEOF_PTR, aLIGNMENT_PTR,
+           indexStablePtrArray#, readStablePtrArray#, writeStablePtrArray#, setStablePtrArray#,
+           indexStablePtrOffAddr#, readStablePtrOffAddr#, writeStablePtrOffAddr#, setStablePtrOffAddr#)
 derivePrim(FunPtr a, FunPtr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
