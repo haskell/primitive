@@ -42,17 +42,18 @@
 -- 'MutableUnliftedArray' are parameterized by the type of arrays they contain, and
 -- the coercions necessary are abstracted into a class, 'PrimUnlifted', of things
 -- that are eligible to be stored.
---
--- Note: In a previous release, there was a `PrimUnlifted` instance for
--- `StablePtr`. However, since `StablePtr#` is not of kind `TYPE UnliftedRep`,
--- and is treated very differently by the garbage collector, this instance was
--- unsound, and it has been removed.
 
 module Data.Primitive.UnliftedArray
   ( -- * Types
     UnliftedArray(..)
   , MutableUnliftedArray(..)
-  , PrimUnlifted(..)
+  -- We don't *really* want to export the PrimUnlifted methods from
+  -- this module anymore; users should import Data.Primitive.Types.PrimUnlifted
+  -- to define PrimUnlifted instances or use PrimUnlifted methods. But since
+  -- this module used to define PrimUnlifted, we need to export the *legacy*
+  -- methods for backwards compatibility. Eventually (a couple versions
+  -- after we stop supporting GHC <8.0), we can quit doing that.
+  , PrimUnlifted(toArrayArray#, fromArrayArray#)
     -- * Operations
   , unsafeNewUnliftedArray
   , newUnliftedArray
@@ -87,32 +88,27 @@ module Data.Primitive.UnliftedArray
 --  , unsafeThawUnliftedArray
   ) where
 
+#if __GLASGOW_HASKELL__ < 710
 import Data.Typeable
 import Control.Applicative
+#endif
 
-import GHC.Prim
+import GHC.Exts
 import GHC.Base (Int(..),build)
 
 import Control.Monad.Primitive
 
+#if !MIN_VERSION_base(4,9,0)
 import Control.Monad.ST (runST,ST)
+#else
+import Control.Monad.ST (ST)
+#endif
 
-import Data.Monoid (Monoid,mappend)
+import Data.Monoid (Monoid (..))
 import Data.Primitive.Internal.Compat ( isTrue# )
 
+import Data.Primitive.Types.PrimUnlifted
 import qualified Data.List as L
-import           Data.Primitive.Array (Array)
-import qualified Data.Primitive.Array as A
-import           Data.Primitive.ByteArray (ByteArray)
-import qualified Data.Primitive.ByteArray as BA
-import qualified Data.Primitive.PrimArray as PA
-import qualified Data.Primitive.SmallArray as SA
-import qualified Data.Primitive.MutVar as MV
-import qualified Data.Monoid
-import qualified GHC.MVar as GM (MVar(..))
-import qualified GHC.Conc as GC (TVar(..))
-import qualified GHC.Weak as GW (Weak(..))
-import qualified GHC.Conc.Sync as GCS (ThreadId(..))
 import qualified GHC.Exts as E
 import qualified GHC.ST as GHCST
 
@@ -131,103 +127,43 @@ import GHC.Base (runRW#)
 -- around unlifted primitive types. The values of the unlifted type are
 -- stored directly, eliminating a layer of indirection.
 data UnliftedArray e = UnliftedArray ArrayArray#
+#if __GLASGOW_HASKELL__ < 710
   deriving (Typeable)
+#endif
+
+instance PrimUnlifted (UnliftedArray e) where
+#if __GLASGOW_HASKELL__ >= 800
+  type Unlifted (UnliftedArray e) = ArrayArray#
+
+  toUnlifted# (UnliftedArray aa#) = aa#
+  fromUnlifted# aa# = UnliftedArray aa#
+#endif
+  -- Unlike all other PrimUnlifted instances, we implement
+  -- the legacy methods regardless of GHC version because
+  -- we can avoid unsafe coercions altogether. It shouldn't
+  -- really matter, but it seems cleaner.
+  toArrayArray# (UnliftedArray aa#) = aa#
+  fromArrayArray# aa# = UnliftedArray aa#
 
 -- | Mutable arrays that efficiently store types that are simple wrappers
 -- around unlifted primitive types. The values of the unlifted type are
 -- stored directly, eliminating a layer of indirection.
 data MutableUnliftedArray s e = MutableUnliftedArray (MutableArrayArray# s)
+#if __GLASGOW_HASKELL__ < 710
   deriving (Typeable)
-
--- | Classifies the types that are able to be stored in 'UnliftedArray' and
--- 'MutableUnliftedArray'. These should be types that are just liftings of the
--- unlifted pointer types, so that their internal contents can be safely coerced
--- into an 'ArrayArray#'.
-class PrimUnlifted a where
-  toArrayArray# :: a -> ArrayArray#
-  fromArrayArray# :: ArrayArray# -> a
-
-instance PrimUnlifted (UnliftedArray e) where
-  toArrayArray# (UnliftedArray aa#) = aa#
-  fromArrayArray# aa# = UnliftedArray aa#
+#endif
 
 instance PrimUnlifted (MutableUnliftedArray s e) where
+#if __GLASGOW_HASKELL__ >= 800
+  type Unlifted (MutableUnliftedArray s e) = MutableArrayArray# s
+
+  toUnlifted# (MutableUnliftedArray maa#) = maa#
+  fromUnlifted# aa# = MutableUnliftedArray aa#
+#else
   toArrayArray# (MutableUnliftedArray maa#) = unsafeCoerce# maa#
   fromArrayArray# aa# = MutableUnliftedArray (unsafeCoerce# aa#)
-
-instance PrimUnlifted (Array a) where
-  toArrayArray# (A.Array a#) = unsafeCoerce# a#
-  fromArrayArray# aa# = A.Array (unsafeCoerce# aa#)
-
-instance PrimUnlifted (A.MutableArray s a) where
-  toArrayArray# (A.MutableArray ma#) = unsafeCoerce# ma#
-  fromArrayArray# aa# = A.MutableArray (unsafeCoerce# aa#)
-
-instance PrimUnlifted ByteArray where
-  toArrayArray# (BA.ByteArray ba#) = unsafeCoerce# ba#
-  fromArrayArray# aa# = BA.ByteArray (unsafeCoerce# aa#)
-
-instance PrimUnlifted (BA.MutableByteArray s) where
-  toArrayArray# (BA.MutableByteArray mba#) = unsafeCoerce# mba#
-  fromArrayArray# aa# = BA.MutableByteArray (unsafeCoerce# aa#)
-
--- | @since 0.6.4.0
-instance PrimUnlifted (PA.PrimArray a) where
-  toArrayArray# (PA.PrimArray ba#) = unsafeCoerce# ba#
-  fromArrayArray# aa# = PA.PrimArray (unsafeCoerce# aa#)
-
--- | @since 0.6.4.0
-instance PrimUnlifted (PA.MutablePrimArray s a) where
-  toArrayArray# (PA.MutablePrimArray mba#) = unsafeCoerce# mba#
-  fromArrayArray# aa# = PA.MutablePrimArray (unsafeCoerce# aa#)
-
-instance PrimUnlifted (SA.SmallArray a) where
-#if __GLASGOW_HASKELL__ >= 710
-  toArrayArray# (SA.SmallArray sa#) =
-    unsafeCoerce# (sa# :: SmallArray# a)
-  fromArrayArray# aa# =
-    SA.SmallArray (unsafeCoerce# aa# :: SmallArray# a)
-#else
-  -- SmallArray is a newtype around Array.
-  toArrayArray# (SA.SmallArray sa) = toArrayArray# sa
-  fromArrayArray# aa# = SA.SmallArray (fromArrayArray# aa#)
 #endif
 
-instance PrimUnlifted (SA.SmallMutableArray s a) where
-#if __GLASGOW_HASKELL__ >= 710
-  toArrayArray# (SA.SmallMutableArray sma#) =
-    unsafeCoerce# (sma# :: SmallMutableArray# s a)
-  fromArrayArray# aa# =
-    SA.SmallMutableArray (unsafeCoerce# aa# :: SmallMutableArray# s a)
-#else
-  -- SmallMutableArray is a newtype around MutableArray
-  toArrayArray# (SA.SmallMutableArray sa) = toArrayArray# sa
-  fromArrayArray# aa# = SA.SmallMutableArray (fromArrayArray# aa#)
-#endif
-
-instance PrimUnlifted (MV.MutVar s a) where
-  toArrayArray# (MV.MutVar mv#) = unsafeCoerce# mv#
-  fromArrayArray# aa# = MV.MutVar (unsafeCoerce# aa#)
-
--- | @since 0.6.4.0
-instance PrimUnlifted (GM.MVar a) where
-  toArrayArray# (GM.MVar mv#) = unsafeCoerce# mv#
-  fromArrayArray# mv# = GM.MVar (unsafeCoerce# mv#)
-
--- | @since 0.6.4.0
-instance PrimUnlifted (GC.TVar a) where
-  toArrayArray# (GC.TVar tv#) = unsafeCoerce# tv#
-  fromArrayArray# tv# = GC.TVar (unsafeCoerce# tv#)
-
--- | @since 0.6.4.0
-instance PrimUnlifted (GW.Weak a) where
-  toArrayArray# (GW.Weak tv#) = unsafeCoerce# tv#
-  fromArrayArray# tv# = GW.Weak (unsafeCoerce# tv#)
-
--- | @since 0.6.4.0
-instance PrimUnlifted GCS.ThreadId where
-  toArrayArray# (GCS.ThreadId tv#) = unsafeCoerce# tv#
-  fromArrayArray# tv# = GCS.ThreadId (unsafeCoerce# tv#)
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.UnliftedArray." ++ fun ++ ": " ++ problem
