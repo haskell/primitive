@@ -42,6 +42,10 @@
 -- 'MutableUnliftedArray' are parameterized by the type of arrays they contain, and
 -- the coercions necessary are abstracted into a class, 'PrimUnlifted', of things
 -- that are eligible to be stored.
+--
+-- Note: In a previous release, there was a `PrimUnlifted` instance for
+-- `StablePtr`. However, since `StablePtr#` does is not of kind `TYPE UnliftedRep`,
+-- this instance was unsound, and it has been removed.
 
 module Data.Primitive.UnliftedArray
   ( -- * Types
