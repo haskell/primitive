@@ -44,8 +44,9 @@
 -- that are eligible to be stored.
 --
 -- Note: In a previous release, there was a `PrimUnlifted` instance for
--- `StablePtr`. However, since `StablePtr#` does is not of kind `TYPE UnliftedRep`,
--- this instance was unsound, and it has been removed.
+-- `StablePtr`. However, since `StablePtr#` is not of kind `TYPE UnliftedRep`,
+-- and is treated very differently by the garbage collector, this instance was
+-- unsound, and it has been removed.
 
 module Data.Primitive.UnliftedArray
   ( -- * Types
