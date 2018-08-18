@@ -3,6 +3,12 @@
   * Remove the `PrimUnlifted` instance for `StablePtr`. This instance would
     cause the GC to crash if someone actually put `StablePtr`s inside
     an `UnliftedArray`.
+    
+  * Fix the `PrimUnlifted` instances for `SmallArray` and `SmallMutableArray`
+    when compiling with GHC < 7.10. Previously these would segfault.
+    
+  * Remove useless accidental laziness in `atomicModifyMutVar`, making it match
+    `atomicModifyIORef`. The semantics should be the same.
 
 ## Changes in version 0.6.4.1
 
