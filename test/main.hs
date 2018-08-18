@@ -26,7 +26,8 @@ import GHC.IO
 import GHC.Prim
 import Data.Function (on)
 import Control.Applicative (Const(..))
-import Foreign.StablePtr (newStablePtr,deRefStablePtr)
+import Foreign.StablePtr (newStablePtr,deRefStablePtr,freeStablePtr)
+import System.Mem.StableName (makeStableName)
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
 #endif
@@ -197,6 +198,17 @@ main = do
         -- custom property test that is more restricted in what it does.
       , TQC.testProperty "StablePtr" stablePtrPrimProp
       ]
+    , testGroup "PrimUnlifted"
+      -- Currently, quickcheck-classes does not provide a way to test
+      -- PrimUnlifted instances. For now, we work around this by using the
+      -- property tests for the Eq instance of UnliftedArray applied
+      -- to various types. We're mostly just trying to ensure that
+      -- the instances do not cause crashes.
+      [ renameLawsToTest "Array" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (Array Integer))))
+      , renameLawsToTest "SmallArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (SmallArray Integer))))
+      , renameLawsToTest "ByteArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray ByteArray)))
+      , TQC.testProperty "StableName" stableNameUnliftedPrimProp
+      ]
     ]
 
 deriving instance Arbitrary a => Arbitrary (Down a)
@@ -270,7 +282,16 @@ stablePtrPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
   ptrs <- mapM newStablePtr xs
   let ptrs' = primArrayToList (primArrayFromList ptrs)
   ys <- mapM deRefStablePtr ptrs'
+  mapM_ freeStablePtr ptrs'
   return (xs === ys)
+
+-- Tests that writing stable names to an UnliftedArray and reading
+-- them back out gives correct results.
+stableNameUnliftedPrimProp :: QC.Property
+stableNameUnliftedPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
+  names <- mapM makeStableName xs
+  let names' = unliftedArrayToList (unliftedArrayFromList names)
+  return (names == names')
 
 -- Provide the non-negative integers up to the bound. For example:
 --
