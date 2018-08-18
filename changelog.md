@@ -1,4 +1,12 @@
 ## Changes in version 0.?.?.?
+
+  * Rework the `PrimUnlifted` class so users don't need to use `unsafeCoerce#`
+    when writing instances for GHC >= 8.0. Specifically, add an associated
+    type family, `Unlifted`, and two methods, `toUnlifted#` and `fromUnlifted#`.
+    Move the class definition from `Data.Primitive.UnliftedArray` to
+    `Data.Primitive.Types.PrimUnlifted`.
+
+## Changes in version 0.?.?.?
   
   * Remove the `PrimUnlifted` instance for `StablePtr`. This instance would
     cause the GC to crash if someone actually put `StablePtr`s inside
