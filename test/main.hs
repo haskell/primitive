@@ -26,6 +26,7 @@ import GHC.IO
 import GHC.Prim
 import Data.Function (on)
 import Control.Applicative (Const(..))
+import Foreign.StablePtr (newStablePtr,deRefStablePtr)
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
 #endif
@@ -165,21 +166,36 @@ main = do
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
       ]
 #endif
-    , testGroup "Newtypes"
-      [ lawsToTest (QCC.primLaws (Proxy :: Proxy (Const Int16 Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Down Int16)))
+    , testGroup "Prim"
+      [ renameLawsToTest "Word" (QCC.primLaws (Proxy :: Proxy Word))
+      , renameLawsToTest "Word8" (QCC.primLaws (Proxy :: Proxy Word8))
+      , renameLawsToTest "Word16" (QCC.primLaws (Proxy :: Proxy Word16))
+      , renameLawsToTest "Word32" (QCC.primLaws (Proxy :: Proxy Word32))
+      , renameLawsToTest "Word64" (QCC.primLaws (Proxy :: Proxy Word64))
+      , renameLawsToTest "Int" (QCC.primLaws (Proxy :: Proxy Int))
+      , renameLawsToTest "Int8" (QCC.primLaws (Proxy :: Proxy Int8))
+      , renameLawsToTest "Int16" (QCC.primLaws (Proxy :: Proxy Int16))
+      , renameLawsToTest "Int32" (QCC.primLaws (Proxy :: Proxy Int32))
+      , renameLawsToTest "Int64" (QCC.primLaws (Proxy :: Proxy Int64))
+      , renameLawsToTest "Const" (QCC.primLaws (Proxy :: Proxy (Const Int16 Int16)))
+      , renameLawsToTest "Down" (QCC.primLaws (Proxy :: Proxy (Down Int16)))
 #if MIN_VERSION_base(4,8,0)
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Identity Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Product Int16)))
+      , renameLawsToTest "Identity" (QCC.primLaws (Proxy :: Proxy (Identity Int16)))
+      , renameLawsToTest "Dual" (QCC.primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
+      , renameLawsToTest "Sum" (QCC.primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
+      , renameLawsToTest "Product" (QCC.primLaws (Proxy :: Proxy (Monoid.Product Int16)))
 #endif
 #if MIN_VERSION_base(4,9,0)
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.First Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
+      , renameLawsToTest "First" (QCC.primLaws (Proxy :: Proxy (Semigroup.First Int16)))
+      , renameLawsToTest "Last" (QCC.primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
+      , renameLawsToTest "Min" (QCC.primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
+      , renameLawsToTest "Max" (QCC.primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
 #endif
+        -- For StablePtr, it is not possible to use the property
+        -- tests from quickcheck-classes. Since StablePtr values can only
+        -- be created in IO and must be explicitly deallocated, we use a
+        -- custom property test that is more restricted in what it does.
+      , TQC.testProperty "StablePtr" stablePtrPrimProp
       ]
     ]
 
@@ -247,6 +263,15 @@ byteArrayGrowProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (
         unsafeFreezeByteArray mzs1
    in expected === actual
 
+-- Tests that writing stable ptrs to a PrimArray, reading them back
+-- out, and then dereferencing them gives correct results.
+stablePtrPrimProp :: QC.Property
+stablePtrPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
+  ptrs <- mapM newStablePtr xs
+  let ptrs' = primArrayToList (primArrayFromList ptrs)
+  ys <- mapM deRefStablePtr ptrs'
+  return (xs === ys)
+
 -- Provide the non-negative integers up to the bound. For example:
 --
 -- >>> intsLessThan 5
@@ -272,6 +297,9 @@ data Proxy1 (f :: * -> *) = Proxy1
 
 lawsToTest :: QCC.Laws -> TestTree
 lawsToTest (QCC.Laws name pairs) = testGroup name (map (uncurry TQC.testProperty) pairs)
+
+renameLawsToTest :: String -> QCC.Laws -> TestTree
+renameLawsToTest name (QCC.Laws _ pairs) = testGroup name (map (uncurry TQC.testProperty) pairs)
 
 testArray :: IO ()
 testArray = do
