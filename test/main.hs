@@ -196,7 +196,10 @@ main = do
         -- tests from quickcheck-classes. Since StablePtr values can only
         -- be created in IO and must be explicitly deallocated, we use a
         -- custom property test that is more restricted in what it does.
-      , TQC.testProperty "StablePtr" stablePtrPrimProp
+      , testGroup "StablePtr"
+        [ TQC.testProperty "element" stablePtrPrimProp
+        , TQC.testProperty "block" stablePtrPrimBlockProp
+        ]
       ]
     , testGroup "PrimUnlifted"
       -- Currently, quickcheck-classes does not provide a way to test
@@ -207,7 +210,10 @@ main = do
       [ renameLawsToTest "Array" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (Array Integer))))
       , renameLawsToTest "SmallArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (SmallArray Integer))))
       , renameLawsToTest "ByteArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray ByteArray)))
-      , TQC.testProperty "StableName" stableNameUnliftedPrimProp
+      , testGroup "StableName"
+        [ TQC.testProperty "element" stableNameUnliftedPrimProp
+        , TQC.testProperty "block" stableNameUnliftedPrimBlockProp
+        ]
       ]
     ]
 
@@ -285,6 +291,20 @@ stablePtrPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
   mapM_ freeStablePtr ptrs'
   return (xs === ys)
 
+stablePtrPrimBlockProp :: QC.Property
+stablePtrPrimBlockProp = QC.property $ \(x :: Word) (len :: Int) -> unsafePerformIO $ do
+  ptr <- newStablePtr x
+  let ptrs' = replicatePrimArray len ptr
+  let go ix = if ix < len
+        then do
+          n <- deRefStablePtr (indexPrimArray ptrs' ix)
+          ns <- go (ix + 1)
+          return (n : ns)
+        else return []
+  ys <- go 0
+  freeStablePtr ptr
+  return (L.replicate len x === ys)
+
 -- Tests that writing stable names to an UnliftedArray and reading
 -- them back out gives correct results.
 stableNameUnliftedPrimProp :: QC.Property
@@ -292,6 +312,13 @@ stableNameUnliftedPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO
   names <- mapM makeStableName xs
   let names' = unliftedArrayToList (unliftedArrayFromList names)
   return (names == names')
+
+stableNameUnliftedPrimBlockProp :: QC.Property
+stableNameUnliftedPrimBlockProp = QC.property $ \(x :: Word) (len :: Int) -> unsafePerformIO $ do
+  name <- makeStableName x
+  mutArr <- newUnliftedArray len name
+  ptrs' <- unsafeFreezeUnliftedArray mutArr
+  return (L.replicate len name == unliftedArrayToList ptrs')
 
 -- Provide the non-negative integers up to the bound. For example:
 --
