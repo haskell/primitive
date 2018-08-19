@@ -1,5 +1,12 @@
 ## Changes in version 0.?.?.?
 
+  * Add a `Prim` instance for `StablePtr` to replace the previous
+    (invalid) `PrimUnlifted` instance.
+
+  * Add a `PrimUnlifted` instance for `StableName`.
+
+  * Add a lot more tests for `PrimArray`.
+
   * Rework the `PrimUnlifted` class so users don't need to use `unsafeCoerce#`
     when writing instances for GHC >= 8.0. Specifically, add an associated
     type family, `Unlifted`, and two methods, `toUnlifted#` and `fromUnlifted#`.
