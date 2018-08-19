@@ -26,6 +26,8 @@ import GHC.IO
 import GHC.Prim
 import Data.Function (on)
 import Control.Applicative (Const(..))
+import Foreign.StablePtr (newStablePtr,deRefStablePtr,freeStablePtr)
+import System.Mem.StableName (makeStableName)
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
 #endif
@@ -165,21 +167,53 @@ main = do
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
       ]
 #endif
-    , testGroup "Newtypes"
-      [ lawsToTest (QCC.primLaws (Proxy :: Proxy (Const Int16 Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Down Int16)))
+    , testGroup "Prim"
+      [ renameLawsToTest "Word" (QCC.primLaws (Proxy :: Proxy Word))
+      , renameLawsToTest "Word8" (QCC.primLaws (Proxy :: Proxy Word8))
+      , renameLawsToTest "Word16" (QCC.primLaws (Proxy :: Proxy Word16))
+      , renameLawsToTest "Word32" (QCC.primLaws (Proxy :: Proxy Word32))
+      , renameLawsToTest "Word64" (QCC.primLaws (Proxy :: Proxy Word64))
+      , renameLawsToTest "Int" (QCC.primLaws (Proxy :: Proxy Int))
+      , renameLawsToTest "Int8" (QCC.primLaws (Proxy :: Proxy Int8))
+      , renameLawsToTest "Int16" (QCC.primLaws (Proxy :: Proxy Int16))
+      , renameLawsToTest "Int32" (QCC.primLaws (Proxy :: Proxy Int32))
+      , renameLawsToTest "Int64" (QCC.primLaws (Proxy :: Proxy Int64))
+      , renameLawsToTest "Const" (QCC.primLaws (Proxy :: Proxy (Const Int16 Int16)))
+      , renameLawsToTest "Down" (QCC.primLaws (Proxy :: Proxy (Down Int16)))
 #if MIN_VERSION_base(4,8,0)
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Identity Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Monoid.Product Int16)))
+      , renameLawsToTest "Identity" (QCC.primLaws (Proxy :: Proxy (Identity Int16)))
+      , renameLawsToTest "Dual" (QCC.primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
+      , renameLawsToTest "Sum" (QCC.primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
+      , renameLawsToTest "Product" (QCC.primLaws (Proxy :: Proxy (Monoid.Product Int16)))
 #endif
 #if MIN_VERSION_base(4,9,0)
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.First Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
-      , lawsToTest (QCC.primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
+      , renameLawsToTest "First" (QCC.primLaws (Proxy :: Proxy (Semigroup.First Int16)))
+      , renameLawsToTest "Last" (QCC.primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
+      , renameLawsToTest "Min" (QCC.primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
+      , renameLawsToTest "Max" (QCC.primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
 #endif
+        -- For StablePtr, it is not possible to use the property
+        -- tests from quickcheck-classes. Since StablePtr values can only
+        -- be created in IO and must be explicitly deallocated, we use a
+        -- custom property test that is more restricted in what it does.
+      , testGroup "StablePtr"
+        [ TQC.testProperty "element" stablePtrPrimProp
+        , TQC.testProperty "block" stablePtrPrimBlockProp
+        ]
+      ]
+    , testGroup "PrimUnlifted"
+      -- Currently, quickcheck-classes does not provide a way to test
+      -- PrimUnlifted instances. For now, we work around this by using the
+      -- property tests for the Eq instance of UnliftedArray applied
+      -- to various types. We're mostly just trying to ensure that
+      -- the instances do not cause crashes.
+      [ renameLawsToTest "Array" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (Array Integer))))
+      , renameLawsToTest "SmallArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (SmallArray Integer))))
+      , renameLawsToTest "ByteArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray ByteArray)))
+      , testGroup "StableName"
+        [ TQC.testProperty "element" stableNameUnliftedPrimProp
+        , TQC.testProperty "block" stableNameUnliftedPrimBlockProp
+        ]
       ]
     ]
 
@@ -247,6 +281,45 @@ byteArrayGrowProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (
         unsafeFreezeByteArray mzs1
    in expected === actual
 
+-- Tests that writing stable ptrs to a PrimArray, reading them back
+-- out, and then dereferencing them gives correct results.
+stablePtrPrimProp :: QC.Property
+stablePtrPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
+  ptrs <- mapM newStablePtr xs
+  let ptrs' = primArrayToList (primArrayFromList ptrs)
+  ys <- mapM deRefStablePtr ptrs'
+  mapM_ freeStablePtr ptrs'
+  return (xs === ys)
+
+stablePtrPrimBlockProp :: QC.Property
+stablePtrPrimBlockProp = QC.property $ \(x :: Word) (QC.NonNegative (len :: Int)) -> unsafePerformIO $ do
+  ptr <- newStablePtr x
+  let ptrs' = replicatePrimArray len ptr
+  let go ix = if ix < len
+        then do
+          n <- deRefStablePtr (indexPrimArray ptrs' ix)
+          ns <- go (ix + 1)
+          return (n : ns)
+        else return []
+  ys <- go 0
+  freeStablePtr ptr
+  return (L.replicate len x === ys)
+
+-- Tests that writing stable names to an UnliftedArray and reading
+-- them back out gives correct results.
+stableNameUnliftedPrimProp :: QC.Property
+stableNameUnliftedPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
+  names <- mapM makeStableName xs
+  let names' = unliftedArrayToList (unliftedArrayFromList names)
+  return (names == names')
+
+stableNameUnliftedPrimBlockProp :: QC.Property
+stableNameUnliftedPrimBlockProp = QC.property $ \(x :: Word) (QC.NonNegative (len :: Int)) -> unsafePerformIO $ do
+  name <- makeStableName x
+  mutArr <- newUnliftedArray len name
+  ptrs' <- unsafeFreezeUnliftedArray mutArr
+  return (L.replicate len name == unliftedArrayToList ptrs')
+
 -- Provide the non-negative integers up to the bound. For example:
 --
 -- >>> intsLessThan 5
@@ -272,6 +345,9 @@ data Proxy1 (f :: * -> *) = Proxy1
 
 lawsToTest :: QCC.Laws -> TestTree
 lawsToTest (QCC.Laws name pairs) = testGroup name (map (uncurry TQC.testProperty) pairs)
+
+renameLawsToTest :: String -> QCC.Laws -> TestTree
+renameLawsToTest name (QCC.Laws _ pairs) = testGroup name (map (uncurry TQC.testProperty) pairs)
 
 testArray :: IO ()
 testArray = do
