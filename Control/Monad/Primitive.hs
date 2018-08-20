@@ -298,7 +298,12 @@ evalPrim a = unsafePrimToPrim (evaluate a :: IO a)
 #endif
 
 noDuplicate :: PrimMonad m => m ()
-noDuplicate = primitive $ \ s -> case noDuplicate# s of s' -> (# s', () #)
+#if __GLASGOW_HASKELL__ >= 802
+noDuplicate = primitive $ \ s -> (# noDuplicate# s, () #)
+#else
+-- noDuplicate# was limited to RealWorld
+noDuplicate = primitive $ unsafeCoerce# $ \s -> (# noDuplicate# s, () #)
+#endif
 
 unsafeInterleave, unsafeDupableInterleave :: PrimBase m => m a -> m a
 unsafeInterleave x = unsafeDupableInterleave (noDuplicate *> x)
