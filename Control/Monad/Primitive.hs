@@ -306,7 +306,7 @@ noDuplicate = primitive $ unsafeCoerce# $ \s -> (# noDuplicate# s, () #)
 #endif
 
 unsafeInterleave, unsafeDupableInterleave :: PrimBase m => m a -> m a
-unsafeInterleave x = unsafeDupableInterleave (noDuplicate *> x)
+unsafeInterleave x = unsafeDupableInterleave (noDuplicate >> x)
 unsafeDupableInterleave x = primitive $ \ s -> let r = case internal x s of (# _, r #) -> r in (# s, r #)
 {-# INLINE unsafeInterleave #-}
 {-# NOINLINE unsafeDupableInterleave #-}
