@@ -1,5 +1,7 @@
 ## Changes in version 0.?.?.?
 
+  * Define `unsafeInterleave`.
+
   * Add a `Prim` instance for `StablePtr` to replace the previous
     (invalid) `PrimUnlifted` instance.
 

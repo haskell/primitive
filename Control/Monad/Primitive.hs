@@ -20,10 +20,10 @@ module Control.Monad.Primitive (
   liftPrim, primToPrim, primToIO, primToST, ioToPrim, stToPrim,
   unsafePrimToPrim, unsafePrimToIO, unsafePrimToST, unsafeIOToPrim,
   unsafeSTToPrim, unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
-  touch, evalPrim
+  touch, evalPrim, unsafeInterleave, unsafeDupableInterleave, noDuplicate
 ) where
 
-import GHC.Prim   ( State#, RealWorld, touch# )
+import GHC.Prim   ( State#, RealWorld, noDuplicate#, touch# )
 import GHC.Base   ( unsafeCoerce#, realWorld# )
 #if MIN_VERSION_base(4,4,0)
 import GHC.Base   ( seq# )
@@ -296,3 +296,19 @@ evalPrim a = primitive (\s -> seq# a s)
 {-# NOINLINE evalPrim #-}
 evalPrim a = unsafePrimToPrim (evaluate a :: IO a)
 #endif
+
+noDuplicate :: PrimMonad m => m ()
+#if __GLASGOW_HASKELL__ >= 802
+noDuplicate = primitive $ \ s -> (# noDuplicate# s, () #)
+#else
+-- noDuplicate# was limited to RealWorld
+noDuplicate = primitive $ unsafeCoerce# $ \s -> (# noDuplicate# s, () #)
+#endif
+
+unsafeInterleave, unsafeDupableInterleave :: PrimBase m => m a -> m a
+unsafeInterleave x = unsafeDupableInterleave (noDuplicate >> x)
+unsafeDupableInterleave x = primitive $ \ s -> let r = case internal x s of (# _, r #) -> r in (# s, r #)
+{-# INLINE unsafeInterleave #-}
+{-# NOINLINE unsafeDupableInterleave #-}
+-- See Note [unsafeDupableInterleaveIO should not be inlined]
+-- in GHC.IO.Unsafe
