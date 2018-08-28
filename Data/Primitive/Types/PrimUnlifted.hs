@@ -40,8 +40,12 @@ import GHC.MVar (MVar(..))
 import GHC.Conc (TVar(..))
 import GHC.Weak (Weak(..))
 import GHC.Conc.Sync (ThreadId(..))
+#if MIN_VERSION_base(4,12,0)
+import GHC.StableName (StableName (..))
+#else
 import System.Mem.StableName (StableName)
 import Unsafe.Coerce (unsafeCoerce)
+#endif
 
 -- | Classifies the types that are just liftings of unlifted pointer
 -- types.
@@ -308,16 +312,23 @@ instance PrimUnlifted (StableName a) where
 #if __GLASGOW_HASKELL__ >= 800
   type Unlifted (StableName a) = StableName# a
 
+#  if MIN_VERSION_base(4,12,0)
+  toUnlifted# (StableName sn) = sn
+  fromUnlifted# = StableName
+#  else
   toUnlifted# sn = toUnlifted# (toStableName_ sn)
   fromUnlifted# sn# = fromStableName_ (fromUnlifted# sn#)
+#  endif
+
 #else
   toArrayArray# sn = toArrayArray# (toStableName_ sn)
   fromArrayArray# sn = fromStableName_ (fromArrayArray# sn)
 #endif
 
+#if !MIN_VERSION_base(4,12,0)
 -- This is a disgusting hack. The trouble is that StableName
--- is defined in System.Mem.StableName and exported *abstractly*.
--- There's no legitimate way to convert between a StableName and
+-- used to be defined in System.Mem.StableName and exported *abstractly*.
+-- There was no legitimate way to convert between a StableName and
 -- a StableName#! See Trac #15535.
 toStableName_ :: StableName a -> StableName_ a
 toStableName_ = unsafeCoerce
@@ -329,12 +340,13 @@ fromStableName_ = unsafeCoerce
 data StableName_ a = StableName_ (StableName# a)
 
 instance PrimUnlifted (StableName_ a) where
-#if __GLASGOW_HASKELL__ >= 800
+#  if __GLASGOW_HASKELL__ >= 800
   type Unlifted (StableName_ a) = StableName# a
 
   toUnlifted# (StableName_ sn#) = sn#
   fromUnlifted# sn# = StableName_ sn#
-#else
+#  else
   toArrayArray# (StableName_ sn#) = unsafeCoerce# sn#
   fromArrayArray# sn# = StableName_ (unsafeCoerce# sn#)
+#  endif
 #endif
