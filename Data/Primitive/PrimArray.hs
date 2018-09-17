@@ -66,8 +66,10 @@ module Data.Primitive.PrimArray
   , foldlPrimArray
   , foldlPrimArray'
   , foldlPrimArrayM'
-  , foldMapPrimArray
-  , foldMapPrimArray'
+  , foldrMapPrimArray
+  , foldlMapPrimArray
+  , foldrMapPrimArray'
+  , foldlMapPrimArray'
     -- * Effectful Folding
   , traversePrimArray_
   , itraversePrimArray_
@@ -469,15 +471,31 @@ sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
 
--- | Lazily map each element of the primitive array to a monoid, and combine the results.
-foldMapPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
-{-# INLINE foldMapPrimArray #-}
-foldMapPrimArray f = foldrPrimArray (\a acc -> f a `mappend` acc) mempty
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is right-associated, and the accumulation is lazy.
+foldrMapPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldrMapPrimArray #-}
+foldrMapPrimArray f = foldrPrimArray (\a acc -> f a `mappend` acc) mempty
 
--- | Strictly map each element of the primitive array to a monoid, and combine the results.
-foldMapPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
-{-# INLINE foldMapPrimArray' #-}
-foldMapPrimArray' f = foldlPrimArray' (\ !acc x -> acc `mappend` f x) mempty
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is left-associated, and the accumulation is lazy.
+foldlMapPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldlMapPrimArray #-}
+foldlMapPrimArray f = foldlPrimArray (\acc a -> acc `mappend` f a) mempty
+
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is right-associated, and the accumulation is strict, though
+--   this function is not necessarily strict in its result.
+foldrMapPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldrMapPrimArray' #-}
+foldrMapPrimArray' f = foldrPrimArray (\a !acc -> f a `mappend` acc) mempty
+
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is left-associated, and the accumulation is strict, though
+--   this function is not necessarily strict in its result.
+foldlMapPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldlMapPrimArray' #-}
+foldlMapPrimArray' f = foldlPrimArray (\ !acc a -> acc `mappend` f a) mempty
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}
