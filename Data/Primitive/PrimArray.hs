@@ -472,7 +472,7 @@ sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf#
 -- | Lazily map each element of the primitive array to a monoid, and combine the results.
 foldMapPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
 {-# INLINE foldMapPrimArray #-}
-foldMapPrimArray f = foldrPrimArray (\a acc -> acc `mappend` f a) mempty
+foldMapPrimArray f = foldrPrimArray (\a acc -> f a `mappend` acc) mempty
 
 -- | Strictly map each element of the primitive array to a monoid, and combine the results.
 foldMapPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
