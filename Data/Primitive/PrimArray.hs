@@ -473,41 +473,48 @@ sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf#
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
 --   The combination is right-associated, and the accumulation is lazy.
---   An example:
 --
--- @mySum = 'Data.Monoid.getSum' '$' 'foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2,3,4])@
+-- ==== __Examples__
 --
--- Because the accumulation of 'foldMapRPrimArray' is /right-associative/, accumulation starts from the right. The first accumulation looks like this:
+-- @mySum = 'Data.Monoid.getSum' '$' 'foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2,3])@
 --
--- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2,3])) '<>' ('Data.Monoid.Sum' 4 '<>' 'mempty')@
+-- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2])) '<>' ('Data.Monoid.Sum' 3 '<>' 'mempty')@
 --
--- At each step, we don't force the value of the /accumulator/, in this case 'mempty' (and in the next case the result of @'Data.Monoid.Sum' 4 '<>' 'mempty'@).
--- This is what it means for accumulation to be lazy. Continuing:
+-- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1])) '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' 'mempty'))@
 --
--- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2])) '<>' ('Data.Monoid.Sum' 3 '<>' ('Data.Monoid.Sum' 4 '<>' 'mempty'))@
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' 'mempty')))@
 --
--- As you can see, we are accumulating thunks because we never force the value of the accumulator, so @'Data.Monoid.Sum' 4 '<>' 'mempty'@ is not calculated until the end.
--- Fully 'built-up', the thunks look like this:
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' 'Data.Monoid.Sum' 3))@
 --
--- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' ('Data.Monoid.Sum' 4 '<>' 'mempty'))))@
--- 
--- And now that we've built up the thunks, we need to actually accumulate them to get our answer:
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' 'Data.Monoid.Sum' 5)@
 --
--- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' 'Data.Monoid.Sum' 4)))@
+-- @mySum = 'Data.Monoid.getSum' '$' 'Data.Monoid.Sum' 6@
 --
--- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 7)))@
---
--- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 9)@
---
--- @mySum = 'Data.Monoid.getSum' '$' 'Data.Monoid.Sum' 10@
---
--- @mySum = 10@
+-- @mySum = 6@
 foldMapRPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
 {-# INLINE foldMapRPrimArray #-}
 foldMapRPrimArray f = foldrPrimArray (\a acc -> f a `mappend` acc) mempty
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
 --   The combination is left-associated, and the accumulation is lazy.
+--
+-- ==== __Examples__
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' 'foldMapLPrimArray' 'Data.Monoid.Product' ('fromList' [1,2,3])@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' ('mempty' '<>' 'Data.Monoid.Product' 1) '<>' ('foldMapLPrimArray' 'Data.Monoid.Product' ('fromList' [2,3])@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' (('mempty' '<>' 'Data.Monoid.Product' 1) '<>' 'Data.Monoid.Product' 2) '<>' ('foldMapLPrimArray' 'Data.Monoid.Product' ('fromList' [3]))@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' ((('mempty' '<>' 'Data.Monoid.Product' 1) '<>' 'Data.Monoid.Product' 2) '<>' 'Data.Monoid.Product' 3)@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' (('Data.Monoid.Product' 1 '<>' 'Data.Monoid.Product' 2) '<>' 'Data.Monoid.Product' 3)@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' ('Data.Monoid.Product' 2 '<>' 'Data.Monoid.Product' 3)@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' 'Data.Monoid.Product' 6@
+--
+-- @myProd = 6@
 foldMapLPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
 {-# INLINE foldMapLPrimArray #-}
 foldMapLPrimArray f = foldlPrimArray (\acc a -> acc `mappend` f a) mempty
