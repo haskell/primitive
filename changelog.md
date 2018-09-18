@@ -29,7 +29,8 @@
 
 ## Changes in version 0.6.4.1
 
- * Add `foldMapPrimArray` and `foldMapPrimArray'`
+ * Add `foldMapRPrimArray` , `foldMapLPrimArray`, `foldMapRPrimArray'`, and
+   `foldMapLPrimArray'`
 
  * Add `Prim` instances for the following newtypes from `base`:
    `Const`, `Identity`, `Down`, `Dual`, `Sum`, `Product`,
