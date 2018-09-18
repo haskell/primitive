@@ -521,21 +521,21 @@ foldMapLPrimArray f = foldlPrimArray (\acc a -> acc `mappend` f a) mempty
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
 --   The combination is right-associated, and the accumulation is strict. This means
---   that at each step, we force the accumulator value to WHNF, but we /don't/ force the value
---   of the result of the function argument at each point, meaning that if 'mappend' is lazy in its first argument, that result will
---   not be evaluated.
+--   that at each step, we force the accumulator value to WHNF. We also force the value
+--   of the result of the function argument at each point, meaning that both arguments
+--   of 'mappend' will be evaluated.
 foldMapRPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
 {-# INLINE foldMapRPrimArray' #-}
-foldMapRPrimArray' f = foldrPrimArray (\a !acc -> f a `mappend` acc) mempty
+foldMapRPrimArray' f = foldrPrimArray (\ a !acc -> let !fa = f $! a in fa `mappend` acc) mempty
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
 --   The combination is left-associated, and the accumulation is strict. This means
---   that at each step, we force the accumulator value to WHNF, but we /don't/ force the value
---
---   of the result of the function argument at each point, meaning that if 'mappend' is lazy in its second argument, that result will not be evaluated.
+--   that at each step, we force the accumulator value to WHNF. We also force the value
+--   of the result of the function argument at each point, meaning that both arguments
+--   of 'mappend' will be evaulated.
 foldMapLPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
 {-# INLINE foldMapLPrimArray' #-}
-foldMapLPrimArray' f = foldlPrimArray (\ !acc a -> acc `mappend` f a) mempty
+foldMapLPrimArray' f = foldlPrimArray (\ !acc a -> let !fa = f $! a in acc `mappend` fa) mempty
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}
