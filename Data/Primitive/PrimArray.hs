@@ -473,30 +473,61 @@ sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf#
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
 --   The combination is right-associated, and the accumulation is lazy.
+--   An example:
+--
+-- @mySum = 'Data.Monoid.getSum' '$' 'foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2,3,4])@
+--
+-- Because the accumulation of 'foldMapRPrimArray' is /right-associative/, accumulation starts from the right. The first accumulation looks like this:
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2,3])) '<>' ('Data.Monoid.Sum' 4 '<>' 'mempty')@
+--
+-- At each step, we don't force the value of the /accumulator/, in this case 'mempty' (and in the next case the result of @'Data.Monoid.Sum' 4 '<>' 'mempty'@).
+-- This is what it means for accumulation to be lazy. Continuing:
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2])) '<>' ('Data.Monoid.Sum' 3 '<>' ('Data.Monoid.Sum' 4 '<>' 'mempty'))@
+--
+-- As you can see, we are accumulating thunks because we never force the value of the accumulator, so @'Data.Monoid.Sum' 4 '<>' 'mempty'@ is not calculated until the end.
+-- Fully 'built-up', the thunks look like this:
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' ('Data.Monoid.Sum' 4 '<>' 'mempty'))))@
+-- 
+-- And now that we've built up the thunks, we need to actually accumulate them to get our answer:
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' 'Data.Monoid.Sum' 4)))@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 7)))@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 9)@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' 'Data.Monoid.Sum' 10@
+--
+-- @mySum = 10@
 foldMapRPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
-{-# INLINE foldrMapPrimArray #-}
+{-# INLINE foldMapRPrimArray #-}
 foldMapRPrimArray f = foldrPrimArray (\a acc -> f a `mappend` acc) mempty
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
 --   The combination is left-associated, and the accumulation is lazy.
 foldMapLPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
-{-# INLINE foldlMapPrimArray #-}
+{-# INLINE foldMapLPrimArray #-}
 foldMapLPrimArray f = foldlPrimArray (\acc a -> acc `mappend` f a) mempty
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
---   The combination is right-associated, and the accumulation is strict. At each
---   step, we force the accumulator value to WHNF, but we /don't/ force the value
---   of 'f a', meaning that if 'mappend' is lazy in its first argument, 'f a' will
+--   The combination is right-associated, and the accumulation is strict. This means
+--   that at each step, we force the accumulator value to WHNF, but we /don't/ force the value
+--   of the result of the function argument at each point, meaning that if 'mappend' is lazy in its first argument, that result will
 --   not be evaluated.
 foldMapRPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
-{-# INLINE foldrMapPrimArray' #-}
+{-# INLINE foldMapRPrimArray' #-}
 foldMapRPrimArray' f = foldrPrimArray (\a !acc -> f a `mappend` acc) mempty
 
 -- | Map each element of the primitive array to a monoid, and combine the results.
---   The combination is left-associated, and the accumulation is strict, though
---   this function is not necessarily strict in its result.
+--   The combination is left-associated, and the accumulation is strict. This means
+--   that at each step, we force the accumulator value to WHNF, but we /don't/ force the value
+--
+--   of the result of the function argument at each point, meaning that if 'mappend' is lazy in its second argument, that result will not be evaluated.
 foldMapLPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
-{-# INLINE foldlMapPrimArray' #-}
+{-# INLINE foldMapLPrimArray' #-}
 foldMapLPrimArray' f = foldlPrimArray (\ !acc a -> acc `mappend` f a) mempty
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
