@@ -6,7 +6,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
 
-{-# OPTIONS_GHC -Wall #-}
 
 -- |
 -- Module      : Data.Primitive.PrimArray
