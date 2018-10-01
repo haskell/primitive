@@ -161,7 +161,7 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
   {-# INLINE (==) #-}
 
 -- | Lexicographic ordering. Subject to change between major versions.
--- 
+--
 --   @since 0.6.4.0
 instance (Ord a, Prim a) => Ord (PrimArray a) where
   compare a1@(PrimArray ba1#) a2@(PrimArray ba2#)
@@ -253,7 +253,7 @@ emptyPrimArray = runST $ primitive $ \s0# -> case newByteArray# 0# s0# of
 newPrimArray :: forall m a. (PrimMonad m, Prim a) => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPrimArray #-}
 newPrimArray (I# n#)
-  = primitive (\s# -> 
+  = primitive (\s# ->
       case newByteArray# (n# *# sizeOf# (undefined :: a)) s# of
         (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #)
     )
@@ -329,7 +329,7 @@ copyMutablePrimArray :: forall m a.
 {-# INLINE copyMutablePrimArray #-}
 copyMutablePrimArray (MutablePrimArray dst#) (I# doff#) (MutablePrimArray src#) (I# soff#) (I# n#)
   = primitive_ (copyMutableByteArray#
-      src# 
+      src#
       (soff# *# (sizeOf# (undefined :: a)))
       dst#
       (doff# *# (sizeOf# (undefined :: a)))
@@ -348,7 +348,7 @@ copyPrimArray :: forall m a.
 {-# INLINE copyPrimArray #-}
 copyPrimArray (MutablePrimArray dst#) (I# doff#) (PrimArray src#) (I# soff#) (I# n#)
   = primitive_ (copyByteArray#
-      src# 
+      src#
       (soff# *# (sizeOf# (undefined :: a)))
       dst#
       (doff# *# (sizeOf# (undefined :: a)))
@@ -413,7 +413,7 @@ getSizeofMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
 {-# INLINE getSizeofMutablePrimArray #-}
 #if __GLASGOW_HASKELL__ >= 801
 getSizeofMutablePrimArray (MutablePrimArray arr#)
-  = primitive (\s# -> 
+  = primitive (\s# ->
       case getSizeofMutableByteArray# arr# s# of
         (# s'#, sz# #) -> (# s'#, I# (quotInt# sz# (sizeOf# (undefined :: a))) #)
     )
@@ -540,7 +540,7 @@ foldlPrimArrayM' f z0 arr = go 0 z0
 -- > incrPositiveB xs = runST $ runMaybeT $ traversePrimArrayP
 -- >   (\x -> bool (MaybeT (return Nothing)) (MaybeT (return (Just (x + 1)))) (x > 0))
 -- >   xs
--- 
+--
 -- Benchmarks demonstrate that the second implementation runs 150 times
 -- faster than the first. It also results in fewer allocations.
 {-# INLINE traversePrimArrayP #-}
