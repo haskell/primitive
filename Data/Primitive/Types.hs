@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, GADTSyntax, LinearHaskell #-}
 #if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -84,7 +84,10 @@ import GHC.Generics
 #endif
 
 -- | A machine address
-data Addr = Addr Addr#
+data Addr where
+  -- Defined with GADT syntax to make the data constructor unrestricted
+  -- in its argument for users of linear haskell.
+  Addr :: Addr# -> Addr
 
 #if __GLASGOW_HASKELL__ < 710
 deriving instance Typeable Addr
