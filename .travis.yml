@@ -101,8 +101,13 @@ install:
       cabal new-update head.hackage -v
     fi
   - grep -Ev -- '^\s*--' ${HOME}/.cabal/config | grep -Ev '^\s*$'
-
-
+  - "printf 'packages: \".\" \"./test\" \"./bench\"\\n' > cabal.project"
+  - "echo 'package primitive' >> cabal.project"
+  - "echo '  ghc-options: -Wall' >> cabal.project"
+  - touch cabal.project.local
+  - "if ! $NOINSTALLEDCONSTRAINTS; then for pkg in $($HCPKG list --simple-output); do echo $pkg  | grep -vw -- primitive  | sed 's/^/constraints: /' | sed 's/-[^-]*$/ installed/' >> cabal.project.local; done; fi"
+  - cat cabal.project || true
+  - cat cabal.project.local || true
   - if [ -f "./configure.ac" ]; then
       (cd "." && autoreconf -i);
     fi
@@ -124,6 +129,13 @@ script:
   - mv dist-newstyle/sdist/*.tar.gz ${DISTDIR}/
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -name '*.tar.gz' -exec tar -xvf '{}' \;
+  - "printf 'packages: primitive-*/*.cabal primitive-tests-*/*.cabal primitive-benchmarks-*/*.cabal\\n' > cabal.project"
+  - "echo 'package primitive' >> cabal.project"
+  - "echo '  ghc-options: -Wall' >> cabal.project"
+  - touch cabal.project.local
+  - "if ! $NOINSTALLEDCONSTRAINTS; then for pkg in $($HCPKG list --simple-output); do echo $pkg  | grep -vw -- primitive | sed 's/^/constraints: /' | sed 's/-[^-]*$/ installed/' >> cabal.project.local; done; fi"
+  - cat cabal.project || true
+  - cat cabal.project.local || true
 
   # build & run tests, build benchmarks
   - cabal new-build -w ${HC} ${TEST} ${BENCH} all
