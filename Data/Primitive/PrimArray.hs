@@ -31,6 +31,8 @@ module Data.Primitive.PrimArray
   , MutablePrimArray(..)
     -- * Allocation
   , newPrimArray
+  , newPinnedPrimArray
+  , newAlignedPinnedPrimArray
   , resizeMutablePrimArray
 #if __GLASGOW_HASKELL__ >= 710
   , shrinkMutablePrimArray
@@ -55,6 +57,8 @@ module Data.Primitive.PrimArray
   , getSizeofMutablePrimArray
   , sizeofMutablePrimArray
   , sizeofPrimArray
+  , primArrayContents
+  , mutablePrimArrayContents
     -- * List Conversion
   , primArrayToList
   , primArrayFromList
@@ -967,4 +971,36 @@ The naming conventions adopted in this section are explained in the
 documentation of the @Data.Primitive@ module.
 -}
 
+-- | Create a /pinned/ primitive array of the specified size in elements. The garbage
+-- collector is guaranteed not to move it.
+newPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
+  => Int -> m (MutablePrimArray (PrimState m) a)
+{-# INLINE newPinnedPrimArray #-}
+newPinnedPrimArray (I# n#)
+  = primitive (\s# -> case newPinnedByteArray# (n# *# sizeOf# (undefined :: a)) s# of
+                        (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #))
 
+-- | Create a /pinned/ primitive array of the specified size in elements and
+-- with the alignment given by its 'Prim' instance. The garbage collector is
+-- guaranteed not to move it.
+newAlignedPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
+  => Int -> m (MutablePrimArray (PrimState m) a)
+{-# INLINE newAlignedPinnedPrimArray #-}
+newAlignedPinnedPrimArray (I# n#)
+  = primitive (\s# -> case newAlignedPinnedByteArray# (n# *# sizeOf# (undefined :: a)) (alignment# (undefined :: a)) s# of
+                        (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #))
+
+-- | Yield a pointer to the array's data. This operation is only safe on
+-- /pinned/ prim arrays allocated by 'newPinnedByteArray' or
+-- 'newAlignedPinnedByteArray'.
+primArrayContents :: PrimArray a -> Ptr a
+{-# INLINE primArrayContents #-}
+primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
+
+-- | Yield a pointer to the array's data. This operation is only safe on
+-- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
+-- 'newAlignedPinnedByteArray'.
+mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
+{-# INLINE mutablePrimArrayContents #-}
+mutablePrimArrayContents (MutablePrimArray arr#)
+  = Ptr (byteArrayContents# (unsafeCoerce# arr#))
