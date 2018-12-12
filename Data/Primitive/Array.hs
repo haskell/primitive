@@ -235,7 +235,8 @@ copyArray !dst !doff !src !soff !len = go 0
 -- same and the ranges overlap, the copy still works as expected, as if the
 -- region is first copied to a temporary buffer.
 --
--- Note: The order of arguments is different from that of 'copyMutableArray#'.
+-- Note: The order of arguments is different from that of 'copyMutableArray#'. The primop
+-- has the source first while this wrapper has the destination first.
 copyMutableArray :: PrimMonad m
           => MutableArray (PrimState m) a    -- ^ destination array
           -> Int                             -- ^ offset into destination array
