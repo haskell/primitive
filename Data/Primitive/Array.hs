@@ -231,8 +231,11 @@ copyArray !dst !doff !src !soff !len = go 0
          | otherwise = return ()
 #endif
 
--- | Copy a slice of a mutable array to another array. The two arrays may
--- not be the same.
+-- | Copy a slice of a mutable array to another array. If the two arrays are the
+-- same and the ranges overlap, the copy still works as expected, as if the
+-- region is first copied to a temporary buffer.
+--
+-- Note: The order of arguments is different from that of 'copyMutableArray#'.
 copyMutableArray :: PrimMonad m
           => MutableArray (PrimState m) a    -- ^ destination array
           -> Int                             -- ^ offset into destination array
