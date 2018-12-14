@@ -66,6 +66,12 @@ import Numeric
 
 import qualified Foreign.Storable as FS
 
+#if __GLASGOW_HASKELL__ >= 706
+import GHC.IO (IO(..))
+import qualified GHC.Prim
+#endif
+
+
 import Control.Applicative (Const(..))
 #if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity (Identity(..))
@@ -276,6 +282,20 @@ instance Prim (ty) where {                                      \
 ; {-# INLINE setOffAddr# #-}                                    \
 }
 
+#if __GLASGOW_HASKELL__ >= 706
+liberate# :: State# s -> State# r
+liberate# = unsafeCoerce#
+shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word# -> IO ()
+shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Prim.setByteArray# m off len (GHC.Prim.word2Int# w) (liberate# s)), () #))
+shimmedSetInt8Array# :: MutableByteArray# s -> Int -> Int -> Int# -> IO ()
+shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Prim.setByteArray# m off len i (liberate# s)), () #))
+#else
+shimmedSetWord8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()
+shimmedSetWord8Array# = setWord8Array#
+shimmedSetInt8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
+shimmedSetInt8Array# = setInt8Array#
+#endif
+
 unI# :: Int -> Int#
 unI# (I# n#) = n#
 
@@ -283,7 +303,7 @@ derivePrim(Word, W#, sIZEOF_WORD, aLIGNMENT_WORD,
            indexWordArray#, readWordArray#, writeWordArray#, setWordArray#,
            indexWordOffAddr#, readWordOffAddr#, writeWordOffAddr#, setWordOffAddr#)
 derivePrim(Word8, W8#, sIZEOF_WORD8, aLIGNMENT_WORD8,
-           indexWord8Array#, readWord8Array#, writeWord8Array#, setWord8Array#,
+           indexWord8Array#, readWord8Array#, writeWord8Array#, shimmedSetWord8Array#,
            indexWord8OffAddr#, readWord8OffAddr#, writeWord8OffAddr#, setWord8OffAddr#)
 derivePrim(Word16, W16#, sIZEOF_WORD16, aLIGNMENT_WORD16,
            indexWord16Array#, readWord16Array#, writeWord16Array#, setWord16Array#,
@@ -298,7 +318,7 @@ derivePrim(Int, I#, sIZEOF_INT, aLIGNMENT_INT,
            indexIntArray#, readIntArray#, writeIntArray#, setIntArray#,
            indexIntOffAddr#, readIntOffAddr#, writeIntOffAddr#, setIntOffAddr#)
 derivePrim(Int8, I8#, sIZEOF_INT8, aLIGNMENT_INT8,
-           indexInt8Array#, readInt8Array#, writeInt8Array#, setInt8Array#,
+           indexInt8Array#, readInt8Array#, writeInt8Array#, shimmedSetInt8Array#,
            indexInt8OffAddr#, readInt8OffAddr#, writeInt8OffAddr#, setInt8OffAddr#)
 derivePrim(Int16, I16#, sIZEOF_INT16, aLIGNMENT_INT16,
            indexInt16Array#, readInt16Array#, writeInt16Array#, setInt16Array#,

@@ -53,7 +53,7 @@ import Foreign.Storable (Storable)
 import Data.Orphans ()
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
-import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,(===),CoArbitrary,Function)
+import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,CoArbitrary,Function,(===),(==>))
 import qualified Test.Tasty.QuickCheck as TQC
 import qualified Test.QuickCheck as QC
 import qualified Test.QuickCheck.Classes as QCC
@@ -103,7 +103,19 @@ main = do
       [ testGroup "Ordering"
         [ TQC.testProperty "equality" byteArrayEqProp
         , TQC.testProperty "compare" byteArrayCompareProp
+      , testGroup "Filling"
+        [ TQC.testProperty "Int8" (setByteArrayProp (Proxy :: Proxy Int8))
+        , TQC.testProperty "Int16" (setByteArrayProp (Proxy :: Proxy Int16))
+        , TQC.testProperty "Int32" (setByteArrayProp (Proxy :: Proxy Int32))
+        , TQC.testProperty "Int64" (setByteArrayProp (Proxy :: Proxy Int64))
+        , TQC.testProperty "Int" (setByteArrayProp (Proxy :: Proxy Int))
+        , TQC.testProperty "Word8" (setByteArrayProp (Proxy :: Proxy Word8))
+        , TQC.testProperty "Word16" (setByteArrayProp (Proxy :: Proxy Word16))
+        , TQC.testProperty "Word32" (setByteArrayProp (Proxy :: Proxy Word32))
+        , TQC.testProperty "Word64" (setByteArrayProp (Proxy :: Proxy Word64))
+        , TQC.testProperty "Word" (setByteArrayProp (Proxy :: Proxy Word))
         ]
+      ]
       , testGroup "Resize"
         [ TQC.testProperty "shrink" byteArrayShrinkProp
         , TQC.testProperty "grow" byteArrayGrowProp
@@ -238,6 +250,24 @@ arrInt16 = Proxy
 
 arrInt32 :: Proxy (PrimArray Int16)
 arrInt32 = Proxy
+
+setByteArrayProp :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> QC.Property
+setByteArrayProp _ = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (off :: Int)) (QC.NonNegative (len :: Int)) (x :: a) (y :: a) ->
+  (off < n && off + len <= n) ==>
+  -- We use PrimArray in this test because it makes it easier to
+  -- get the element-vs-byte distinction right.
+  let actual = runST $ do
+        m <- newPrimArray n
+        forM_ (enumFromTo 0 (n - 1)) $ \ix -> writePrimArray m ix x
+        setPrimArray m off len y
+        unsafeFreezePrimArray m
+      expected = runST $ do
+        m <- newPrimArray n
+        forM_ (enumFromTo 0 (n - 1)) $ \ix -> writePrimArray m ix x
+        forM_ (enumFromTo off (off + len - 1)) $ \ix -> writePrimArray m ix y
+        unsafeFreezePrimArray m
+   in expected === actual
+
 
 -- Tests that using resizeByteArray to shrink a byte array produces
 -- the same results as calling Data.List.take on the list that the
