@@ -261,12 +261,13 @@ writeByteArray (MutableByteArray arr#) (I# i#) x
 
 -- | Right-fold over the elements of a 'ByteArray'.
 foldrByteArray :: forall a b. (Prim a) => (a -> b -> b) -> b -> ByteArray -> b
+{-# INLINE foldrByteArray #-}
 foldrByteArray f z arr = go 0
   where
     go i
-      | sizeofByteArray arr > i * sz = f (indexByteArray arr i) (go (i+1))
-      | otherwise                    = z
-    sz = sizeOf (undefined :: a)
+      | i < maxI  = f (indexByteArray arr i) (go (i+1))
+      | otherwise = z
+    maxI = sizeofByteArray arr `quot` sizeOf (undefined :: a)
 
 byteArrayFromList :: Prim a => [a] -> ByteArray
 byteArrayFromList xs = byteArrayFromListN (length xs) xs

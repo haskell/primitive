@@ -113,6 +113,7 @@ main = do
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
 #if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
+      , TQC.testProperty "foldrByteArray" (QCCL.foldrProp word8 foldrByteArray)
 #endif
       ]
     , testGroup "PrimArray"
@@ -226,6 +227,9 @@ deriving instance Arbitrary a => Arbitrary (Semigroup.Last a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Min a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Max a)
 #endif
+
+word8 :: Proxy Word8
+word8 = Proxy
 
 int16 :: Proxy Int16
 int16 = Proxy
