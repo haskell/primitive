@@ -232,7 +232,7 @@ copyArray !dst !doff !src !soff !len = go 0
 #endif
 
 -- | Copy a slice of a mutable array to another array. The two arrays must
--- not be the same when using this library with GHC versions older than 7.6.
+-- not be the same when using this library with GHC versions 7.6 and older.
 -- In GHC 7.8 and newer, overlapping arrays will behave correctly.
 --
 -- Note: The order of arguments is different from that of 'copyMutableArray#'. The primop
