@@ -231,9 +231,9 @@ copyArray !dst !doff !src !soff !len = go 0
          | otherwise = return ()
 #endif
 
--- | Copy a slice of a mutable array to another array. If the two arrays are the
--- same and the ranges overlap, the copy still works as expected, as if the
--- region is first copied to a temporary buffer.
+-- | Copy a slice of a mutable array to another array. The two arrays must
+-- not be the same when using this library with GHC versions older than 7.6.
+-- In GHC 7.8 and newer, overlapping arrays will behave correctly.
 --
 -- Note: The order of arguments is different from that of 'copyMutableArray#'. The primop
 -- has the source first while this wrapper has the destination first.
@@ -245,7 +245,7 @@ copyMutableArray :: PrimMonad m
           -> Int                             -- ^ number of elements to copy
           -> m ()
 {-# INLINE copyMutableArray #-}
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ > 706
 -- NOTE: copyArray# and copyMutableArray# are slightly broken in GHC 7.6.* and earlier
 copyMutableArray (MutableArray dst#) (I# doff#)
                  (MutableArray src#) (I# soff#) (I# len#)
