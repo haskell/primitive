@@ -208,7 +208,7 @@ sizeofByteArray :: ByteArray -> Int
 {-# INLINE sizeofByteArray #-}
 sizeofByteArray (ByteArray arr#) = I# (sizeofByteArray# arr#)
 
--- | Size of the mutable byte array in bytes. This function\'s behavior 
+-- | Size of the mutable byte array in bytes. This function\'s behavior
 -- is undefined if 'resizeMutableByteArray' is ever called on the mutable
 -- byte array given as the argument. Consequently, use of this function
 -- is discouraged. Prefer 'getSizeofMutableByteArray', which ensures correct
@@ -462,7 +462,7 @@ instance Eq ByteArray where
 -- | Non-lexicographic ordering. This compares the lengths of
 -- the byte arrays first and uses a lexicographic ordering if
 -- the lengths are equal. Subject to change between major versions.
--- 
+--
 -- @since 0.6.3.0
 instance Ord ByteArray where
   ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)

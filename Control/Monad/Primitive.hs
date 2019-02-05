@@ -222,7 +222,7 @@ primToST :: PrimBase m => m a -> ST (PrimState m) a
 primToST = primToPrim
 
 -- | Convert an 'IO' action to a 'PrimMonad'.
--- 
+--
 -- @since 0.6.2.0
 ioToPrim :: (PrimMonad m, PrimState m ~ RealWorld) => IO a -> m a
 {-# INLINE ioToPrim #-}
@@ -254,7 +254,7 @@ unsafePrimToIO = unsafePrimToPrim
 
 -- | Convert an 'ST' action with an arbitrary state token to any 'PrimMonad'.
 -- This operation is highly unsafe!
--- 
+--
 -- @since 0.6.2.0
 unsafeSTToPrim :: PrimMonad m => ST s a -> m a
 {-# INLINE unsafeSTToPrim #-}

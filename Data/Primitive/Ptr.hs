@@ -118,7 +118,7 @@ copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   -> Int -- ^ number of elements
   -> m ()
 {-# INLINE copyPtrToMutablePrimArray #-}
-copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) = 
+copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
   primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
   where
   siz# = sizeOf# (undefined :: a)
