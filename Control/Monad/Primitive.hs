@@ -61,6 +61,11 @@ import Control.Monad.Trans.Accum    ( AccumT   )
 import Control.Monad.Trans.Select   ( SelectT  )
 #endif
 
+#if MIN_VERSION_transformers(0,5,6)
+import qualified Control.Monad.Trans.Writer.CPS as CPS
+import qualified Control.Monad.Trans.RWS.CPS as CPS
+#endif
+
 import qualified Control.Monad.Trans.RWS.Strict    as Strict ( RWST   )
 import qualified Control.Monad.Trans.State.Strict  as Strict ( StateT )
 import qualified Control.Monad.Trans.Writer.Strict as Strict ( WriterT )
@@ -146,10 +151,24 @@ instance (Monoid w, PrimMonad m) => PrimMonad (WriterT w m) where
   primitive = lift . primitive
   {-# INLINE primitive #-}
 
+#if MIN_VERSION_transformers(0,5,6)
+instance (Monoid w, PrimMonad m) => PrimMonad (CPS.WriterT w m) where
+  type PrimState (CPS.WriterT w m) = PrimState m
+  primitive = lift . primitive
+  {-# INLINE primitive #-}
+#endif
+
 instance (Monoid w, PrimMonad m) => PrimMonad (RWST r w s m) where
   type PrimState (RWST r w s m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
+#if MIN_VERSION_transformers(0,5,6)
+instance (Monoid w, PrimMonad m) => PrimMonad (CPS.RWST r w s m) where
+  type PrimState (CPS.RWST r w s m) = PrimState m
+  primitive = lift . primitive
+  {-# INLINE primitive #-}
+#endif
 
 #if MIN_VERSION_transformers(0,4,0)
 instance PrimMonad m => PrimMonad (ExceptT e m) where
