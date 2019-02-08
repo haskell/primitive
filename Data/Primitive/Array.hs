@@ -73,6 +73,9 @@ import Text.ParserCombinators.ReadP
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
+import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Identity
+import Control.Monad.Trans.State.Strict
 
 -- | Boxed arrays
 data Array a = Array
@@ -526,19 +529,33 @@ traverseArray f = \ !ary ->
      else runSTA len <$> go 0
 {-# INLINE [1] traverseArray #-}
 
+newtype WonkP m f = WonkP
+  { runWonkP :: forall a b. PrimMonad m => (a -> f b) -> Array a -> f (Array b) }
+
 {-# RULES
-"traverse/ST" forall (f :: a -> ST s b). traverseArray f =
-   traverseArrayP f
-"traverse/IO" forall (f :: a -> IO b). traverseArray f =
-   traverseArrayP f
+"toWonk" [~1] traverseArray = traverseArrayWonk (WonkP traverseArrayP :: WonkP f f)
+
+"wonkIO" forall (w :: WonkP IO f).
+  traverseArrayWonk w = runWonkP w
+"wonkST" forall (w :: WonkP (ST s) f).
+  traverseArrayWonk w = runWonkP w
+
+"wonkMaybeT" forall (w :: WonkP (MaybeT m) f).
+  traverseArrayWonk w = traverseArrayWonk (WonkP (runWonkP w) :: WonkP m f)
+"wonkStateT" forall (w :: WonkP (StateT s m) f).
+  traverseArrayWonk w = traverseArrayWonk (WonkP (runWonkP w) :: WonkP m f)
+"wonkIdentityT" forall (w :: WonkP (IdentityT m) f).
+  traverseArrayWonk w = traverseArrayWonk (WonkP (runWonkP w) :: WonkP m f)
  #-}
-#if MIN_VERSION_base(4,8,0)
-{-# RULES
-"traverse/Id" forall (f :: a -> Identity b). traverseArray f =
-   (coerce :: (Array a -> Array (Identity b))
-           -> Array a -> Identity (Array b)) (fmap f)
- #-}
-#endif
+
+traverseArrayWonk
+  :: Applicative f
+  => WonkP m f
+  -> (a -> f b)
+  -> Array a
+  -> f (Array b)
+traverseArrayWonk _ f = traverseArray f
+{-# INLINE [0] traverseArrayWonk #-}
 
 -- | This is the fastest, most straightforward way to traverse
 -- an array, but it only works correctly with a sufficiently
