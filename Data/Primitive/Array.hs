@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -24,7 +25,8 @@ module Data.Primitive.Array (
   sizeofArray, sizeofMutableArray,
   fromListN, fromList,
   mapArray',
-  traverseArrayP
+  traverseArrayP,
+  filterArray
 ) where
 
 import Control.Monad.Primitive
@@ -68,11 +70,13 @@ import GHC.Exts (runRW#)
 import GHC.Base (runRW#)
 #endif
 
-import Text.ParserCombinators.ReadP
+import Text.ParserCombinators.ReadP (string, skipSpaces, readS_to_P, readP_to_S)
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
+
+import Data.Primitive.Internal.Bit
 
 -- | Boxed arrays
 data Array a = Array
@@ -597,6 +601,49 @@ arrayFromListN n l =
 
 arrayFromList :: [a] -> Array a
 arrayFromList l = arrayFromListN (length l) l
+
+filterArray :: forall a. (a -> Bool) -> Array a -> Array a
+filterArray f arr = runArray $
+  newBitArray s >>= check 0 0
+  where
+    s = sizeofArray arr
+    check :: Int -> Int -> MutableBitArray s -> ST s (MutableArray s a)
+    check i count ba
+      | i /= s
+      = do
+          v <- indexArrayM arr i
+          if f v
+            then setBitArray ba i >> check (i + 1) (count + 1) ba
+            else check (i + 1) count ba
+      | otherwise
+      = do
+          mary <- newArray count (die "filterArray" "invalid")
+          fill 0 0 ba mary
+
+    -- This performs a few bit operations and a conditional
+    -- jump for every element of the original array. This is
+    -- not so great if most element are filtered out. We should
+    -- consider going word by word through the bit array and
+    -- using countTrailingZeroes. We could even choose
+    -- a different strategy for each word depending on its
+    -- popCount.
+    fill :: forall s. Int -> Int -> MutableBitArray s -> MutableArray s a -> ST s (MutableArray s a)
+    fill !i0 !i'0 !ba !mary = go i0 i'0
+      where
+        go :: Int -> Int -> ST s (MutableArray s a)
+        go i i'
+          | i == s
+          = return mary
+          | otherwise
+          = do
+              b <- readBitArray ba i
+              if b
+                then do
+                       v <- indexArrayM arr i
+                       writeArray mary i' v
+                       go (i + 1) (i' + 1)
+                else go (i + 1) i'
+
 
 #if MIN_VERSION_base(4,7,0)
 instance Exts.IsList (Array a) where
