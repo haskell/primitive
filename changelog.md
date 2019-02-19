@@ -29,7 +29,10 @@
 
 ## Changes in version 0.6.4.1
 
- * Add instances for the following newtypes from `base`:
+ * Add `foldMapRPrimArray` , `foldMapLPrimArray`, `foldMapRPrimArray'`, and
+   `foldMapLPrimArray'`
+
+ * Add `Prim` instances for the following newtypes from `base`:
    `Const`, `Identity`, `Down`, `Dual`, `Sum`, `Product`,
    `First`, `Last`, `Min`, `Max`
 

@@ -65,6 +65,10 @@ module Data.Primitive.PrimArray
   , foldlPrimArray
   , foldlPrimArray'
   , foldlPrimArrayM'
+  , foldMapRPrimArray
+  , foldMapLPrimArray
+  , foldMapRPrimArray'
+  , foldMapLPrimArray'
     -- * Effectful Folding
   , traversePrimArray_
   , itraversePrimArray_
@@ -465,6 +469,72 @@ indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
+
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is right-associated, and the accumulation is lazy.
+--
+-- ==== __Examples__
+--
+-- @mySum = 'Data.Monoid.getSum' '$' 'foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2,3])@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1,2])) '<>' ('Data.Monoid.Sum' 3 '<>' 'mempty')@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('foldMapRPrimArray' 'Data.Monoid.Sum' ('fromList' [1])) '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' 'mempty'))@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' ('Data.Monoid.Sum' 3 '<>' 'mempty')))@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' ('Data.Monoid.Sum' 2 '<>' 'Data.Monoid.Sum' 3))@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' ('Data.Monoid.Sum' 1 '<>' 'Data.Monoid.Sum' 5)@
+--
+-- @mySum = 'Data.Monoid.getSum' '$' 'Data.Monoid.Sum' 6@
+--
+-- @mySum = 6@
+foldMapRPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldMapRPrimArray #-}
+foldMapRPrimArray f = foldrPrimArray (\a acc -> f a `mappend` acc) mempty
+
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is left-associated, and the accumulation is lazy.
+--
+-- ==== __Examples__
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' 'foldMapLPrimArray' 'Data.Monoid.Product' ('fromList' [1,2,3])@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' ('mempty' '<>' 'Data.Monoid.Product' 1) '<>' ('foldMapLPrimArray' 'Data.Monoid.Product' ('fromList' [2,3])@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' (('mempty' '<>' 'Data.Monoid.Product' 1) '<>' 'Data.Monoid.Product' 2) '<>' ('foldMapLPrimArray' 'Data.Monoid.Product' ('fromList' [3]))@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' ((('mempty' '<>' 'Data.Monoid.Product' 1) '<>' 'Data.Monoid.Product' 2) '<>' 'Data.Monoid.Product' 3)@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' (('Data.Monoid.Product' 1 '<>' 'Data.Monoid.Product' 2) '<>' 'Data.Monoid.Product' 3)@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' ('Data.Monoid.Product' 2 '<>' 'Data.Monoid.Product' 3)@
+--
+-- @myProd = 'Data.Monoid.getProduct' '$' 'Data.Monoid.Product' 6@
+--
+-- @myProd = 6@
+foldMapLPrimArray :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldMapLPrimArray #-}
+foldMapLPrimArray f = foldlPrimArray (\acc a -> acc `mappend` f a) mempty
+
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is right-associated, and the accumulation is strict. This means
+--   that at each step, we force the accumulator value to WHNF. We also force the value
+--   of the result of the function argument at each point, meaning that both arguments
+--   of 'mappend' will be evaluated.
+foldMapRPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldMapRPrimArray' #-}
+foldMapRPrimArray' f = foldrPrimArray (\ a !acc -> let !fa = f $! a in fa `mappend` acc) mempty
+
+-- | Map each element of the primitive array to a monoid, and combine the results.
+--   The combination is left-associated, and the accumulation is strict. This means
+--   that at each step, we force the accumulator value to WHNF. We also force the value
+--   of the result of the function argument at each point, meaning that both arguments
+--   of 'mappend' will be evaulated.
+foldMapLPrimArray' :: forall a m. (Prim a, Monoid m) => (a -> m) -> PrimArray a -> m
+{-# INLINE foldMapLPrimArray' #-}
+foldMapLPrimArray' f = foldlPrimArray (\ !acc a -> let !fa = f $! a in acc `mappend` fa) mempty
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}
