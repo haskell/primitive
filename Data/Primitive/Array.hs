@@ -68,11 +68,16 @@ import GHC.Exts (runRW#)
 import GHC.Base (runRW#)
 #endif
 
+import Text.Read (Read (..), lexP, parens, prec)
+import Text.Read.Lex (Lexeme (Ident))
+import Text.ParserCombinators.ReadPrec (ReadPrec, readPrec_to_S, readS_to_Prec)
+import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.ParserCombinators.ReadP
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
 #endif
+import Control.Monad (liftM2)
 
 -- | Boxed arrays
 data Array a = Array
@@ -783,26 +788,61 @@ instance Show1 Array where
 #endif
 #endif
 
-arrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (Array a)
-arrayLiftReadsPrec _ listReadsPrec p = readParen (p > 10) . readP_to_S $ do
-  () <$ string "fromListN"
-  skipSpaces
-  n <- readS_to_P reads
-  skipSpaces
-  l <- readS_to_P listReadsPrec
-  return $ arrayFromListN n l
-
 instance Read a => Read (Array a) where
-  readsPrec = arrayLiftReadsPrec readsPrec readList
+  readPrec = arrayLiftReadPrec readPrec readListPrec
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 -- | @since 0.6.4.0
 instance Read1 Array where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
+#if MIN_VERSION_base(4,10,0)
+  liftReadPrec = arrayLiftReadPrec
+#elif MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftReadsPrec = arrayLiftReadsPrec
 #else
   readsPrec1 = arrayLiftReadsPrec readsPrec readList
 #endif
+#endif
+
+-- We're really forgiving here. We accept
+-- "[1,2,3]", "fromList [1,2,3]", and "fromListN 3 [1,2,3]".
+-- We consider fromListN with an invalid length to be an
+-- error, rather than a parse failure, because doing otherwise
+-- seems weird and likely to make debugging difficult.
+arrayLiftReadPrec :: ReadPrec a -> ReadPrec [a] -> ReadPrec (Array a)
+arrayLiftReadPrec _ read_list = parens $ prec app_prec $ ReadPrec.lift skipSpaces >>
+    ((fromList <$> read_list) ReadPrec.+++
+      do
+        tag <- ReadPrec.lift lexTag
+        case tag of
+          FromListTag -> fromList <$> read_list
+          FromListNTag -> liftM2 fromListN readPrec read_list)
+   where
+     app_prec = 10
+
+data Tag = FromListTag | FromListNTag
+
+-- Why don't we just use lexP? The general problem with lexP is that
+-- it doesn't always fail as fast as we might like. It will
+-- happily read to the end of an absurdly long lexeme (e.g., a 200MB string
+-- literal) before returning, at which point we'll immediately discard
+-- the result because it's not an identifier. Doing the job ourselves, we
+-- can see very quickly when we've run into a problem. We should also get
+-- a slight efficiency boost by going through the string just once.
+lexTag :: ReadP Tag
+lexTag = do
+  string "fromList"
+  s <- look
+  case s of
+    'N':c:_
+      | '0' <= c && c <= '9'
+      -> fail "" -- We have fromListN3 or similar
+      | otherwise -> FromListNTag <$ get -- Skip the 'N'
+    _ -> return FromListTag
+
+#if !MIN_VERSION_base(4,10,0)
+arrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (Array a)
+arrayLiftReadsPrec reads_prec list_reads_prec = readPrec_to_S $
+  arrayLiftReadPrec (readS_to_Prec reads_prec) (readS_to_Prec (const list_reads_prec))
 #endif
 
 
