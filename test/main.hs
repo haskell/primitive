@@ -69,8 +69,7 @@ main = do
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
-      -- https://github.com/haskell/primitive/issues/223
-      -- , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
@@ -87,8 +86,7 @@ main = do
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (SmallArray Int)))
-      -- https://github.com/haskell/primitive/issues/223
-      -- , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 SmallArray))
@@ -112,8 +110,7 @@ main = do
         ]
       , lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
-      -- https://github.com/haskell/primitive/issues/223
-      -- , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
 #if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
       , TQC.testProperty "foldrByteArray" (QCCL.foldrProp word8 foldrByteArray)
