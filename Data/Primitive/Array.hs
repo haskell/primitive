@@ -45,6 +45,7 @@ import Control.Monad.ST(ST,runST)
 
 import Control.Applicative
 import Control.Monad (MonadPlus(..), when)
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.Fix
 #if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
@@ -700,6 +701,11 @@ instance Monad Array where
      = copyArray smb off sb 0 (lsb)
          *> fill (off + lsb) sbs smb
 
+#if !(MIN_VERSION_base(4,13,0))
+  fail = Fail.fail
+#endif
+
+instance Fail.MonadFail Array where
   fail _ = empty
 
 instance MonadPlus Array where
