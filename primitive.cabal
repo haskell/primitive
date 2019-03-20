@@ -58,6 +58,8 @@ Library
   Build-Depends: base >= 4.5 && < 4.13
                , ghc-prim >= 0.2 && < 0.6
                , transformers >= 0.2 && < 0.6
+  if !impl(ghc >= 8.0)
+    Build-Depends: fail == 4.9.*
 
   Ghc-Options: -O2
 

@@ -1,5 +1,7 @@
 ## Changes in version 0.?.?.?
 
+  * Define `MonadFail` instances for `Array` and `SmallArray`.
+
   * Define `unsafeInterleave`.
 
   * Add a `Prim` instance for `StablePtr` to replace the previous
@@ -16,14 +18,14 @@
     `Data.Primitive.Types.PrimUnlifted`.
 
 ## Changes in version 0.?.?.?
-  
+
   * Remove the `PrimUnlifted` instance for `StablePtr`. This instance would
     cause the GC to crash if someone actually put `StablePtr`s inside
     an `UnliftedArray`.
-    
+
   * Fix the `PrimUnlifted` instances for `SmallArray` and `SmallMutableArray`
     when compiling with GHC < 7.10. Previously these would segfault.
-    
+
   * Remove useless accidental laziness in `atomicModifyMutVar`, making it match
     `atomicModifyIORef`. The semantics should be the same.
 
@@ -76,7 +78,7 @@
 
  * Fix the implementation of `mconcat` in the `Monoid` instance for
    `SmallArray`.
- 
+
  * Implement `Data.Primitive.Ptr`, implementations of `Ptr` functions
    that require a `Prim` constraint instead of a `Storable` constraint.
 
