@@ -59,6 +59,10 @@ module Data.Primitive.PrimArray
   , sizeofPrimArray
   , primArrayContents
   , mutablePrimArrayContents
+#if __GLASGOW_HASKELL__ >= 802
+  , isPrimArrayPinned
+  , isMutablePrimArrayPinned
+#endif
     -- * List Conversion
   , primArrayToList
   , primArrayFromList
@@ -119,6 +123,10 @@ import GHC.Exts (IsList(..))
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (Semigroup)
 import qualified Data.Semigroup as SG
+#endif
+
+#if __GLASGOW_HASKELL__ >= 802
+import qualified GHC.Exts as Exts
 #endif
 
 -- | Arrays of unboxed elements. This accepts types like 'Double', 'Char',
@@ -469,6 +477,26 @@ indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
+
+#if __GLASGOW_HASKELL__ >= 802
+-- | Check whether or not the byte array is pinned. Pinned primitive arrays cannot
+--   be moved by the garbage collector. It is safe to use 'primArrayContents'
+--   on such byte arrays. This function is only available when compiling with
+--   GHC 8.2 or newer.
+--
+--   @since 0.7.0.0
+isPrimArrayPinned :: PrimArray a -> Bool
+{-# INLINE isPrimArrayPinned #-}
+isPrimArrayPinned (PrimArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
+
+-- | Check whether or not the mutable primitive array is pinned. This function is
+--   only available when compiling with GHC 8.2 or newer.
+--
+--   @since 0.7.0.0
+isMutablePrimArrayPinned :: MutablePrimArray s a -> Bool
+{-# INLINE isMutablePrimArrayPinned #-}
+isMutablePrimArrayPinned (MutablePrimArray marr#) = isTrue# (Exts.isMutableByteArrayPinned# marr#)
+#endif
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}
@@ -973,6 +1001,8 @@ documentation of the @Data.Primitive@ module.
 
 -- | Create a /pinned/ primitive array of the specified size in elements. The garbage
 -- collector is guaranteed not to move it.
+--
+-- @since 0.7.0.0
 newPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
   => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPinnedPrimArray #-}
@@ -983,6 +1013,8 @@ newPinnedPrimArray (I# n#)
 -- | Create a /pinned/ primitive array of the specified size in elements and
 -- with the alignment given by its 'Prim' instance. The garbage collector is
 -- guaranteed not to move it.
+--
+-- @since 0.7.0.0
 newAlignedPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
   => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newAlignedPinnedPrimArray #-}
@@ -993,6 +1025,8 @@ newAlignedPinnedPrimArray (I# n#)
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ prim arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
+--
+-- @since 0.7.0.0
 primArrayContents :: PrimArray a -> Ptr a
 {-# INLINE primArrayContents #-}
 primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
@@ -1000,6 +1034,8 @@ primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
+--
+-- @since 0.7.0.0
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
 mutablePrimArrayContents (MutablePrimArray arr#)
