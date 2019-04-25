@@ -115,7 +115,10 @@ instance Data Addr where
   dataTypeOf _ = mkNoRepType "Data.Primitive.Types.Addr"
 
 
--- | Class of types supporting primitive array operations
+-- | Class of types supporting primitive array operations. This includes
+-- interfacing with GC-managed memory (functions suffixed with @ByteArray#@)
+-- and interfacing with unmanaged memory (functions suffixed with @Addr#@).
+-- Endianness is platform-dependent.
 class Prim a where
 
   -- | Size of values of type @a@. The argument is not used.
