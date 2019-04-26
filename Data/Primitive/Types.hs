@@ -22,8 +22,6 @@
 module Data.Primitive.Types (
   Prim(..),
   sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#,
-
-  Addr(..),
   PrimStorable(..)
 ) where
 
@@ -83,36 +81,6 @@ import qualified Data.Semigroup as Semigroup
 import GHC.Generics
 #endif
 
--- | A machine address
-data Addr = Addr Addr#
-
-#if __GLASGOW_HASKELL__ < 710
-deriving instance Typeable Addr
-#endif
-
-#if __GLASGOW_HASKELL__ >= 800
--- | @since TODO
-deriving instance Generic Addr
-#endif
-
-instance Show Addr where
-  showsPrec _ (Addr a) =
-    showString "0x" . showHex (fromIntegral (I# (addr2Int# a)) :: Word)
-
-instance Eq Addr where
-  Addr a# == Addr b# = isTrue# (eqAddr# a# b#)
-  Addr a# /= Addr b# = isTrue# (neAddr# a# b#)
-
-instance Ord Addr where
-  Addr a# > Addr b# = isTrue# (gtAddr# a# b#)
-  Addr a# >= Addr b# = isTrue# (geAddr# a# b#)
-  Addr a# < Addr b# = isTrue# (ltAddr# a# b#)
-  Addr a# <= Addr b# = isTrue# (leAddr# a# b#)
-
-instance Data Addr where
-  toConstr _ = error "toConstr"
-  gunfold _ _ = error "gunfold"
-  dataTypeOf _ = mkNoRepType "Data.Primitive.Types.Addr"
 
 
 -- | Class of types supporting primitive array operations. This includes
@@ -321,9 +289,6 @@ derivePrim(Double, D#, sIZEOF_DOUBLE, aLIGNMENT_DOUBLE,
 derivePrim(Char, C#, sIZEOF_CHAR, aLIGNMENT_CHAR,
            indexWideCharArray#, readWideCharArray#, writeWideCharArray#, setWideCharArray#,
            indexWideCharOffAddr#, readWideCharOffAddr#, writeWideCharOffAddr#, setWideCharOffAddr#)
-derivePrim(Addr, Addr, sIZEOF_PTR, aLIGNMENT_PTR,
-           indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
-           indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)
 derivePrim(Ptr a, Ptr, sIZEOF_PTR, aLIGNMENT_PTR,
            indexAddrArray#, readAddrArray#, writeAddrArray#, setAddrArray#,
            indexAddrOffAddr#, readAddrOffAddr#, writeAddrOffAddr#, setAddrOffAddr#)

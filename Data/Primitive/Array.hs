@@ -72,10 +72,9 @@ import GHC.Exts (runRW#)
 import GHC.Base (runRW#)
 #endif
 
-import Text.Read (Read (..), lexP, parens, prec)
-import Text.Read.Lex (Lexeme (Ident))
-import Text.ParserCombinators.ReadPrec (ReadPrec, readPrec_to_S, readS_to_Prec)
-import qualified Text.ParserCombinators.ReadPrec as ReadPrec
+import Text.Read (Read (..), parens, prec)
+import Text.ParserCombinators.ReadPrec (ReadPrec)
+import qualified Text.ParserCombinators.ReadPrec as RdPrc
 import Text.ParserCombinators.ReadP
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
@@ -818,10 +817,10 @@ instance Read1 Array where
 -- error, rather than a parse failure, because doing otherwise
 -- seems weird and likely to make debugging difficult.
 arrayLiftReadPrec :: ReadPrec a -> ReadPrec [a] -> ReadPrec (Array a)
-arrayLiftReadPrec _ read_list = parens $ prec app_prec $ ReadPrec.lift skipSpaces >>
-    ((fromList <$> read_list) ReadPrec.+++
+arrayLiftReadPrec _ read_list = parens $ prec app_prec $ RdPrc.lift skipSpaces >>
+    ((fromList <$> read_list) RdPrc.+++
       do
-        tag <- ReadPrec.lift lexTag
+        tag <- RdPrc.lift lexTag
         case tag of
           FromListTag -> fromList <$> read_list
           FromListNTag -> liftM2 fromListN readPrec read_list)
@@ -839,7 +838,7 @@ data Tag = FromListTag | FromListNTag
 -- a slight efficiency boost by going through the string just once.
 lexTag :: ReadP Tag
 lexTag = do
-  string "fromList"
+  _ <- string "fromList"
   s <- look
   case s of
     'N':c:_
@@ -850,8 +849,8 @@ lexTag = do
 
 #if !MIN_VERSION_base(4,10,0)
 arrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (Array a)
-arrayLiftReadsPrec reads_prec list_reads_prec = readPrec_to_S $
-  arrayLiftReadPrec (readS_to_Prec reads_prec) (readS_to_Prec (const list_reads_prec))
+arrayLiftReadsPrec reads_prec list_reads_prec = RdPrc.readPrec_to_S $
+  arrayLiftReadPrec (RdPrc.readS_to_Prec reads_prec) (RdPrc.readS_to_Prec (const list_reads_prec))
 #endif
 
 

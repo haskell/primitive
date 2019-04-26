@@ -40,13 +40,10 @@ Library
         Data.Primitive
         Data.Primitive.MachDeps
         Data.Primitive.Types
-        Data.Primitive.Types.PrimUnlifted
         Data.Primitive.Array
         Data.Primitive.ByteArray
         Data.Primitive.PrimArray
         Data.Primitive.SmallArray
-        Data.Primitive.UnliftedArray
-        Data.Primitive.Addr
         Data.Primitive.Ptr
         Data.Primitive.MutVar
         Data.Primitive.MVar
