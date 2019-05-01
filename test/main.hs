@@ -23,7 +23,7 @@ import Data.Word
 import Data.Proxy (Proxy(..))
 import GHC.Int
 import GHC.IO
-import GHC.Prim
+import GHC.Exts
 import Data.Function (on)
 import Control.Applicative (Const(..))
 import Foreign.StablePtr (newStablePtr,deRefStablePtr,freeStablePtr)

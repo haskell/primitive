@@ -39,7 +39,7 @@ import Data.Primitive.ByteArray
 #endif
 
 import GHC.Base ( Int(..) )
-import GHC.Prim
+import GHC.Exts
 
 import GHC.Ptr
 import Foreign.Marshal.Utils

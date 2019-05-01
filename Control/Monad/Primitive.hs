@@ -23,7 +23,7 @@ module Control.Monad.Primitive (
   touch, evalPrim, unsafeInterleave, unsafeDupableInterleave, noDuplicate
 ) where
 
-import GHC.Prim   ( State#, RealWorld, noDuplicate#, touch# )
+import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch# )
 import GHC.Base   ( unsafeCoerce#, realWorld# )
 #if MIN_VERSION_base(4,4,0)
 import GHC.Base   ( seq# )

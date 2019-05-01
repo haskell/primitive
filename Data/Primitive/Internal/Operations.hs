@@ -30,7 +30,7 @@ module Data.Primitive.Internal.Operations (
 
 import Data.Primitive.MachDeps (Word64_#, Int64_#)
 import Foreign.C.Types
-import GHC.Prim
+import GHC.Exts
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
   setWord8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()

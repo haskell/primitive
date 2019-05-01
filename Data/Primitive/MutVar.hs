@@ -25,13 +25,8 @@ module Data.Primitive.MutVar (
 ) where
 
 import Control.Monad.Primitive ( PrimMonad(..), primitive_ )
-#if MIN_VERSION_base(4,11,0)
 import GHC.Exts ( MutVar#, sameMutVar#, newMutVar#,
                   readMutVar#, writeMutVar#, atomicModifyMutVar# )
-#else
-import GHC.Prim ( MutVar#, sameMutVar#, newMutVar#,
-                  readMutVar#, writeMutVar#, atomicModifyMutVar# )
-#endif
 import Data.Primitive.Internal.Compat ( isTrue# )
 import Data.Typeable ( Typeable )
 
