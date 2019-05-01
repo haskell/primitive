@@ -43,7 +43,7 @@ benchmark bench
     PrimArray.Compare
     PrimArray.Traverse
   build-depends:
-      base >= 4.8 && < 4.13
+      base >= 4.8 && < 4.14
     , primitive
     , deepseq
     , ghc-prim
