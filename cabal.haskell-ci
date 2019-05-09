@@ -1,6 +1,8 @@
 ghc-head:               True
 jobs:                   2
+jobs-selection:         any
 no-tests-no-benchmarks: False
 unconstrained:          False
 install-dependencies:   False
 copy-fields:            all
+benchmarks:             >=7.10

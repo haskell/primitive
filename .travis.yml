@@ -4,7 +4,7 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.2
+# version: 0.2.1
 #
 language: c
 dist: xenial
@@ -69,6 +69,7 @@ install:
   - echo "$(${HC} --version) [$(${HC} --print-project-git-commit-id 2> /dev/null || echo '?')]"
   - TEST=--enable-tests
   - BENCH=--enable-benchmarks
+  - if [ $HCNUMVER -lt 71000 ] ; then BENCH=--disable-benchmarks ; fi
   - GHCHEAD=${GHCHEAD-false}
   - travis_retry ${CABAL} update -v
   - sed -i.bak 's/^jobs:/-- jobs:/' $CABALHOME/config
@@ -97,7 +98,7 @@ install:
   - touch cabal.project
   - "printf 'packages: \".\"\\n' >> cabal.project"
   - "printf 'packages: \"./test\"\\n' >> cabal.project"
-  - "printf 'packages: \"./bench\"\\n' >> cabal.project"
+  - "if [ $HCNUMVER -eq 71003 ]  ||  [ $HCNUMVER -eq 80002 ]  ||  [ $HCNUMVER -eq 80202 ]  ||  [ $HCNUMVER -eq 80404 ]  ||  [ $HCNUMVER -eq 80603 ] ; then printf 'packages: \"./bench\"\\n' >> cabal.project ; fi"
   - echo 'package primitive' >> cabal.project
   - "echo '  ghc-options: -Wall' >> cabal.project"
   - echo 'package primitive-tests' >> cabal.project
@@ -130,7 +131,7 @@ script:
   - touch cabal.project
   - "printf 'packages: \"primitive-*/*.cabal\"\\n' >> cabal.project"
   - "printf 'packages: \"primitive-tests-*/*.cabal\"\\n' >> cabal.project"
-  - "printf 'packages: \"primitive-benchmarks-*/*.cabal\"\\n' >> cabal.project"
+  - "if [ $HCNUMVER -eq 71003 ]  ||  [ $HCNUMVER -eq 80002 ]  ||  [ $HCNUMVER -eq 80202 ]  ||  [ $HCNUMVER -eq 80404 ]  ||  [ $HCNUMVER -eq 80603 ] ; then printf 'packages: \"primitive-benchmarks-*/*.cabal\"\\n' >> cabal.project ; fi"
   - echo 'package primitive' >> cabal.project
   - "echo '  ghc-options: -Wall' >> cabal.project"
   - echo 'package primitive-tests' >> cabal.project
@@ -152,7 +153,7 @@ script:
   # cabal check
   - (cd primitive-* && ${CABAL} check)
   - (cd primitive-tests-* && ${CABAL} check)
-  - (cd primitive-benchmarks-* && ${CABAL} check)
+  - if [ $HCNUMVER -eq 71003 ]  ||  [ $HCNUMVER -eq 80002 ]  ||  [ $HCNUMVER -eq 80202 ]  ||  [ $HCNUMVER -eq 80404 ]  ||  [ $HCNUMVER -eq 80603 ] ; then (cd primitive-benchmarks-* && ${CABAL} check) ; fi
 
   # haddock
   - ${CABAL} new-haddock -w ${HC} ${TEST} ${BENCH} all
