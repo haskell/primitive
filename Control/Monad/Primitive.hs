@@ -321,7 +321,7 @@ noDuplicate :: PrimMonad m => m ()
 noDuplicate = primitive $ \ s -> (# noDuplicate# s, () #)
 #else
 -- noDuplicate# was limited to RealWorld
-noDuplicate = primitive $ unsafeCoerce# $ \s -> (# noDuplicate# s, () #)
+noDuplicate = unsafePrimToPrim $ \s -> (# noDuplicate# s, () #)
 #endif
 
 unsafeInterleave, unsafeDupableInterleave :: PrimBase m => m a -> m a

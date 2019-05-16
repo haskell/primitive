@@ -58,9 +58,9 @@ import GHC.Exts
 #endif
 
 
-import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+import Data.Primitive.Internal.Compat ( isTrue# )
 import Foreign.Storable (Storable)
-import Numeric
+
 
 import qualified Foreign.Storable as FS
 
@@ -77,10 +77,6 @@ import GHC.Exts (Down(..))
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Semigroup
 #endif
-#if __GLASGOW_HASKELL__ >= 800
-import GHC.Generics
-#endif
-
 
 
 -- | Class of types supporting primitive array operations. This includes
