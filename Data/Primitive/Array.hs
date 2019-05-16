@@ -30,7 +30,10 @@ module Data.Primitive.Array (
 import Control.Monad.Primitive
 
 import GHC.Base  ( Int(..) )
-import GHC.Prim
+import GHC.Exts
+#if (MIN_VERSION_base(4,7,0))
+  hiding (toList)
+#endif
 import qualified GHC.Exts as Exts
 #if (MIN_VERSION_base(4,7,0))
 import GHC.Exts (fromListN, fromList)

@@ -93,9 +93,8 @@ module Data.Primitive.PrimArray
   , mapMaybePrimArrayP
   ) where
 
-import GHC.Prim
+import GHC.Exts
 import GHC.Base ( Int(..) )
-import GHC.Exts (build)
 import GHC.Ptr
 import Data.Primitive.Internal.Compat (isTrue#)
 import Data.Primitive.Types

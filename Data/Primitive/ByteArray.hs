@@ -61,7 +61,7 @@ import GHC.Base ( Int(..) )
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts ( IsList(..) )
 #endif
-import GHC.Prim
+import GHC.Exts
 #if __GLASGOW_HASKELL__ >= 706
     hiding (setByteArray#)
 #endif

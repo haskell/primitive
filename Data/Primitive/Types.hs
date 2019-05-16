@@ -53,7 +53,7 @@ import GHC.Stable (
     StablePtr(..)
   )
 
-import GHC.Prim
+import GHC.Exts
 #if __GLASGOW_HASKELL__ >= 706
     hiding (setByteArray#)
 #endif
