@@ -78,7 +78,6 @@ import GHC.Exts (Down(..))
 import qualified Data.Semigroup as Semigroup
 #endif
 
-
 -- | Class of types supporting primitive array operations. This includes
 -- interfacing with GC-managed memory (functions suffixed with @ByteArray#@)
 -- and interfacing with unmanaged memory (functions suffixed with @Addr#@).

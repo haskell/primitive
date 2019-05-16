@@ -95,7 +95,6 @@ module Data.Primitive.PrimArray
 
 import GHC.Exts
 import GHC.Base ( Int(..) )
-import GHC.Ptr
 import Data.Primitive.Internal.Compat (isTrue#)
 import Data.Primitive.Types
 import Data.Primitive.ByteArray (ByteArray(..))
