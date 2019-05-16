@@ -1,33 +1,23 @@
-## Changes in version 0.?.?.?
+## Changes in version 0.7.0.0
+
+  * Remove `Addr` data type, lifted code should use `Ptr a` now
 
   * Define `MonadFail` instances for `Array` and `SmallArray`.
 
   * Define `unsafeInterleave`.
 
-  * Add a `Prim` instance for `StablePtr` to replace the previous
-    (invalid) `PrimUnlifted` instance.
+  * Add a `Prim` instance for `StablePtr`
 
-  * Add a `PrimUnlifted` instance for `StableName`.
+  * Remove `UnliftedArray` and related type classes
 
   * Add a lot more tests for `PrimArray`.
 
-  * Rework the `PrimUnlifted` class so users don't need to use `unsafeCoerce#`
-    when writing instances for GHC >= 8.0. Specifically, add an associated
-    type family, `Unlifted`, and two methods, `toUnlifted#` and `fromUnlifted#`.
-    Move the class definition from `Data.Primitive.UnliftedArray` to
-    `Data.Primitive.Types.PrimUnlifted`.
-
-## Changes in version 0.?.?.?
-
-  * Remove the `PrimUnlifted` instance for `StablePtr`. This instance would
-    cause the GC to crash if someone actually put `StablePtr`s inside
-    an `UnliftedArray`.
-
-  * Fix the `PrimUnlifted` instances for `SmallArray` and `SmallMutableArray`
-    when compiling with GHC < 7.10. Previously these would segfault.
+  * Added PrimMonad instance for CPS Writer and RWS monads from Transformers
 
   * Remove useless accidental laziness in `atomicModifyMutVar`, making it match
     `atomicModifyIORef`. The semantics should be the same.
+
+  * lots of little documentation twiddles.
 
 ## Changes in version 0.6.4.1
 
