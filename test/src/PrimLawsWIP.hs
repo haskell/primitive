@@ -7,7 +7,7 @@
 
 {-# OPTIONS_GHC -Wall #-}
 
-module Test.QuickCheck.Classes.Prim
+module PrimLawsWIP
   ( primLaws
   ) where
 

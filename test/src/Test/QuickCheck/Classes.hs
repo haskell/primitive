@@ -32,7 +32,6 @@ module Test.QuickCheck.Classes
   , ordLaws
   , enumLaws
   , boundedEnumLaws
-  , primLaws
   , semigroupLaws
   , commutativeSemigroupLaws
   , exponentialSemigroupLaws
@@ -96,7 +95,7 @@ import Test.QuickCheck.Classes.IsList
 #endif
 import Test.QuickCheck.Classes.Monoid
 import Test.QuickCheck.Classes.Ord
-import Test.QuickCheck.Classes.Prim
+
 import Test.QuickCheck.Classes.Semigroup
 #if HAVE_SEMIRINGS
 import Test.QuickCheck.Classes.Semiring

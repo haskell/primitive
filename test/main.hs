@@ -26,7 +26,7 @@ import GHC.IO
 import GHC.Exts
 import Data.Function (on)
 import Control.Applicative (Const(..))
-
+import PrimLawsWIP (primLaws)
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
@@ -151,7 +151,7 @@ main = do
 
 
      ,testGroup "DefaultSetMethod"
-      [ lawsToTest (QCC.primLaws (Proxy :: Proxy DefaultSetMethod))
+      [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
 #if __GLASGOW_HASKELL__ >= 805
     ,testGroup "PrimStorable"
@@ -159,29 +159,29 @@ main = do
       ]
 #endif
      ,testGroup "Prim"
-      [ renameLawsToTest "Word" (QCC.primLaws (Proxy :: Proxy Word))
-      , renameLawsToTest "Word8" (QCC.primLaws (Proxy :: Proxy Word8))
-      , renameLawsToTest "Word16" (QCC.primLaws (Proxy :: Proxy Word16))
-      , renameLawsToTest "Word32" (QCC.primLaws (Proxy :: Proxy Word32))
-      , renameLawsToTest "Word64" (QCC.primLaws (Proxy :: Proxy Word64))
-      , renameLawsToTest "Int" (QCC.primLaws (Proxy :: Proxy Int))
-      , renameLawsToTest "Int8" (QCC.primLaws (Proxy :: Proxy Int8))
-      , renameLawsToTest "Int16" (QCC.primLaws (Proxy :: Proxy Int16))
-      , renameLawsToTest "Int32" (QCC.primLaws (Proxy :: Proxy Int32))
-      , renameLawsToTest "Int64" (QCC.primLaws (Proxy :: Proxy Int64))
-      , renameLawsToTest "Const" (QCC.primLaws (Proxy :: Proxy (Const Int16 Int16)))
-      , renameLawsToTest "Down" (QCC.primLaws (Proxy :: Proxy (Down Int16)))
+      [ renameLawsToTest "Word" (primLaws (Proxy :: Proxy Word))
+      , renameLawsToTest "Word8" (primLaws (Proxy :: Proxy Word8))
+      , renameLawsToTest "Word16" (primLaws (Proxy :: Proxy Word16))
+      , renameLawsToTest "Word32" (primLaws (Proxy :: Proxy Word32))
+      , renameLawsToTest "Word64" (primLaws (Proxy :: Proxy Word64))
+      , renameLawsToTest "Int" (primLaws (Proxy :: Proxy Int))
+      , renameLawsToTest "Int8" (primLaws (Proxy :: Proxy Int8))
+      , renameLawsToTest "Int16" (primLaws (Proxy :: Proxy Int16))
+      , renameLawsToTest "Int32" (primLaws (Proxy :: Proxy Int32))
+      , renameLawsToTest "Int64" (primLaws (Proxy :: Proxy Int64))
+      , renameLawsToTest "Const" (primLaws (Proxy :: Proxy (Const Int16 Int16)))
+      , renameLawsToTest "Down" (primLaws (Proxy :: Proxy (Down Int16)))
 #if MIN_VERSION_base(4,8,0)
-      , renameLawsToTest "Identity" (QCC.primLaws (Proxy :: Proxy (Identity Int16)))
-      , renameLawsToTest "Dual" (QCC.primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
-      , renameLawsToTest "Sum" (QCC.primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
-      , renameLawsToTest "Product" (QCC.primLaws (Proxy :: Proxy (Monoid.Product Int16)))
+      , renameLawsToTest "Identity" (primLaws (Proxy :: Proxy (Identity Int16)))
+      , renameLawsToTest "Dual" (primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
+      , renameLawsToTest "Sum" (primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
+      , renameLawsToTest "Product" (primLaws (Proxy :: Proxy (Monoid.Product Int16)))
 #endif
 #if MIN_VERSION_base(4,9,0)
-      , renameLawsToTest "First" (QCC.primLaws (Proxy :: Proxy (Semigroup.First Int16)))
-      , renameLawsToTest "Last" (QCC.primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
-      , renameLawsToTest "Min" (QCC.primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
-      , renameLawsToTest "Max" (QCC.primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
+      , renameLawsToTest "First" (primLaws (Proxy :: Proxy (Semigroup.First Int16)))
+      , renameLawsToTest "Last" (primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
+      , renameLawsToTest "Min" (primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
+      , renameLawsToTest "Max" (primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
 #endif
 
       ]
