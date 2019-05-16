@@ -4,7 +4,7 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.2
+# version: 0.2.1
 #
 language: c
 dist: xenial
@@ -30,6 +30,10 @@ before_cache:
 
 matrix:
   include:
+    - compiler: "ghc-8.6.5"
+      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-2.4,ghc-8.6.5], sources: [hvr-ghc]}}
+    - compiler: "ghc-8.6.4"
+      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-2.4,ghc-8.6.4], sources: [hvr-ghc]}}
     - compiler: "ghc-8.6.3"
       addons: {apt: {packages: [ghc-ppa-tools,cabal-install-2.4,ghc-8.6.3], sources: [hvr-ghc]}}
     - compiler: "ghc-8.4.4"
@@ -96,26 +100,16 @@ install:
   - rm -f cabal.project
   - touch cabal.project
   - "printf 'packages: \".\"\\n' >> cabal.project"
-  - "printf 'packages: \"./test\"\\n' >> cabal.project"
-  - "printf 'packages: \"./bench\"\\n' >> cabal.project"
   - echo 'package primitive' >> cabal.project
   - "echo '  ghc-options: -Wall' >> cabal.project"
-  - echo 'package primitive-tests' >> cabal.project
-  - "echo '  ghc-options: -Wall' >> cabal.project"
-  - echo 'package primitive-benchmarks' >> cabal.project
-  - "echo '  ghc-options: -Wall' >> cabal.project"
-  - echo 'package quickcheck-classes' >> cabal.project
-  - "echo '  flags: -aeson -semigroupoids -semirings' >> cabal.project"
   - "printf 'write-ghc-environment-files: always\\n' >> cabal.project"
   - touch cabal.project.local
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | grep -vE -- '^(primitive|primitive-benchmarks|primitive-tests)$' | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | grep -vE -- '^(primitive)$' | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
   - if [ -f "./configure.ac" ]; then (cd "." && autoreconf -i); fi
-  - if [ -f "./test/configure.ac" ]; then (cd "./test" && autoreconf -i); fi
-  - if [ -f "./bench/configure.ac" ]; then (cd "./bench" && autoreconf -i); fi
   - rm -f cabal.project.freeze
-  - rm -rf .ghc.environment.* "."/dist "./test"/dist "./bench"/dist
+  - rm -rf .ghc.environment.* "."/dist
   - DISTDIR=$(mktemp -d /tmp/dist-test.XXXX)
 
 # Here starts the actual work to be performed for the package under test;
@@ -129,19 +123,11 @@ script:
   - rm -f cabal.project
   - touch cabal.project
   - "printf 'packages: \"primitive-*/*.cabal\"\\n' >> cabal.project"
-  - "printf 'packages: \"primitive-tests-*/*.cabal\"\\n' >> cabal.project"
-  - "printf 'packages: \"primitive-benchmarks-*/*.cabal\"\\n' >> cabal.project"
   - echo 'package primitive' >> cabal.project
   - "echo '  ghc-options: -Wall' >> cabal.project"
-  - echo 'package primitive-tests' >> cabal.project
-  - "echo '  ghc-options: -Wall' >> cabal.project"
-  - echo 'package primitive-benchmarks' >> cabal.project
-  - "echo '  ghc-options: -Wall' >> cabal.project"
-  - echo 'package quickcheck-classes' >> cabal.project
-  - "echo '  flags: -aeson -semigroupoids -semirings' >> cabal.project"
   - "printf 'write-ghc-environment-files: always\\n' >> cabal.project"
   - touch cabal.project.local
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | grep -vE -- '^(primitive|primitive-benchmarks|primitive-tests)$' | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | grep -vE -- '^(primitive)$' | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
 
@@ -151,8 +137,6 @@ script:
 
   # cabal check
   - (cd primitive-* && ${CABAL} check)
-  - (cd primitive-tests-* && ${CABAL} check)
-  - (cd primitive-benchmarks-* && ${CABAL} check)
 
   # haddock
   - ${CABAL} new-haddock -w ${HC} ${TEST} ${BENCH} all
