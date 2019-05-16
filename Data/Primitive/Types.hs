@@ -24,7 +24,6 @@ module Data.Primitive.Types (
   ,sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#
   ,PrimStorable(..)
   ,Ptr(..)
-  ,Word8
 ) where
 
 import Control.Monad.Primitive
