@@ -127,17 +127,17 @@ newAlignedPinnedByteArray (I# n#) (I# k#)
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
-byteArrayContents :: ByteArray -> Addr
+byteArrayContents :: ByteArray -> Ptr Word8
 {-# INLINE byteArrayContents #-}
-byteArrayContents (ByteArray arr#) = Addr (byteArrayContents# arr#)
+byteArrayContents (ByteArray arr#) = Ptr (byteArrayContents# arr#)
 
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
-mutableByteArrayContents :: MutableByteArray s -> Addr
+mutableByteArrayContents :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContents #-}
 mutableByteArrayContents (MutableByteArray arr#)
-  = Addr (byteArrayContents# (unsafeCoerce# arr#))
+  = Ptr (byteArrayContents# (unsafeCoerce# arr#))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
@@ -326,13 +326,13 @@ copyMutableByteArray (MutableByteArray dst#) doff
 --   @since 0.6.4.0
 copyByteArrayToAddr
   :: PrimMonad m
-  => Addr -- ^ destination
+  => Ptr Word8 -- ^ destination
   -> ByteArray -- ^ source array
   -> Int -- ^ offset into source array
   -> Int -- ^ number of bytes to copy
   -> m ()
 {-# INLINE copyByteArrayToAddr #-}
-copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff sz
+copyByteArrayToAddr (Ptr dst#) (ByteArray src#) soff sz
   = primitive_ (copyByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
 
 -- | Copy a slice of a mutable byte array to an unmanaged address. These must
@@ -342,13 +342,13 @@ copyByteArrayToAddr (Addr dst#) (ByteArray src#) soff sz
 --   @since 0.6.4.0
 copyMutableByteArrayToAddr
   :: PrimMonad m
-  => Addr -- ^ destination
+  => Ptr Word8 -- ^ destination
   -> MutableByteArray (PrimState m) -- ^ source array
   -> Int -- ^ offset into source array
   -> Int -- ^ number of bytes to copy
   -> m ()
 {-# INLINE copyMutableByteArrayToAddr #-}
-copyMutableByteArrayToAddr (Addr dst#) (MutableByteArray src#) soff sz
+copyMutableByteArrayToAddr (Ptr dst#) (MutableByteArray src#) soff sz
   = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
 #endif
 

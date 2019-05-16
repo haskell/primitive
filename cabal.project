@@ -1,11 +1,5 @@
-packages: .
-          ./test
-          ./bench
+packages: primitive.cabal
+
+
 package primitive
   ghc-options: -Wall
-package primitive-tests
-  ghc-options: -Wall
-package primitive-benchmarks
-  ghc-options: -Wall
-package quickcheck-classes
-  flags: -aeson -semigroupoids -semirings

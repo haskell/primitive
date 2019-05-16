@@ -20,9 +20,11 @@
 --
 
 module Data.Primitive.Types (
-  Prim(..),
-  sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#,
-  PrimStorable(..)
+  Prim(..)
+  ,sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#
+  ,PrimStorable(..)
+  ,Ptr(..)
+  ,Word8
 ) where
 
 import Control.Monad.Primitive
@@ -56,8 +58,7 @@ import GHC.Exts
     hiding (setByteArray#)
 #endif
 
-import Data.Typeable ( Typeable )
-import Data.Data ( Data(..) )
+
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Foreign.Storable (Storable)
 import Numeric

@@ -26,8 +26,8 @@ import GHC.IO
 import GHC.Exts
 import Data.Function (on)
 import Control.Applicative (Const(..))
-import Foreign.StablePtr (newStablePtr,deRefStablePtr,freeStablePtr)
-import System.Mem.StableName (makeStableName)
+
+
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
 #endif
@@ -147,28 +147,18 @@ main = do
       , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
 #endif
       ]
-    , testGroup "UnliftedArray"
-      [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
-      , lawsToTest (QCC.ordLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
-      , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
-#if MIN_VERSION_base(4,7,0)
-      , lawsToTest (QCC.isListLaws (Proxy :: Proxy (UnliftedArray (PrimArray Int16))))
-      , TQC.testProperty "mapUnliftedArray" (QCCL.mapProp arrInt16 arrInt32 mapUnliftedArray)
-      , TQC.testProperty "foldrUnliftedArray" (QCCL.foldrProp arrInt16 foldrUnliftedArray)
-      , TQC.testProperty "foldrUnliftedArray'" (QCCL.foldrProp arrInt16 foldrUnliftedArray')
-      , TQC.testProperty "foldlUnliftedArray" (QCCL.foldlProp arrInt16 foldlUnliftedArray)
-      , TQC.testProperty "foldlUnliftedArray'" (QCCL.foldlProp arrInt16 foldlUnliftedArray')
-#endif
-      ]
-    , testGroup "DefaultSetMethod"
+
+
+
+     ,testGroup "DefaultSetMethod"
       [ lawsToTest (QCC.primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
 #if __GLASGOW_HASKELL__ >= 805
-    , testGroup "PrimStorable"
+    ,testGroup "PrimStorable"
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
       ]
 #endif
-    , testGroup "Prim"
+     ,testGroup "Prim"
       [ renameLawsToTest "Word" (QCC.primLaws (Proxy :: Proxy Word))
       , renameLawsToTest "Word8" (QCC.primLaws (Proxy :: Proxy Word8))
       , renameLawsToTest "Word16" (QCC.primLaws (Proxy :: Proxy Word16))
@@ -193,29 +183,9 @@ main = do
       , renameLawsToTest "Min" (QCC.primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
       , renameLawsToTest "Max" (QCC.primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
 #endif
-        -- For StablePtr, it is not possible to use the property
-        -- tests from quickcheck-classes. Since StablePtr values can only
-        -- be created in IO and must be explicitly deallocated, we use a
-        -- custom property test that is more restricted in what it does.
-      , testGroup "StablePtr"
-        [ TQC.testProperty "element" stablePtrPrimProp
-        , TQC.testProperty "block" stablePtrPrimBlockProp
-        ]
+
       ]
-    , testGroup "PrimUnlifted"
-      -- Currently, quickcheck-classes does not provide a way to test
-      -- PrimUnlifted instances. For now, we work around this by using the
-      -- property tests for the Eq instance of UnliftedArray applied
-      -- to various types. We're mostly just trying to ensure that
-      -- the instances do not cause crashes.
-      [ renameLawsToTest "Array" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (Array Integer))))
-      , renameLawsToTest "SmallArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray (SmallArray Integer))))
-      , renameLawsToTest "ByteArray" (QCC.eqLaws (Proxy :: Proxy (UnliftedArray ByteArray)))
-      , testGroup "StableName"
-        [ TQC.testProperty "element" stableNameUnliftedPrimProp
-        , TQC.testProperty "block" stableNameUnliftedPrimBlockProp
-        ]
-      ]
+
     ]
 
 deriving instance Arbitrary a => Arbitrary (Down a)
@@ -237,11 +207,6 @@ int16 = Proxy
 int32 :: Proxy Int32
 int32 = Proxy
 
-arrInt16 :: Proxy (PrimArray Int16)
-arrInt16 = Proxy
-
-arrInt32 :: Proxy (PrimArray Int16)
-arrInt32 = Proxy
 
 -- Tests that using resizeByteArray to shrink a byte array produces
 -- the same results as calling Data.List.take on the list that the
@@ -287,42 +252,29 @@ byteArrayGrowProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (
 
 -- Tests that writing stable ptrs to a PrimArray, reading them back
 -- out, and then dereferencing them gives correct results.
-stablePtrPrimProp :: QC.Property
-stablePtrPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
-  ptrs <- mapM newStablePtr xs
-  let ptrs' = primArrayToList (primArrayFromList ptrs)
-  ys <- mapM deRefStablePtr ptrs'
-  mapM_ freeStablePtr ptrs'
-  return (xs === ys)
+--stablePtrPrimProp :: QC.Property
+--stablePtrPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
+--  ptrs <- mapM newStablePtr xs
+--  let ptrs' = primArrayToList (primArrayFromList ptrs)
+--  ys <- mapM deRefStablePtr ptrs'
+--  mapM_ freeStablePtr ptrs'
+--  return (xs === ys)
 
-stablePtrPrimBlockProp :: QC.Property
-stablePtrPrimBlockProp = QC.property $ \(x :: Word) (QC.NonNegative (len :: Int)) -> unsafePerformIO $ do
-  ptr <- newStablePtr x
-  let ptrs' = replicatePrimArray len ptr
-  let go ix = if ix < len
-        then do
-          n <- deRefStablePtr (indexPrimArray ptrs' ix)
-          ns <- go (ix + 1)
-          return (n : ns)
-        else return []
-  ys <- go 0
-  freeStablePtr ptr
-  return (L.replicate len x === ys)
+--stablePtrPrimBlockProp :: QC.Property
+--stablePtrPrimBlockProp = QC.property $ \(x :: Word) (QC.NonNegative (len :: Int)) -> unsafePerformIO $ do
+--  ptr <- newStablePtr x
+--  let ptrs' = replicatePrimArray len ptr
+--  let go ix = if ix < len
+--        then do
+--          n <- deRefStablePtr (indexPrimArray ptrs' ix)
+--          ns <- go (ix + 1)
+--          return (n : ns)
+--        else return []
+--  ys <- go 0
+--  freeStablePtr ptr
+--  return (L.replicate len x === ys)
 
--- Tests that writing stable names to an UnliftedArray and reading
--- them back out gives correct results.
-stableNameUnliftedPrimProp :: QC.Property
-stableNameUnliftedPrimProp = QC.property $ \(xs :: [Integer]) -> unsafePerformIO $ do
-  names <- mapM makeStableName xs
-  let names' = unliftedArrayToList (unliftedArrayFromList names)
-  return (names == names')
 
-stableNameUnliftedPrimBlockProp :: QC.Property
-stableNameUnliftedPrimBlockProp = QC.property $ \(x :: Word) (QC.NonNegative (len :: Int)) -> unsafePerformIO $ do
-  name <- makeStableName x
-  mutArr <- newUnliftedArray len name
-  ptrs' <- unsafeFreezeUnliftedArray mutArr
-  return (L.replicate len name == unliftedArrayToList ptrs')
 
 -- Provide the non-negative integers up to the bound. For example:
 --
@@ -428,10 +380,7 @@ instance (Arbitrary a, Prim a) => Arbitrary (PrimArray a) where
         writePrimArray a ix x
       unsafeFreezePrimArray a
 
-instance (Arbitrary a, PrimUnlifted a) => Arbitrary (UnliftedArray a) where
-  arbitrary = do
-    xs <- QC.vector =<< QC.choose (0,3)
-    return (unliftedArrayFromList xs)
+
 
 instance (Prim a, CoArbitrary a) => CoArbitrary (PrimArray a) where
   coarbitrary x = QC.coarbitrary (primArrayToList x)

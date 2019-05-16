@@ -1,6 +1,7 @@
+Cabal-Version: 2.4
 Name:           primitive
 Version:        0.6.4.0
-License:        BSD3
+License:        BSD-3-Clause
 License-File:   LICENSE
 
 Author:         Roman Leshchinskiy <rl@cse.unsw.edu.au>
@@ -10,7 +11,6 @@ Homepage:       https://github.com/haskell/primitive
 Bug-Reports:    https://github.com/haskell/primitive/issues
 Category:       Data
 Synopsis:       Primitive memory-related operations
-Cabal-Version:  >= 1.10
 Build-Type:     Simple
 Description:    This package provides various primitive memory-related operations.
 
@@ -68,6 +68,28 @@ Library
       cc-options: -ftree-vectorize
   if arch(i386) || arch(x86_64)
       cc-options: -msse2
+test-suite test
+
+test-suite test-qc
+  Default-Language: Haskell2010
+  hs-source-dirs: test
+                  test/src
+  main-is: main.hs
+  type: exitcode-stdio-1.0
+  build-depends: base
+               , base-orphans
+               , ghc-prim
+               , primitive
+               , QuickCheck ^>= 2.13
+               , tasty ^>= 1.2
+               , tasty-quickcheck
+               , tagged
+               , transformers
+
+  cpp-options:   -DHAVE_UNARY_LAWS  -DHAVE_BINARY_LAWS
+  ghc-options: -O2
+
+
 
 source-repository head
   type:     git
