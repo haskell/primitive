@@ -111,6 +111,7 @@ test-suite test-qc
                , tasty-quickcheck
                , tagged
                , transformers
+               , semigroups
 
   cpp-options:   -DHAVE_UNARY_LAWS  -DHAVE_BINARY_LAWS
   ghc-options: -O2
