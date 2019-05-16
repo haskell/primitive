@@ -784,7 +784,7 @@ mapMaybePrimArray p arr = runST $ do
 -- *** Exception: Prelude.undefined
 --
 -- The function 'traversePrimArrayP' always outperforms this function, but it
--- requires a 'PrimAffineMonad' constraint, and it forces the values as
+-- requires a 'PrimMonad' constraint, and it forces the values as
 -- it performs the effects.
 traversePrimArray ::
      (Applicative f, Prim a, Prim b)
