@@ -7,12 +7,8 @@
 
 module Test.QuickCheck.Classes.Compat
   ( isTrue#
-#if HAVE_UNARY_LAWS
   , eq1
-#endif
-#if HAVE_BINARY_LAWS
-  , eq2
-#endif
+
   , readMaybe
   ) where
 
@@ -28,9 +24,8 @@ import Text.Read (readPrec)
 import GHC.Exts (isTrue#)
 #endif
 
-#if defined(HAVE_UNARY_LAWS) || defined(HAVE_BINARY_LAWS)
 import qualified Data.Functor.Classes as C
-#endif
+
 
 #if !MIN_VERSION_base(4,6,0)
 readMaybe :: Read a => String -> Maybe a
@@ -50,23 +45,20 @@ isTrue# :: Bool -> Bool
 isTrue# b = b
 #endif
 
-#if HAVE_UNARY_LAWS
+
 #if HAVE_QUANTIFIED_CONSTRAINTS
 eq1 :: (forall a. Eq a => Eq (f a), Eq a) => f a -> f a -> Bool
 eq1 = (==)
 #else
 eq1 :: (C.Eq1 f, Eq a) => f a -> f a -> Bool
+#if   !(MIN_VERSION_transformers(0,5,0))
+ -- checking for transformers 0.4 by another name
 eq1 = C.eq1
+#else
+eq1 = C.liftEq (==)
 #endif
 #endif
 
-#if HAVE_BINARY_LAWS
-#if HAVE_QUANTIFIED_CONSTRAINTS
-eq2 :: (forall a. (Eq a, Eq b) => Eq (f a b), Eq a, Eq b) => f a b -> f a b -> Bool
-eq2 = (==)
-#else
-eq2 :: (C.Eq2 f, Eq a, Eq b) => f a b -> f a b -> Bool
-eq2 = C.eq2
-#endif
-#endif
+
+
 

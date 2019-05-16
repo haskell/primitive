@@ -19,9 +19,7 @@ module Test.QuickCheck.Classes.Common
 
   -- only used for higher-kinded types
   , Apply(..)
-#if HAVE_BINARY_LAWS
-  , Apply2(..)
-#endif
+
   , Triple(..)
   , ChooseFirst(..)
   , ChooseSecond(..)
@@ -68,9 +66,8 @@ import Data.Monoid
 import Data.Functor.Classes (Eq1(..),Show1(..),eq1,showsPrec1)
 import Data.Functor.Compose
 #endif
-#if defined(HAVE_BINARY_LAWS)
-import Data.Functor.Classes (Eq2(..),Show2(..),eq2,showsPrec2)
-#endif
+
+
 import Data.Semigroup (Semigroup)
 import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Property (Property(..))
@@ -320,25 +317,7 @@ foldMapA :: (Foldable t, Monoid m, Semigroup m, Applicative f) => (a -> f m) -> 
 foldMapA f = getApply . foldMap (Apply . f)
 
 
-#if HAVE_BINARY_LAWS
-newtype Apply2 f a b = Apply2 { getApply2 :: f a b }
 
-#if HAVE_QUANTIFIED_CONSTRAINTS
-deriving instance (forall x y. (Eq x, Eq y) => Eq (f x y), Eq a, Eq b) => Eq (Apply2 f a b)
-deriving instance (forall x y. (Arbitrary x, Arbitrary y) => Arbitrary (f x y), Arbitrary a, Arbitrary b) => Arbitrary (Apply2 f a b)
-deriving instance (forall x y. (Show x, Show y) => Show (f x y), Show a, Show b) => Show (Apply2 f a b)
-#else
-instance (Eq2 f, Eq a, Eq b) => Eq (Apply2 f a b) where
-  Apply2 a == Apply2 b = eq2 a b
-
-instance (Show2 f, Show a, Show b) => Show (Apply2 f a b) where
-  showsPrec p = showsPrec2 p . getApply2
-
-instance (Arbitrary2 f, Arbitrary a, Arbitrary b) => Arbitrary (Apply2 f a b) where
-  arbitrary = fmap Apply2 arbitrary2
-  shrink = fmap Apply2 . shrink2 . getApply2
-#endif
-#endif
 
 data LinearEquation = LinearEquation
   { _linearEquationLinear :: Integer

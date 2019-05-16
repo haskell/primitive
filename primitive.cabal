@@ -80,8 +80,6 @@ test-suite test-qc
         Test.QuickCheck.Classes
         Test.QuickCheck.Classes.Alternative
         Test.QuickCheck.Classes.Applicative
-        Test.QuickCheck.Classes.Bifunctor
-        Test.QuickCheck.Classes.Category
         Test.QuickCheck.Classes.Common
         Test.QuickCheck.Classes.Compat
         Test.QuickCheck.Classes.Enum
@@ -110,10 +108,11 @@ test-suite test-qc
                , tasty ^>= 1.2
                , tasty-quickcheck
                , tagged
-               , transformers
+               , transformers >=0.4
+               , transformers-compat
                , semigroups
 
-  cpp-options:   -DHAVE_UNARY_LAWS  -DHAVE_BINARY_LAWS
+  cpp-options:   -DHAVE_UNARY_LAWS
   ghc-options: -O2
 
 

@@ -24,19 +24,11 @@ module Test.QuickCheck.Classes
 #if MIN_VERSION_base(4,7,0)
   , isListLaws
 #endif
-#if HAVE_AESON
-  , jsonLaws
-#endif
   , monoidLaws
   , commutativeMonoidLaws
   , ordLaws
   , enumLaws
   , boundedEnumLaws
-  , semigroupLaws
-  , commutativeSemigroupLaws
-  , exponentialSemigroupLaws
-  , idempotentSemigroupLaws
-  , rectangularBandSemigroupLaws
 #if HAVE_SEMIRINGS
   , semiringLaws
   , ringLaws
@@ -67,12 +59,6 @@ module Test.QuickCheck.Classes
 #endif
   , traversableLaws
 #endif
-#if HAVE_BINARY_LAWS
-    -- ** Binary type constructors
-  , bifunctorLaws
-  , categoryLaws
-  , commutativeCategoryLaws
-#endif
     -- * Types
   , Laws(..)
   , Proxy1(..)
@@ -90,17 +76,10 @@ import Test.QuickCheck.Classes.Integral
 #if MIN_VERSION_base(4,7,0)
 import Test.QuickCheck.Classes.IsList
 #endif
-#if HAVE_AESON
 
-#endif
 import Test.QuickCheck.Classes.Monoid
 import Test.QuickCheck.Classes.Ord
 
-import Test.QuickCheck.Classes.Semigroup
-#if HAVE_SEMIRINGS
-import Test.QuickCheck.Classes.Semiring
-import Test.QuickCheck.Classes.Ring
-#endif
 import Test.QuickCheck.Classes.Show
 import Test.QuickCheck.Classes.ShowRead
 import Test.QuickCheck.Classes.Storable
@@ -126,18 +105,6 @@ import Test.QuickCheck.Classes.Plus
 import Test.QuickCheck.Classes.Traversable
 #endif
 
--- Binary type constructors
-#if HAVE_BINARY_LAWS
-import Test.QuickCheck.Classes.Bifunctor
-import Test.QuickCheck.Classes.Category
-#if HAVE_SEMIGROUPOIDS
-import Test.QuickCheck.Classes.Semigroupoid
-#endif
-#endif
-
-#if HAVE_VECTOR
-import Test.QuickCheck.Classes.MVector
-#endif
 
 --
 -- used below
