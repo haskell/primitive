@@ -4,3 +4,4 @@ no-tests-no-benchmarks: False
 unconstrained:          False
 install-dependencies:   False
 copy-fields:            all
+installed:              +all -transformers
