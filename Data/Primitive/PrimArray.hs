@@ -143,6 +143,9 @@ data PrimArray a = PrimArray ByteArray#
 -- garbage collected when no longer referenced.
 data MutablePrimArray s a = MutablePrimArray (MutableByteArray# s)
 
+instance Eq (MutablePrimArray s a) where
+  (==) = sameMutablePrimArray
+
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =
     case reallyUnsafePtrEquality# (unsafeCoerce# ba1 :: ()) (unsafeCoerce# ba2 :: ()) of
