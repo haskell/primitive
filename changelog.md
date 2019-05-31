@@ -2,6 +2,8 @@
 
   * Add `Eq` instances for `MutableByteArray` and `MutablePrimArray`.
 
+  * Add `clonePrimArray` and `cloneMutablePrimArray`.
+
 ## Changes in version 0.7.0.0
 
   * Remove `Addr` data type, lifted code should use `Ptr a` now
