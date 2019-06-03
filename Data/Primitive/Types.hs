@@ -29,6 +29,7 @@ module Data.Primitive.Types (
 import Control.Monad.Primitive
 import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
+import Foreign.Ptr (IntPtr(IntPtr),WordPtr(WordPtr))
 import Foreign.C.Types
 import System.Posix.Types
 
@@ -389,6 +390,11 @@ deriving instance Prim CKey
 deriving instance Prim CTimer
 #endif
 deriving instance Prim Fd
+
+-- | @since 0.7.1.0
+deriving instance Prim WordPtr
+-- | @since 0.7.1.0
+deriving instance Prim IntPtr
 
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Const a b)

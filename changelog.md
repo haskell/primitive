@@ -2,6 +2,8 @@
 
   * Add `Eq` instances for `MutableByteArray` and `MutablePrimArray`.
 
+  * Add `Prim` instances for `WordPtr` and `IntPtr`.
+
 ## Changes in version 0.7.0.0
 
   * Remove `Addr` data type, lifted code should use `Ptr a` now
