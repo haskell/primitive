@@ -226,6 +226,8 @@ sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr
 -- | Shrink a mutable byte array. The new size is given in bytes.
 -- It must be smaller than the old size. The array will be resized in place.
 -- This function is only available when compiling with GHC 7.10 or newer.
+--
+-- @since 0.7.1.0
 shrinkMutableByteArray :: PrimMonad m
   => MutableByteArray (PrimState m)
   -> Int -- ^ new size
