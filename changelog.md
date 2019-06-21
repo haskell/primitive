@@ -1,5 +1,6 @@
 ## Changes in version 0.7.1.0
 
+  * Add `PrimMonad` and `PrimBase` instances for `Lazy.ST`.
   * Add `Eq` instances for `MutableByteArray` and `MutablePrimArray`.
 
 ## Changes in version 0.7.0.0
