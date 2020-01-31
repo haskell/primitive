@@ -22,7 +22,9 @@ Tested-With:
   GHC == 8.0.2,
   GHC == 8.2.2,
   GHC == 8.4.4,
-  GHC == 8.6.3
+  GHC == 8.6.5,
+  GHC == 8.8.2,
+  GHC == 8.10.1
 
 flag primitive-benchmarks
   default: True
@@ -43,7 +45,7 @@ benchmark bench
     PrimArray.Compare
     PrimArray.Traverse
   build-depends:
-      base >= 4.8 && < 4.13
+      base >= 4.8 && < 4.15
     , primitive
     , deepseq
     , ghc-prim
