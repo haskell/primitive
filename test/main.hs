@@ -56,8 +56,8 @@ import Test.Tasty (defaultMain,testGroup,TestTree)
 import Test.QuickCheck (Arbitrary,Arbitrary1,Gen,(===),CoArbitrary,Function)
 import qualified Test.Tasty.QuickCheck as TQC
 import qualified Test.QuickCheck as QC
-import qualified Test.QuickCheck.Classes as QCC
-import qualified Test.QuickCheck.Classes.IsList as QCCL
+import qualified Test.QuickCheck.Classes.Base as QCC
+import qualified Test.QuickCheck.Classes.Base.IsList as QCCL
 import qualified Data.List as L
 
 main :: IO ()
