@@ -7,7 +7,13 @@
 
 {-# OPTIONS_GHC -Wall #-}
 
-module PrimLawsWIP
+-- This module is almost an exact copy of the unexported module
+-- Test.QuickCheck.Classes.Prim from quickcheck-classes. We cannot depend
+-- on quickcheck-classes in the test suite since that would imply a circular
+-- dependency between primitive and quickcheck-classes. Instead, we copy
+-- this one module and then depend on quickcheck-classes-base to get
+-- everything else we need.
+module PrimLaws
   ( primLaws
   ) where
 

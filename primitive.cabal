@@ -75,7 +75,7 @@ test-suite test-qc
   hs-source-dirs: test
                   test/src
   main-is: main.hs
-  Other-Modules: PrimLawsWIP
+  Other-Modules: PrimLaws
   type: exitcode-stdio-1.0
   build-depends: base
                , base-orphans

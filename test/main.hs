@@ -26,7 +26,7 @@ import GHC.IO
 import GHC.Exts
 import Data.Function (on)
 import Control.Applicative (Const(..))
-import PrimLawsWIP (primLaws)
+import PrimLaws (primLaws)
 
 #if !(MIN_VERSION_base(4,8,0))
 import Data.Monoid (Monoid(..))
