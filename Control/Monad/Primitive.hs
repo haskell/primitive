@@ -23,18 +23,9 @@ module Control.Monad.Primitive (
   touch, evalPrim, unsafeInterleave, unsafeDupableInterleave, noDuplicate
 ) where
 
-import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch# )
-import GHC.Base   ( unsafeCoerce#, realWorld# )
-#if MIN_VERSION_base(4,4,0)
-import GHC.Base   ( seq# )
-#else
-import Control.Exception (evaluate)
-#endif
-#if MIN_VERSION_base(4,2,0)
+import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch#
+                  , unsafeCoerce#, realWorld#, seq# )
 import GHC.IO     ( IO(..) )
-#else
-import GHC.IOBase ( IO(..) )
-#endif
 import GHC.ST     ( ST(..) )
 
 import Control.Monad.Trans.Class (lift)
