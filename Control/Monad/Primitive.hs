@@ -210,6 +210,7 @@ instance PrimBase (ST s) where
   internal (ST p) = p
   {-# INLINE internal #-}
 
+#if __GLASGOW_HASKELL__ > 802
 -- @since 0.7.1.0
 instance PrimMonad (L.ST s) where
   type PrimState (L.ST s) = s
@@ -220,6 +221,7 @@ instance PrimMonad (L.ST s) where
 instance PrimBase (L.ST s) where
   internal = internal . L.lazyToStrictST
   {-# INLINE internal #-}
+#endif
 
 -- | Lifts a 'PrimBase' into another 'PrimMonad' with the same underlying state
 -- token type.
