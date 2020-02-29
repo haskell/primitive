@@ -28,6 +28,8 @@ import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch#
 import GHC.IO     ( IO(..) )
 import GHC.ST     ( ST(..) )
 
+import qualified Control.Monad.ST.Lazy as L
+
 import Control.Monad.Trans.Class (lift)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid)
@@ -206,6 +208,17 @@ instance PrimMonad (ST s) where
   {-# INLINE primitive #-}
 instance PrimBase (ST s) where
   internal (ST p) = p
+  {-# INLINE internal #-}
+
+-- @since 0.7.1.0
+instance PrimMonad (L.ST s) where
+  type PrimState (L.ST s) = s
+  primitive = L.strictToLazyST . primitive
+  {-# INLINE primitive #-}
+
+-- @since 0.7.1.0
+instance PrimBase (L.ST s) where
+  internal = internal . L.lazyToStrictST
   {-# INLINE internal #-}
 
 -- | Lifts a 'PrimBase' into another 'PrimMonad' with the same underlying state
