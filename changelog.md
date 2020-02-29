@@ -1,3 +1,7 @@
+## Changes in version 0.7.1.0
+
+  * add functions creating pinned PrimArrays,
+
 ## Changes in version 0.7.0.0
 
   * Remove `Addr` data type, lifted code should use `Ptr a` now

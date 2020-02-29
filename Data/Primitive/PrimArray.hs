@@ -57,6 +57,8 @@ module Data.Primitive.PrimArray
   , getSizeofMutablePrimArray
   , sizeofMutablePrimArray
   , sizeofPrimArray
+  , unsafePrimArrayContents
+  , unsafeMutablePrimArrayContents
   , primArrayContents
   , mutablePrimArrayContents
 #if __GLASGOW_HASKELL__ >= 802
@@ -1000,7 +1002,7 @@ documentation of the @Data.Primitive@ module.
 -- | Create a /pinned/ primitive array of the specified size in elements. The garbage
 -- collector is guaranteed not to move it.
 --
--- @since 0.7.0.0
+-- @since 0.7.1.0
 newPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
   => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPinnedPrimArray #-}
@@ -1012,7 +1014,7 @@ newPinnedPrimArray (I# n#)
 -- with the alignment given by its 'Prim' instance. The garbage collector is
 -- guaranteed not to move it.
 --
--- @since 0.7.0.0
+-- @since 0.7.1.0
 newAlignedPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
   => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newAlignedPinnedPrimArray #-}
@@ -1024,17 +1026,17 @@ newAlignedPinnedPrimArray (I# n#)
 -- /pinned/ prim arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
 --
--- @since 0.7.0.0
-primArrayContents :: PrimArray a -> Ptr a
-{-# INLINE primArrayContents #-}
-primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
+-- @since 0.7.1.0
+unsafePrimArrayContents :: PrimArray a -> Ptr a
+{-# INLINE unsafePrimArrayContents #-}
+unsafePrimArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
 --
--- @since 0.7.0.0
-mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
-{-# INLINE mutablePrimArrayContents #-}
-mutablePrimArrayContents (MutablePrimArray arr#)
+-- @since 0.7.1.0
+unsafeMutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
+{-# INLINE unsafeMutablePrimArrayContents #-}
+unsafeMutablePrimArrayContents (MutablePrimArray arr#)
   = Ptr (byteArrayContents# (unsafeCoerce# arr#))

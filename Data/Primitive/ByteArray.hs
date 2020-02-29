@@ -48,7 +48,7 @@ module Data.Primitive.ByteArray (
   isByteArrayPinned, isMutableByteArrayPinned,
 #endif
   byteArrayContents, mutableByteArrayContents
-
+  unsafebyteArrayContents, unsafeMutableByteArrayContents
 ) where
 
 import Control.Monad.Primitive
