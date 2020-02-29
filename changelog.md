@@ -1,8 +1,6 @@
-## Changes in version 0.7.1.0
+## Changes in version 0.7.0.1
 
-  * Add `Eq` instances for `MutableByteArray` and `MutablePrimArray`.
-
-  * Allow building with GHC 8.12.
+ * Allow building with GHC 8.12.
 
 ## Changes in version 0.7.0.0
 

@@ -398,9 +398,6 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
               -> MutableByteArray# s -> CInt
               -> CSize -> IO ()
 
-instance Eq (MutableByteArray s) where
-  (==) = sameMutableByteArray
-
 instance Data ByteArray where
   toConstr _ = error "toConstr"
   gunfold _ _ = error "gunfold"
