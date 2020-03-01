@@ -210,7 +210,7 @@ instance PrimBase (ST s) where
   internal (ST p) = p
   {-# INLINE internal #-}
 
-#if __GLASGOW_HASKELL__ > 802
+#if __GLASGOW_HASKELL__ >= 802
 -- @since 0.7.1.0
 instance PrimMonad (L.ST s) where
   type PrimState (L.ST s) = s
