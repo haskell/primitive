@@ -485,7 +485,7 @@ sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf#
 --   on such byte arrays. This function is only available when compiling with
 --   GHC 8.2 or newer.
 --
---   @since 0.7.0.0
+--   @since 0.7.1.0
 isPrimArrayPinned :: PrimArray a -> Bool
 {-# INLINE isPrimArrayPinned #-}
 isPrimArrayPinned (PrimArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
@@ -493,7 +493,7 @@ isPrimArrayPinned (PrimArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
 -- | Check whether or not the mutable primitive array is pinned. This function is
 --   only available when compiling with GHC 8.2 or newer.
 --
---   @since 0.7.0.0
+--   @since 0.7.1.0
 isMutablePrimArrayPinned :: MutablePrimArray s a -> Bool
 {-# INLINE isMutablePrimArrayPinned #-}
 isMutablePrimArrayPinned (MutablePrimArray marr#) = isTrue# (Exts.isMutableByteArrayPinned# marr#)
@@ -1003,7 +1003,7 @@ documentation of the @Data.Primitive@ module.
 -- | Create a /pinned/ primitive array of the specified size in elements. The garbage
 -- collector is guaranteed not to move it.
 --
--- @since 0.7.0.0
+-- @since 0.7.1.0
 newPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
   => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPinnedPrimArray #-}
@@ -1027,7 +1027,7 @@ newAlignedPinnedPrimArray (I# n#)
 -- /pinned/ prim arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
 --
--- @since 0.7.0.0
+-- @since 0.7.1.0
 primArrayContents :: PrimArray a -> Ptr a
 {-# INLINE primArrayContents #-}
 primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
@@ -1036,7 +1036,7 @@ primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 -- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
 --
--- @since 0.7.0.0
+-- @since 0.7.1.0
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
 mutablePrimArrayContents (MutablePrimArray arr#)

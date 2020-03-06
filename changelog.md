@@ -1,7 +1,12 @@
 ## Changes in version 0.7.1.0
 
   * Add `PrimMonad` and `PrimBase` instances for `Lazy.ST` (GHC > 8.2).
+  
   * Add `Eq` instances for `MutableByteArray` and `MutablePrimArray`.
+
+  * Add functions for manipulating pinned Prim Arrays
+
+## Changes in version 0.7.0.1
 
   * Allow building with GHC 8.12.
 
