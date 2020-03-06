@@ -210,7 +210,9 @@ instance PrimBase (ST s) where
   internal (ST p) = p
   {-# INLINE internal #-}
 
-#if __GLASGOW_HASKELL__ > 802
+-- see https://gitlab.haskell.org/ghc/ghc/commit/2f5cb3d44d05e581b75a47fec222577dfa7a533e
+-- for why we only support an instance for ghc >= 8.2
+#if __GLASGOW_HASKELL__ >= 802
 -- @since 0.7.1.0
 instance PrimMonad (L.ST s) where
   type PrimState (L.ST s) = s
