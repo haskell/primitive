@@ -36,6 +36,7 @@ module Data.Primitive.ByteArray (
   -- * Block operations
   copyByteArray, copyMutableByteArray,
 #if __GLASGOW_HASKELL__ >= 708
+  copyByteArrayToPtr, copyMutableByteArrayToPtr,
   copyByteArrayToAddr, copyMutableByteArrayToAddr,
 #endif
   moveByteArray,
@@ -319,6 +320,42 @@ copyMutableByteArray (MutableByteArray dst#) doff
   = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
 
 #if __GLASGOW_HASKELL__ >= 708
+-- | Copy a slice of a byte array to an unmanaged Pointer Address. These must not
+--   overlap. This function is only available when compiling with GHC 7.8
+--   or newer.
+--
+--   @since 0.7.1.0
+copyByteArrayToPtr
+  :: PrimMonad m
+  => Ptr Word8 -- ^ destination
+  -> ByteArray -- ^ source array
+  -> Int -- ^ offset into source array
+  -> Int -- ^ number of bytes to copy
+  -> m ()
+{-# INLINE copyByteArrayToPtr #-}
+copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
+  = primitive_ (copyByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
+
+-- | Copy a slice of a mutable byte array to an unmanaged Pointer address. These must
+--   not overlap. This function is only available when compiling with GHC 7.8
+--   or newer.
+--
+--   @since 0.7.1.0
+copyMutableByteArrayToPtr
+  :: PrimMonad m
+  => Ptr Word8 -- ^ destination
+  -> MutableByteArray (PrimState m) -- ^ source array
+  -> Int -- ^ offset into source array
+  -> Int -- ^ number of bytes to copy
+  -> m ()
+{-# INLINE copyMutableByteArrayToPtr #-}
+copyMutableByteArrayToPtr (Ptr dst#) (MutableByteArray src#) soff sz
+  = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
+
+------
+--- These latter two should be DEPRECATED
+-----
+
 -- | Copy a slice of a byte array to an unmanaged address. These must not
 --   overlap. This function is only available when compiling with GHC 7.8
 --   or newer.
