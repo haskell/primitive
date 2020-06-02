@@ -66,7 +66,7 @@ import Numeric
 
 import qualified Foreign.Storable as FS
 
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ >= 710
 import GHC.IO (IO(..))
 import qualified GHC.Prim
 #endif
@@ -282,7 +282,7 @@ instance Prim (ty) where {                                      \
 ; {-# INLINE setOffAddr# #-}                                    \
 }
 
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ >= 710
 liberate# :: State# s -> State# r
 liberate# = unsafeCoerce#
 shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word# -> IO ()
