@@ -1,9 +1,11 @@
 #ifndef haskell_primitive_memops_h
 #define haskell_primitive_memops_h
 
+// N.B. GHC RTS headers want to come first, lest things break on Windows.
+#include <HsFFI.h>
+
 #include <stdlib.h>
 #include <stddef.h>
-#include <HsFFI.h>
 
 void hsprimitive_memcpy( void *dst, ptrdiff_t doff, void *src, ptrdiff_t soff, size_t len );
 void hsprimitive_memmove( void *dst, ptrdiff_t doff, void *src, ptrdiff_t soff, size_t len );
