@@ -20,6 +20,9 @@ module Data.Primitive.ByteArray (
   -- * Allocation
   newByteArray, newPinnedByteArray, newAlignedPinnedByteArray,
   resizeMutableByteArray,
+#if __GLASGOW_HASKELL__ >= 710
+  shrinkMutableByteArray,
+#endif
 
   -- * Element access
   readByteArray, writeByteArray, indexByteArray,
@@ -217,6 +220,23 @@ sizeofByteArray (ByteArray arr#) = I# (sizeofByteArray# arr#)
 sizeofMutableByteArray :: MutableByteArray s -> Int
 {-# INLINE sizeofMutableByteArray #-}
 sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr#)
+
+-- Although it is possible to shim resizeMutableByteArray for old GHCs, this
+-- is not the case with shrinkMutableByteArray.
+#if __GLASGOW_HASKELL__ >= 710
+-- | Shrink a mutable byte array. The new size is given in bytes.
+-- It must be smaller than the old size. The array will be resized in place.
+-- This function is only available when compiling with GHC 7.10 or newer.
+--
+-- @since 0.7.1.0
+shrinkMutableByteArray :: PrimMonad m
+  => MutableByteArray (PrimState m)
+  -> Int -- ^ new size
+  -> m ()
+{-# INLINE shrinkMutableByteArray #-}
+shrinkMutableByteArray (MutableByteArray arr#) (I# n#)
+  = primitive_ (shrinkMutableByteArray# arr# n#)
+#endif
 
 #if __GLASGOW_HASKELL__ >= 802
 -- | Check whether or not the byte array is pinned. Pinned byte arrays cannot
