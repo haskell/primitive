@@ -108,6 +108,7 @@ import Data.Primitive.Types
 import Data.Primitive.ByteArray (ByteArray(..))
 import Data.Monoid (Monoid(..),(<>))
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad.Primitive
 import Control.Monad.ST
 import qualified Data.List as L
@@ -134,6 +135,9 @@ import qualified GHC.Exts as Exts
 -- in its elements.
 data PrimArray a = PrimArray ByteArray#
 
+instance NFData (PrimArray a) where
+  rnf (PrimArray _) = ()
+
 -- | Mutable primitive arrays associated with a primitive state token.
 -- These can be written to and read from in a monadic context that supports
 -- sequencing such as 'IO' or 'ST'. Typically, a mutable primitive array will
@@ -145,6 +149,9 @@ data MutablePrimArray s a = MutablePrimArray (MutableByteArray# s)
 
 instance Eq (MutablePrimArray s a) where
   (==) = sameMutablePrimArray
+
+instance NFData (MutablePrimArray s a) where
+  rnf (MutablePrimArray _) = ()
 
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =

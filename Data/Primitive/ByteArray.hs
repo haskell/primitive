@@ -54,6 +54,7 @@ module Data.Primitive.ByteArray (
 
 import Control.Monad.Primitive
 import Control.Monad.ST
+import Control.DeepSeq
 import Data.Primitive.Types
 
 import Foreign.C.Types
@@ -71,6 +72,7 @@ import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Numeric
+
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as SG
@@ -97,6 +99,12 @@ data ByteArray = ByteArray ByteArray# deriving ( Typeable )
 -- | Mutable byte arrays associated with a primitive state token
 data MutableByteArray s = MutableByteArray (MutableByteArray# s)
                                         deriving( Typeable )
+
+instance NFData ByteArray where
+  rnf (ByteArray _) = ()
+
+instance NFData (MutableByteArray s) where
+  rnf (MutableByteArray _) = ()
 
 -- | Create a new mutable byte array of the specified size in bytes.
 newByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
