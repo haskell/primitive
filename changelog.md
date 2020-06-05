@@ -14,13 +14,15 @@
   * Add `NFData` instances for `ByteArray`, `MutableByteArray`,
     `PrimArray` and `MutablePrimArray`.
     by Callan McGill
+    
+  * Add `clonePrimArray` and `cloneMutablePrimArray`.
+
+  * Add `Prim` instances for `WordPtr` and `IntPtr`.
 
 ## Changes in version 0.7.0.1
 
   * Allow building with GHC 8.12.
     Thanks Ryan GL Scott for this and every compat patch over time.
-
-  * Add `Prim` instances for `WordPtr` and `IntPtr`.
 
 ## Changes in version 0.7.0.0
 

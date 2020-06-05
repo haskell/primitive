@@ -51,6 +51,8 @@ module Data.Primitive.PrimArray
   , copyPrimArrayToPtr
   , copyMutablePrimArrayToPtr
 #endif
+  , clonePrimArray
+  , cloneMutablePrimArray
   , setPrimArray
     -- * Information
   , sameMutablePrimArray
@@ -114,6 +116,7 @@ import Control.Monad.ST
 import qualified Data.List as L
 import qualified Data.Primitive.ByteArray as PB
 import qualified Data.Primitive.Types as PT
+import qualified GHC.ST as GHCST
 
 #if MIN_VERSION_base(4,7,0)
 import GHC.Exts (IsList(..))
@@ -1048,3 +1051,53 @@ mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
 mutablePrimArrayContents (MutablePrimArray arr#)
   = Ptr (byteArrayContents# (unsafeCoerce# arr#))
+
+-- | Return a newly allocated array with the specified subrange of the
+-- provided array. The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
+clonePrimArray :: Prim a
+  => PrimArray a -- ^ source array
+  -> Int     -- ^ offset into destination array
+  -> Int     -- ^ number of elements to copy
+  -> PrimArray a
+{-# INLINE clonePrimArray #-}
+clonePrimArray src off n = runPrimArray $ do
+  dst <- newPrimArray n
+  copyPrimArray dst 0 src off n
+  return dst
+
+-- | Return a newly allocated mutable array with the specified subrange of
+-- the provided mutable array. The provided mutable array should contain the
+-- full subrange specified by the two Ints, but this is not checked.
+cloneMutablePrimArray :: (PrimMonad m, Prim a)
+  => MutablePrimArray (PrimState m) a -- ^ source array
+  -> Int -- ^ offset into destination array
+  -> Int -- ^ number of elements to copy
+  -> m (MutablePrimArray (PrimState m) a)
+{-# INLINE cloneMutablePrimArray #-}
+cloneMutablePrimArray src off n = do
+  dst <- newPrimArray n
+  copyMutablePrimArray dst 0 src off n
+  return dst
+
+#if MIN_VERSION_base(4,9,0) /* In new GHCs, runRW# is available. */
+runPrimArray
+  :: (forall s. ST s (MutablePrimArray s a))
+  -> PrimArray a
+runPrimArray m = PrimArray (runPrimArray# m)
+
+runPrimArray#
+  :: (forall s. ST s (MutablePrimArray s a))
+  -> ByteArray#
+runPrimArray# m = case runRW# $ \s ->
+  case unST m s of { (# s', MutablePrimArray mary# #) ->
+  unsafeFreezeByteArray# mary# s'} of (# _, ary# #) -> ary#
+
+unST :: ST s a -> State# s -> (# State# s, a #)
+unST (GHCST.ST f) = f
+#else /* In older GHCs, runRW# is not available. */
+runPrimArray
+  :: (forall s. ST s (MutablePrimArray s a))
+  -> PrimArray a
+runPrimArray m = runST $ m >>= unsafeFreezePrimArray
+#endif
