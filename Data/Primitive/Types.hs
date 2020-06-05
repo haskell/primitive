@@ -392,6 +392,13 @@ deriving instance Prim CTimer
 #endif
 deriving instance Prim Fd
 
+-- Andrew Martin: The instances for WordPtr and IntPtr are written out by
+-- hand in a tedious way. We cannot use GND because the data constructors for
+-- these types were not available before GHC 8.2. The CPP for generating code
+-- for the Int and Word types does not work here. There is a way to clean this
+-- up a little with CPP, and if anyone wants to do that, go for it. In the
+-- meantime, I am going to ship this with the instances written out by hand.
+
 -- | @since 0.7.1.0
 instance Prim WordPtr where
   sizeOf# _ = sizeOf# (undefined :: Ptr ()) 
