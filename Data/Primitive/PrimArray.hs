@@ -217,9 +217,14 @@ instance (Show a, Prim a) => Show (PrimArray a) where
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.PrimArray." ++ fun ++ ": " ++ problem
 
+-- | Create a 'PrimArray' from a list.
+--
+-- @primArrayFromList vs = `byteArrayFromListN` (length vs) vs@
 primArrayFromList :: Prim a => [a] -> PrimArray a
 primArrayFromList vs = primArrayFromListN (L.length vs) vs
 
+-- | Create a 'PrimArray' from a list of a known length. If the length
+--   of the list does not match the given length, this throws an exception.
 primArrayFromListN :: forall a. Prim a => Int -> [a] -> PrimArray a
 primArrayFromListN len vs = runST run where
   run :: forall s. ST s (PrimArray a)
@@ -273,6 +278,8 @@ emptyPrimArray = runST $ primitive $ \s0# -> case newByteArray# 0# s0# of
 
 -- | Create a new mutable primitive array of the given length. The
 -- underlying memory is left uninitialized.
+--
+-- /Note:/ this function does not check if the input is non-negative.
 newPrimArray :: forall m a. (PrimMonad m, Prim a) => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPrimArray #-}
 newPrimArray (I# n#)
@@ -322,12 +329,17 @@ shrinkMutablePrimArray (MutablePrimArray arr#) (I# n#)
   = primitive_ (shrinkMutableByteArray# arr# (n# *# sizeOf# (undefined :: a)))
 #endif
 
+-- | Read a value from the array at the given index.
+--
+-- /Note:/ this function does not do bounds checking.
 readPrimArray :: (Prim a, PrimMonad m) => MutablePrimArray (PrimState m) a -> Int -> m a
 {-# INLINE readPrimArray #-}
 readPrimArray (MutablePrimArray arr#) (I# i#)
   = primitive (readByteArray# arr# i#)
 
 -- | Write an element to the given index.
+--
+-- /Note:/ this function does not do bounds checking.
 writePrimArray ::
      (Prim a, PrimMonad m)
   => MutablePrimArray (PrimState m) a -- ^ array
@@ -341,6 +353,8 @@ writePrimArray (MutablePrimArray arr#) (I# i#) x
 -- | Copy part of a mutable array into another mutable array.
 --   In the case that the destination and
 --   source arrays are the same, the regions may overlap.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyMutablePrimArray :: forall m a.
      (PrimMonad m, Prim a)
   => MutablePrimArray (PrimState m) a -- ^ destination array
@@ -360,6 +374,8 @@ copyMutablePrimArray (MutablePrimArray dst#) (I# doff#) (MutablePrimArray src#) 
     )
 
 -- | Copy part of an array into another mutable array.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyPrimArray :: forall m a.
      (PrimMonad m, Prim a)
   => MutablePrimArray (PrimState m) a -- ^ destination array
@@ -384,6 +400,8 @@ copyPrimArray (MutablePrimArray dst#) (I# doff#) (PrimArray src#) (I# soff#) (I#
 --   This function assumes that the 'Prim' instance of @a@
 --   agrees with the 'Storable' instance. This function is only
 --   available when building with GHC 7.8 or newer.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyPrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination pointer
   -> PrimArray a -- ^ source array
@@ -402,6 +420,8 @@ copyPrimArrayToPtr (Ptr addr#) (PrimArray ba#) (I# soff#) (I# n#) =
 --   This function assumes that the 'Prim' instance of @a@
 --   agrees with the 'Storable' instance. This function is only
 --   available when building with GHC 7.8 or newer.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyMutablePrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination pointer
   -> MutablePrimArray (PrimState m) a -- ^ source array
@@ -417,6 +437,8 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
 #endif
 
 -- | Fill a slice of a mutable primitive array with a value.
+--
+-- /Note:/ this function does not do bounds checking.
 setPrimArray
   :: (Prim a, PrimMonad m)
   => MutablePrimArray (PrimState m) a -- ^ array to fill
@@ -480,6 +502,8 @@ unsafeThawPrimArray (PrimArray arr#)
   = primitive (\s# -> (# s#, MutablePrimArray (unsafeCoerce# arr#) #))
 
 -- | Read a primitive value from the primitive array.
+--
+-- /Note:/ this function does not do bounds checking.
 indexPrimArray :: forall a. Prim a => PrimArray a -> Int -> a
 {-# INLINE indexPrimArray #-}
 indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#

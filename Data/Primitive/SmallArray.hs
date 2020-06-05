@@ -167,6 +167,8 @@ newtype SmallMutableArray s a = SmallMutableArray (MutableArray s a)
 #endif
 
 -- | Create a new small mutable array.
+--
+-- /Note:/ this function does not check if the input is non-negative.
 newSmallArray
   :: PrimMonad m
   => Int -- ^ size
@@ -182,6 +184,8 @@ newSmallArray n e = SmallMutableArray `liftM` newArray n e
 {-# INLINE newSmallArray #-}
 
 -- | Read the element at a given index in a mutable array.
+--
+-- /Note:/ this function does not do bounds checking.
 readSmallArray
   :: PrimMonad m
   => SmallMutableArray (PrimState m) a -- ^ array
@@ -196,6 +200,8 @@ readSmallArray (SmallMutableArray a) = readArray a
 {-# INLINE readSmallArray #-}
 
 -- | Write an element at the given idex in a mutable array.
+--
+-- /Note:/ this function does not do bounds checking.
 writeSmallArray
   :: PrimMonad m
   => SmallMutableArray (PrimState m) a -- ^ array
@@ -233,6 +239,8 @@ writeSmallArray (SmallMutableArray a) = writeArray a
 --
 -- Note that 'Identity' is not adequate for this use, as it is a newtype, and
 -- cannot be evaluated without evaluating the element.
+--
+-- /Note:/ this function does not do bounds checking.
 indexSmallArrayM
   :: Monad m
   => SmallArray a -- ^ array
@@ -248,6 +256,8 @@ indexSmallArrayM (SmallArray a) = indexArrayM a
 {-# INLINE indexSmallArrayM #-}
 
 -- | Look up an element in an immutable array.
+--
+-- /Note:/ this function does not do bounds checking.
 indexSmallArray
   :: SmallArray a -- ^ array
   -> Int          -- ^ index
@@ -271,6 +281,9 @@ indexSmallArray## (SmallArray a) = indexArray## a
 {-# INLINE indexSmallArray## #-}
 
 -- | Create a copy of a slice of an immutable array.
+--
+-- /Note:/ The provided Array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 cloneSmallArray
   :: SmallArray a -- ^ source
   -> Int          -- ^ offset
@@ -285,6 +298,9 @@ cloneSmallArray (SmallArray a) i j = SmallArray $ cloneArray a i j
 {-# INLINE cloneSmallArray #-}
 
 -- | Create a copy of a slice of a mutable array.
+--
+-- /Note:/ The provided Array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 cloneSmallMutableArray
   :: PrimMonad m
   => SmallMutableArray (PrimState m) a -- ^ source
@@ -370,6 +386,8 @@ unsafeThawSmallArray (SmallArray a) = SmallMutableArray `liftM` unsafeThawArray 
 {-# INLINE unsafeThawSmallArray #-}
 
 -- | Copy a slice of an immutable array into a mutable array.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copySmallArray
   :: PrimMonad m
   => SmallMutableArray (PrimState m) a -- ^ destination
@@ -388,6 +406,8 @@ copySmallArray (SmallMutableArray dst) i (SmallArray src) = copyArray dst i src
 {-# INLINE copySmallArray #-}
 
 -- | Copy a slice of one mutable array into another.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copySmallMutableArray
   :: PrimMonad m
   => SmallMutableArray (PrimState m) a -- ^ destination

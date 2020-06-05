@@ -112,6 +112,8 @@ sizeofMutableArray a = I# (sizeofMutableArray# (marray# a))
 
 -- | Create a new mutable array of the specified size and initialise all
 -- elements with the given value.
+--
+-- /Note:/ this function does not check if the input is non-negative.
 newArray :: PrimMonad m => Int -> a -> m (MutableArray (PrimState m) a)
 {-# INLINE newArray #-}
 newArray (I# n#) x = primitive
@@ -121,16 +123,22 @@ newArray (I# n#) x = primitive
                in (# s'# , ma #))
 
 -- | Read a value from the array at the given index.
+--
+-- /Note:/ this function does not do bounds checking.
 readArray :: PrimMonad m => MutableArray (PrimState m) a -> Int -> m a
 {-# INLINE readArray #-}
 readArray arr (I# i#) = primitive (readArray# (marray# arr) i#)
 
 -- | Write a value to the array at the given index.
+--
+-- /Note:/ this function does not do bounds checking.
 writeArray :: PrimMonad m => MutableArray (PrimState m) a -> Int -> a -> m ()
 {-# INLINE writeArray #-}
 writeArray arr (I# i#) x = primitive_ (writeArray# (marray# arr) i# x)
 
 -- | Read a value from the immutable array at the given index.
+--
+-- /Note:/ this function does not do bounds checking.
 indexArray :: Array a -> Int -> a
 {-# INLINE indexArray #-}
 indexArray arr (I# i#) = case indexArray# (array# arr) i# of (# x #) -> x
@@ -138,6 +146,8 @@ indexArray arr (I# i#) = case indexArray# (array# arr) i# of (# x #) -> x
 -- | Read a value from the immutable array at the given index, returning
 -- the result in an unboxed unary tuple. This is currently used to implement
 -- folds.
+--
+-- /Note:/ this function does not do bounds checking.
 indexArray## :: Array a -> Int -> (# a #)
 indexArray## arr (I# i) = indexArray# (array# arr) i
 {-# INLINE indexArray## #-}
@@ -165,6 +175,7 @@ indexArray## arr (I# i) = indexArray# (array# arr) i
 -- Now, indexing is executed immediately although the returned element is
 -- still not evaluated.
 --
+-- /Note:/ this function does not do bounds checking.
 indexArrayM :: Monad m => Array a -> Int -> m a
 {-# INLINE indexArrayM #-}
 indexArrayM arr (I# i#)
@@ -227,6 +238,8 @@ sameMutableArray arr brr
   = isTrue# (sameMutableArray# (marray# arr) (marray# brr))
 
 -- | Copy a slice of an immutable array to a mutable array.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyArray :: PrimMonad m
           => MutableArray (PrimState m) a    -- ^ destination array
           -> Int                             -- ^ offset into destination array
@@ -253,8 +266,10 @@ copyArray !dst !doff !src !soff !len = go 0
 -- not be the same when using this library with GHC versions 7.6 and older.
 -- In GHC 7.8 and newer, overlapping arrays will behave correctly.
 --
--- Note: The order of arguments is different from that of 'copyMutableArray#'. The primop
+-- /Note:/ The order of arguments is different from that of 'copyMutableArray#'. The primop
 -- has the source first while this wrapper has the destination first.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyMutableArray :: PrimMonad m
           => MutableArray (PrimState m) a    -- ^ destination array
           -> Int                             -- ^ offset into destination array
@@ -279,7 +294,9 @@ copyMutableArray !dst !doff !src !soff !len = go 0
 #endif
 
 -- | Return a newly allocated Array with the specified subrange of the
--- provided Array. The provided Array should contain the full subrange
+-- provided Array.
+--
+-- /Note:/ The provided Array should contain the full subrange
 -- specified by the two Ints, but this is not checked.
 cloneArray :: Array a -- ^ source array
            -> Int     -- ^ offset into destination array
@@ -292,6 +309,9 @@ cloneArray (Array arr#) (I# off#) (I# len#)
 -- | Return a newly allocated MutableArray. with the specified subrange of
 -- the provided MutableArray. The provided MutableArray should contain the
 -- full subrange specified by the two Ints, but this is not checked.
+--
+-- /Note:/ The provided Array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 cloneMutableArray :: PrimMonad m
         => MutableArray (PrimState m) a -- ^ source array
         -> Int                          -- ^ offset into destination array
@@ -344,6 +364,8 @@ createArray n x f = runArray $ do
   f mary
   pure mary
 
+-- |
+-- Execute the monadic action(s) and freeze the resulting array.
 runArray
   :: (forall s. ST s (MutableArray s a))
   -> Array a
