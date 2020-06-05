@@ -1080,7 +1080,7 @@ cloneMutablePrimArray src off n = do
   copyMutablePrimArray dst 0 src off n
   return dst
 
-#if MIN_VERSION_base(4,9,0) /* In new GHCs, runRW# is available. */
+#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
 runPrimArray
   :: (forall s. ST s (MutablePrimArray s a))
   -> PrimArray a
