@@ -110,6 +110,8 @@ instance NFData (MutableByteArray s) where
   rnf (MutableByteArray _) = ()
 
 -- | Create a new mutable byte array of the specified size in bytes.
+--
+-- /Note:/ this function does not check if the input is non-negative.
 newByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
 {-# INLINE newByteArray #-}
 newByteArray (I# n#)
@@ -118,6 +120,8 @@ newByteArray (I# n#)
 
 -- | Create a /pinned/ byte array of the specified size in bytes. The garbage
 -- collector is guaranteed not to move it.
+--
+-- /Note:/ this function does not check if the input is non-negative.
 newPinnedByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
 {-# INLINE newPinnedByteArray #-}
 newPinnedByteArray (I# n#)
@@ -126,6 +130,8 @@ newPinnedByteArray (I# n#)
 
 -- | Create a /pinned/ byte array of the specified size in bytes and with the
 -- given alignment. The garbage collector is guaranteed not to move it.
+--
+-- /Note:/ this function does not check if the input is non-negative.
 newAlignedPinnedByteArray
   :: PrimMonad m
   => Int  -- ^ size
@@ -268,12 +274,16 @@ isMutableByteArrayPinned (MutableByteArray marr#) = isTrue# (Exts.isMutableByteA
 
 -- | Read a primitive value from the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
+--
+-- /Note:/ this function does not do bounds checking.
 indexByteArray :: Prim a => ByteArray -> Int -> a
 {-# INLINE indexByteArray #-}
 indexByteArray (ByteArray arr#) (I# i#) = indexByteArray# arr# i#
 
 -- | Read a primitive value from the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
+--
+-- /Note:/ this function does not do bounds checking.
 readByteArray
   :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -> Int -> m a
 {-# INLINE readByteArray #-}
@@ -282,6 +292,8 @@ readByteArray (MutableByteArray arr#) (I# i#)
 
 -- | Write a primitive value to the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
+--
+-- /Note:/ this function does not do bounds checking.
 writeByteArray
   :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -> Int -> a -> m ()
 {-# INLINE writeByteArray #-}
@@ -298,9 +310,14 @@ foldrByteArray f z arr = go 0
       | otherwise = z
     maxI = sizeofByteArray arr `quot` sizeOf (undefined :: a)
 
+-- | Create a 'ByteArray' from a list.
+--
+-- @byteArrayFromList xs = `byteArrayFromListN` (length xs) xs@
 byteArrayFromList :: Prim a => [a] -> ByteArray
 byteArrayFromList xs = byteArrayFromListN (length xs) xs
 
+-- | Create a 'ByteArray' from a list of a known length. If the length
+--   of the list does not match the given length, this throws an exception.
 byteArrayFromListN :: Prim a => Int -> [a] -> ByteArray
 byteArrayFromListN n ys = runST $ do
     marr <- newByteArray (n * sizeOf (head ys))
@@ -319,6 +336,8 @@ unI# :: Int -> Int#
 unI# (I# n#) = n#
 
 -- | Copy a slice of an immutable byte array to a mutable byte array.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyByteArray
   :: PrimMonad m => MutableByteArray (PrimState m)
                                         -- ^ destination array
@@ -333,6 +352,8 @@ copyByteArray (MutableByteArray dst#) doff (ByteArray src#) soff sz
 
 -- | Copy a slice of a mutable byte array into another array. The two slices
 -- may not overlap.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 copyMutableByteArray
   :: PrimMonad m => MutableByteArray (PrimState m)
                                         -- ^ destination array
@@ -352,6 +373,8 @@ copyMutableByteArray (MutableByteArray dst#) doff
 --   overlap. This function is only available when compiling with GHC 7.8
 --   or newer.
 --
+-- /Note:/ this function does not do bounds or overlap checking.
+--
 --   @since 0.7.1.0
 copyByteArrayToPtr
   :: PrimMonad m
@@ -367,6 +390,8 @@ copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
 -- | Copy a slice of a mutable byte array to an unmanaged Pointer address. These must
 --   not overlap. This function is only available when compiling with GHC 7.8
 --   or newer.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
 --
 --   @since 0.7.1.0
 copyMutableByteArrayToPtr
@@ -437,6 +462,8 @@ moveByteArray (MutableByteArray dst#) doff
 
 -- | Fill a slice of a mutable byte array with a value. The offset and length
 -- are given in elements of type @a@ rather than in bytes.
+--
+-- /Note:/ this function does not do bounds checking.
 setByteArray
   :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -- ^ array to fill
                            -> Int                 -- ^ offset into array
@@ -448,6 +475,8 @@ setByteArray (MutableByteArray dst#) (I# doff#) (I# sz#) x
   = primitive_ (setByteArray# dst# doff# sz# x)
 
 -- | Fill a slice of a mutable byte array with a byte.
+--
+-- /Note:/ this function does not do bounds checking.
 fillByteArray
   :: PrimMonad m => MutableByteArray (PrimState m)
                                         -- ^ array to fill
