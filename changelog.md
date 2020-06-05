@@ -19,6 +19,9 @@
 
   * Add `Prim` instances for `WordPtr` and `IntPtr`.
 
+  * Add `NFData` instances for `Array` and `SmallArray`.
+    by Callan McGill
+
 ## Changes in version 0.7.0.1
 
   * Allow building with GHC 8.12.

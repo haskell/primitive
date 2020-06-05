@@ -27,6 +27,7 @@ module Data.Primitive.Array (
   traverseArrayP
 ) where
 
+import Control.DeepSeq
 import Control.Monad.Primitive
 
 import GHC.Base  ( Int(..) )
@@ -50,6 +51,7 @@ import Control.Applicative
 import Control.Monad (MonadPlus(..), when)
 import qualified Control.Monad.Fail as Fail
 import Control.Monad.Fix
+import qualified Data.Foldable as Foldable
 #if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
 #endif
@@ -86,6 +88,14 @@ import Control.Monad (liftM2)
 data Array a = Array
   { array# :: Array# a }
   deriving ( Typeable )
+
+#if MIN_VERSION_deepseq(1,4,3)
+instance NFData1 Array where
+  liftRnf r = Foldable.foldl' (\_ -> r) ()
+#endif
+
+instance NFData a => NFData (Array a) where
+  rnf = Foldable.foldl' (\_ -> rnf) ()
 
 -- | Mutable boxed arrays associated with a primitive state token.
 data MutableArray s a = MutableArray

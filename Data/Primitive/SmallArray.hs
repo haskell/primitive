@@ -73,6 +73,7 @@ import qualified GHC.Exts
 #endif
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad
 import qualified Control.Monad.Fail as Fail
 import Control.Monad.Fix
@@ -125,6 +126,10 @@ newtype SmallArray a = SmallArray (Array a) deriving
   , MonadZip
   , MonadFix
   , Monoid
+  , NFData
+#if MIN_VERSION_deepseq(1,4,3)
+  , NFData1
+#endif
   , Typeable
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
   , Eq1
@@ -141,6 +146,16 @@ instance IsList (SmallArray a) where
   fromList l = SmallArray (fromList l)
   toList a = Foldable.toList a
 #endif
+#endif
+
+#if HAVE_SMALL_ARRAY
+#if MIN_VERSION_deepseq(1,4,3)
+instance NFData1 SmallArray where
+  liftRnf r = foldl' (\_ -> r) ()
+#endif
+
+instance NFData a => NFData (SmallArray a) where
+  rnf = foldl' (\_ -> rnf) ()
 #endif
 
 #if HAVE_SMALL_ARRAY
