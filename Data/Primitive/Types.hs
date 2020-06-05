@@ -29,6 +29,8 @@ module Data.Primitive.Types (
 import Control.Monad.Primitive
 import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
+import Foreign.Ptr (IntPtr,intPtrToPtr,ptrToIntPtr)
+import Foreign.Ptr (WordPtr,wordPtrToPtr,ptrToWordPtr)
 import Foreign.C.Types
 import System.Posix.Types
 
@@ -409,6 +411,43 @@ deriving instance Prim CKey
 deriving instance Prim CTimer
 #endif
 deriving instance Prim Fd
+
+-- Andrew Martin: The instances for WordPtr and IntPtr are written out by
+-- hand in a tedious way. We cannot use GND because the data constructors for
+-- these types were not available before GHC 8.2. The CPP for generating code
+-- for the Int and Word types does not work here. There is a way to clean this
+-- up a little with CPP, and if anyone wants to do that, go for it. In the
+-- meantime, I am going to ship this with the instances written out by hand.
+
+-- | @since 0.7.1.0
+instance Prim WordPtr where
+  sizeOf# _ = sizeOf# (undefined :: Ptr ()) 
+  alignment# _ = alignment# (undefined :: Ptr ()) 
+  indexByteArray# a i = ptrToWordPtr (indexByteArray# a i)
+  readByteArray# a i s0 = case readByteArray# a i s0 of
+    (# s1, p #) -> (# s1, ptrToWordPtr p #)
+  writeByteArray# a i wp = writeByteArray# a i (wordPtrToPtr wp)
+  setByteArray# a i n wp = setByteArray# a i n (wordPtrToPtr wp)
+  indexOffAddr# a i = ptrToWordPtr (indexOffAddr# a i)
+  readOffAddr# a i s0 = case readOffAddr# a i s0 of
+    (# s1, p #) -> (# s1, ptrToWordPtr p #)
+  writeOffAddr# a i wp = writeOffAddr# a i (wordPtrToPtr wp)
+  setOffAddr# a i n wp = setOffAddr# a i n (wordPtrToPtr wp)
+  
+-- | @since 0.7.1.0
+instance Prim IntPtr where
+  sizeOf# _ = sizeOf# (undefined :: Ptr ()) 
+  alignment# _ = alignment# (undefined :: Ptr ()) 
+  indexByteArray# a i = ptrToIntPtr (indexByteArray# a i)
+  readByteArray# a i s0 = case readByteArray# a i s0 of
+    (# s1, p #) -> (# s1, ptrToIntPtr p #)
+  writeByteArray# a i wp = writeByteArray# a i (intPtrToPtr wp)
+  setByteArray# a i n wp = setByteArray# a i n (intPtrToPtr wp)
+  indexOffAddr# a i = ptrToIntPtr (indexOffAddr# a i)
+  readOffAddr# a i s0 = case readOffAddr# a i s0 of
+    (# s1, p #) -> (# s1, ptrToIntPtr p #)
+  writeOffAddr# a i wp = writeOffAddr# a i (intPtrToPtr wp)
+  setOffAddr# a i n wp = setOffAddr# a i n (intPtrToPtr wp)
 
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Const a b)
