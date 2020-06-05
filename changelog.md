@@ -11,6 +11,10 @@
   * Add functions for manipulating pinned Prim Arrays
     by Andrew Martin
 
+  * Add `NFData` instances for `ByteArray`, `MutableByteArray`,
+    `PrimArray` and `MutablePrimArray`.
+    by Callan McGill
+
 ## Changes in version 0.7.0.1
 
   * Allow building with GHC 8.12.
