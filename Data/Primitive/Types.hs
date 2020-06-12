@@ -68,7 +68,7 @@ import qualified Foreign.Storable as FS
 
 #if __GLASGOW_HASKELL__ >= 710
 import GHC.IO (IO(..))
-import qualified GHC.Prim
+import qualified GHC.Exts
 #endif
 
 
@@ -254,9 +254,9 @@ instance Prim (ty) where {                                      \
 liberate# :: State# s -> State# r
 liberate# = unsafeCoerce#
 shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word# -> IO ()
-shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Prim.setByteArray# m off len (GHC.Prim.word2Int# w) (liberate# s)), () #))
+shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.word2Int# w) (liberate# s)), () #))
 shimmedSetInt8Array# :: MutableByteArray# s -> Int -> Int -> Int# -> IO ()
-shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Prim.setByteArray# m off len i (liberate# s)), () #))
+shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len i (liberate# s)), () #))
 #else
 shimmedSetWord8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()
 shimmedSetWord8Array# = setWord8Array#
