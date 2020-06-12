@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -44,6 +45,7 @@ module Data.Primitive.ByteArray (
 #endif
   moveByteArray,
   setByteArray, fillByteArray,
+  cloneByteArray, cloneMutableByteArray,
 
   -- * Information
   sizeofByteArray,
@@ -60,6 +62,8 @@ import Control.Monad.ST
 import Control.DeepSeq
 import Data.Primitive.Types
 
+import qualified GHC.ST as GHCST
+
 import Foreign.C.Types
 import Data.Word ( Word8 )
 import GHC.Base ( Int(..) )
@@ -75,7 +79,6 @@ import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
 import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
 import Numeric
-
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as SG
@@ -645,3 +648,52 @@ instance Exts.IsList ByteArray where
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.ByteArray." ++ fun ++ ": " ++ problem
 
+-- | Return a newly allocated array with the specified subrange of the
+-- provided array. The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
+cloneByteArray ::
+     ByteArray -- ^ source array
+  -> Int       -- ^ offset into destination array
+  -> Int       -- ^ number of bytes to copy
+  -> ByteArray
+{-# INLINE cloneByteArray #-}
+cloneByteArray src off n = runByteArray $ do
+  dst <- newByteArray n
+  copyByteArray dst 0 src off n
+  return dst
+
+-- | Return a newly allocated mutable array with the specified subrange of
+-- the provided mutable array. The provided mutable array should contain the
+-- full subrange specified by the two Ints, but this is not checked.
+cloneMutableByteArray :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ source array
+  -> Int -- ^ offset into destination array
+  -> Int -- ^ number of bytes to copy
+  -> m (MutableByteArray (PrimState m))
+{-# INLINE cloneMutableByteArray #-}
+cloneMutableByteArray src off n = do
+  dst <- newByteArray n
+  copyMutableByteArray dst 0 src off n
+  return dst
+
+#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
+runByteArray
+  :: (forall s. ST s (MutableByteArray s))
+  -> ByteArray
+runByteArray m = ByteArray (runByteArray# m)
+
+runByteArray#
+  :: (forall s. ST s (MutableByteArray s))
+  -> ByteArray#
+runByteArray# m = case runRW# $ \s ->
+  case unST m s of { (# s', MutableByteArray mary# #) ->
+  unsafeFreezeByteArray# mary# s'} of (# _, ary# #) -> ary#
+
+unST :: ST s a -> State# s -> (# State# s, a #)
+unST (GHCST.ST f) = f
+#else /* In older GHCs, runRW# is not available. */
+runByteArray
+  :: (forall s. ST s (MutableByteArray s))
+  -> ByteArray
+runByteArray m = runST $ m >>= unsafeFreezeByteArray
+#endif
