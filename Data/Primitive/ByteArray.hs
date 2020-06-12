@@ -541,12 +541,12 @@ instance Show ByteArray where
 compareByteArraysFromBeginning :: ByteArray -> ByteArray -> Int -> Ordering
 {-# INLINE compareByteArraysFromBeginning #-}
 #if __GLASGOW_HASKELL__ >= 804
-compareByteArraysFromBeginning (ByteArray ba1#) (ByteArray ba2#) (I# n#) =
-  compare (I# (compareByteArrays# ba1# 0# ba2# 0# n#)) 0
+compareByteArraysFromBeginning (ByteArray ba1#) (ByteArray ba2#) (I# n#)
+  = compare (I# (compareByteArrays# ba1# 0# ba2# 0# n#)) 0
 #else
 -- Emulate GHC 8.4's 'GHC.Prim.compareByteArrays#'
 compareByteArraysFromBeginning (ByteArray ba1#) (ByteArray ba2#) (I# n#)
-    = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# ba2# n))) 0
+  = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# ba2# n))) 0
   where
     n = fromIntegral (I# n#) :: CSize
     fromCInt = fromIntegral :: CInt -> Int
@@ -566,12 +566,12 @@ compareByteArrays ::
   -> Ordering
 {-# INLINE compareByteArrays #-}
 #if __GLASGOW_HASKELL__ >= 804
-compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#) =
-  compare (I# (compareByteArrays# ba1# off1# ba2# off2# n#)) 0
+compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#)
+  = compare (I# (compareByteArrays# ba1# off1# ba2# off2# n#)) 0
 #else
 -- Emulate GHC 8.4's 'GHC.Prim.compareByteArrays#'
-compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#) =
-    = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# off1# ba2# off2# n))) 0
+compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#)
+  = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# off1# ba2# off2# n))) 0
   where
     n = fromIntegral (I# n#) :: CSize
     fromCInt = fromIntegral :: CInt -> Int
