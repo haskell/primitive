@@ -13,23 +13,10 @@
 
 module Data.Primitive.Internal.Compat (
     isTrue#
-  , mkNoRepType
   ) where
-
-#if MIN_VERSION_base(4,2,0)
-import Data.Data (mkNoRepType)
-#else
-import Data.Data (mkNorepType)
-#endif
 
 #if MIN_VERSION_base(4,7,0)
 import GHC.Exts (isTrue#)
-#endif
-
-
-
-#if !MIN_VERSION_base(4,2,0)
-mkNoRepType = mkNorepType
 #endif
 
 #if !MIN_VERSION_base(4,7,0)

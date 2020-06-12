@@ -60,6 +60,7 @@ module Data.Primitive.ByteArray (
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Control.DeepSeq
+import Data.Data (mkNoRepType)
 import Data.Primitive.Types
 
 import qualified GHC.ST as GHCST
@@ -77,7 +78,7 @@ import GHC.Exts
 
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..) )
-import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+import Data.Primitive.Internal.Compat ( isTrue# )
 import Numeric
 
 #if MIN_VERSION_base(4,9,0)

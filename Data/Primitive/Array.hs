@@ -29,6 +29,7 @@ module Data.Primitive.Array (
 
 import Control.DeepSeq
 import Control.Monad.Primitive
+import Data.Data (mkNoRepType)
 
 import GHC.Base  ( Int(..) )
 import GHC.Exts
@@ -43,7 +44,7 @@ import GHC.Exts (fromListN, fromList)
 import Data.Typeable ( Typeable )
 import Data.Data
   (Data(..), DataType, mkDataType, Constr, mkConstr, Fixity(..), constrIndex)
-import Data.Primitive.Internal.Compat ( isTrue#, mkNoRepType )
+import Data.Primitive.Internal.Compat ( isTrue# )
 
 import Control.Monad.ST(ST,runST)
 
