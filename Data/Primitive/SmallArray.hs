@@ -56,6 +56,9 @@ module Data.Primitive.SmallArray
   , unsafeThawSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
+#if MIN_VERSION_base(4,14,0)
+  , shrinkSmallMutableArray
+#endif
   , smallArrayFromList
   , smallArrayFromListN
   , mapSmallArray'
@@ -1006,3 +1009,17 @@ smallArrayFromListN n l = SmallArray (Array.fromListN n l)
 -- | Create a 'SmallArray' from a list.
 smallArrayFromList :: [a] -> SmallArray a
 smallArrayFromList l = smallArrayFromListN (length l) l
+
+#if MIN_VERSION_base(4,14,0)
+-- | Shrink the mutable array in place. The size given must be equal to
+-- or less than the current size of the array. This is not checked.
+shrinkSmallMutableArray ::
+     SmallMutableArray s a
+  -> Int
+  -> ST s ()
+{-# inline shrinkSmallMutableArray #-}
+shrinkSmallMutableArray (SmallMutableArray x) (I# n) = GHCST.ST
+  (\s0 -> case GHC.Exts.shrinkSmallMutableArray# x n s0 of
+    s1 -> (# s1, () #)
+  )
+#endif

@@ -17,6 +17,8 @@
     `PrimArray` and `MutablePrimArray`.
     by Callan McGill
     
+  * Add `shrinkSmallMutableArray`.
+
   * Add `clonePrimArray` and `cloneMutablePrimArray`.
 
   * Add `cloneMutableByteArray` and `cloneByteArray`.
