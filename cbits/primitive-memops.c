@@ -40,6 +40,11 @@ int hsprimitive_memcmp( HsWord8 *s1, HsWord8 *s2, size_t n )
   return memcmp( s1, s2, n );
 }
 
+int hsprimitive_memcmp_offset( HsWord8 *s1, HsInt off1, HsWord8 *s2, HsInt off2, size_t n )
+{
+  return memcmp( s1 + off1, s2 + off2, n );
+}
+
 void hsprimitive_memset_Word8 (HsWord8 *p, ptrdiff_t off, size_t n, HsWord x)
 {
   memset( (char *)(p+off), x, n );

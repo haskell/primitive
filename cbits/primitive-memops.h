@@ -10,6 +10,7 @@
 void hsprimitive_memcpy( void *dst, ptrdiff_t doff, void *src, ptrdiff_t soff, size_t len );
 void hsprimitive_memmove( void *dst, ptrdiff_t doff, void *src, ptrdiff_t soff, size_t len );
 int  hsprimitive_memcmp( HsWord8 *s1, HsWord8 *s2, size_t n );
+int  hsprimitive_memcmp_offset( HsWord8 *s1, HsInt off1, HsWord8 *s2, HsInt off2, size_t n );
 
 void hsprimitive_memset_Word8 (HsWord8 *, ptrdiff_t, size_t, HsWord);
 void hsprimitive_memset_Word16 (HsWord16 *, ptrdiff_t, size_t, HsWord);

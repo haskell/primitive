@@ -37,6 +37,9 @@ module Data.Primitive.ByteArray (
   -- * Folding
   foldrByteArray,
 
+  -- * Comparing
+  compareByteArrays,
+
   -- * Freezing and thawing
   unsafeFreezeByteArray, unsafeThawByteArray,
 
@@ -534,21 +537,47 @@ instance Show ByteArray where
                 | otherwise = showString ", "
 
 
-compareByteArrays :: ByteArray -> ByteArray -> Int -> Ordering
-{-# INLINE compareByteArrays #-}
+-- Only used internally
+compareByteArraysFromBeginning :: ByteArray -> ByteArray -> Int -> Ordering
+{-# INLINE compareByteArraysFromBeginning #-}
 #if __GLASGOW_HASKELL__ >= 804
-compareByteArrays (ByteArray ba1#) (ByteArray ba2#) (I# n#) =
-  compare (I# (compareByteArrays# ba1# 0# ba2# 0# n#)) 0
+compareByteArraysFromBeginning (ByteArray ba1#) (ByteArray ba2#) (I# n#)
+  = compare (I# (compareByteArrays# ba1# 0# ba2# 0# n#)) 0
 #else
 -- Emulate GHC 8.4's 'GHC.Prim.compareByteArrays#'
-compareByteArrays (ByteArray ba1#) (ByteArray ba2#) (I# n#)
-    = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# ba2# n))) 0
+compareByteArraysFromBeginning (ByteArray ba1#) (ByteArray ba2#) (I# n#)
+  = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# ba2# n))) 0
   where
     n = fromIntegral (I# n#) :: CSize
     fromCInt = fromIntegral :: CInt -> Int
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp"
   memcmp_ba :: ByteArray# -> ByteArray# -> CSize -> IO CInt
+#endif
+
+-- | Lexicographic comparison of equal-length slices into two byte arrays.
+-- This wraps the @compareByteArrays#@ primop, which wraps @memcmp@.
+compareByteArrays ::
+     ByteArray -- ^ Array A
+  -> Int -- ^ Offset A, given in bytes
+  -> ByteArray -- ^ Array B
+  -> Int -- ^ Offset B, given in bytes
+  -> Int -- ^ Length of slice, given in bytes
+  -> Ordering
+{-# INLINE compareByteArrays #-}
+#if __GLASGOW_HASKELL__ >= 804
+compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#)
+  = compare (I# (compareByteArrays# ba1# off1# ba2# off2# n#)) 0
+#else
+-- Emulate GHC 8.4's 'GHC.Prim.compareByteArrays#'
+compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#)
+  = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba_offs ba1# off1# ba2# off2# n))) 0
+  where
+    n = fromIntegral (I# n#) :: CSize
+    fromCInt = fromIntegral :: CInt -> Int
+
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp_offset"
+  memcmp_ba_offs :: ByteArray# -> Int# -> ByteArray# -> Int# -> CSize -> IO CInt
 #endif
 
 
@@ -567,7 +596,7 @@ instance Eq ByteArray where
   ba1@(ByteArray ba1#) == ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = True
     | n1 /= n2 = False
-    | otherwise = compareByteArrays ba1 ba2 n1 == EQ
+    | otherwise = compareByteArraysFromBeginning ba1 ba2 n1 == EQ
     where
       n1 = sizeofByteArray ba1
       n2 = sizeofByteArray ba2
@@ -581,7 +610,7 @@ instance Ord ByteArray where
   ba1@(ByteArray ba1#) `compare` ba2@(ByteArray ba2#)
     | sameByteArray ba1# ba2# = EQ
     | n1 /= n2 = n1 `compare` n2
-    | otherwise = compareByteArrays ba1 ba2 n1
+    | otherwise = compareByteArraysFromBeginning ba1 ba2 n1
     where
       n1 = sizeofByteArray ba1
       n2 = sizeofByteArray ba2

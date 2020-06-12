@@ -3,6 +3,8 @@
   * Add `PrimMonad` and `PrimBase` instances for `Lazy.ST` (GHC >= 8.2).
     thanks to Avi Dessauer (@Avi-D-coder) for this first contribution
 
+  * Add `compareByteArrays`.
+
   * Add `shrinkMutableByteArray`.
 
   * Add `Eq` instances for `MutableByteArray` and `MutablePrimArray`.
