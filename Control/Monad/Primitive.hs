@@ -295,14 +295,23 @@ unsafeIOToPrim :: PrimMonad m => IO a -> m a
 {-# INLINE unsafeIOToPrim #-}
 unsafeIOToPrim = unsafePrimToPrim
 
+-- | See 'unsafeInlineIO'. This function is not recommended for the same
+-- reasons.
 unsafeInlinePrim :: PrimBase m => m a -> a
 {-# INLINE unsafeInlinePrim #-}
 unsafeInlinePrim m = unsafeInlineIO (unsafePrimToIO m)
 
+-- | Generally, do not use this function. It is the same as
+-- @accursedUnutterablePerformIO@ from @bytestring@ and is well behaved under
+-- narrow conditions. See the documentation of that function to get an idea
+-- of when this is sound. In most cases @GHC.IO.Unsafe.unsafeDupablePerformIO@
+-- should be preferred.
 unsafeInlineIO :: IO a -> a
 {-# INLINE unsafeInlineIO #-}
 unsafeInlineIO m = case internal m realWorld# of (# _, r #) -> r
 
+-- | See 'unsafeInlineIO'. This function is not recommended for the same
+-- reasons. Prefer @runST@ when @s@ is free.
 unsafeInlineST :: ST s a -> a
 {-# INLINE unsafeInlineST #-}
 unsafeInlineST = unsafeInlinePrim
