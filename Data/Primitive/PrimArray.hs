@@ -42,6 +42,7 @@ module Data.Primitive.PrimArray
   , writePrimArray
   , indexPrimArray
     -- * Freezing and Thawing
+  , freezePrimArray
   , unsafeFreezePrimArray
   , unsafeThawPrimArray
     -- * Block Operations
@@ -483,6 +484,23 @@ sameMutablePrimArray :: MutablePrimArray s a -> MutablePrimArray s a -> Bool
 {-# INLINE sameMutablePrimArray #-}
 sameMutablePrimArray (MutablePrimArray arr#) (MutablePrimArray brr#)
   = isTrue# (sameMutableByteArray# arr# brr#)
+
+-- | Create an immutable copy of a slice of a primitive array. The offset and
+-- length are given in elements.
+--
+-- This operation makes a copy of the specified section, so it is safe to
+-- continue using the mutable array afterward.
+freezePrimArray
+  :: (PrimMonad m, Prim a)
+  => MutablePrimArray (PrimState m) a -- ^ source
+  -> Int                              -- ^ offset in elements
+  -> Int                              -- ^ length in elements
+  -> m (PrimArray a)
+{-# INLINE freezePrimArray #-}
+freezePrimArray !src !off !len = do
+  dst <- newPrimArray len
+  copyMutablePrimArray dst 0 src off len
+  unsafeFreezePrimArray dst
 
 -- | Convert a mutable byte array to an immutable one without copying. The
 -- array should not be modified after the conversion.
