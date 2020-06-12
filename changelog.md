@@ -1,5 +1,7 @@
 ## Changes in version 0.7.1.0
 
+  * Introduce convenience class `MonadPrim` and `MonadPrimBase`.
+
   * Add `PrimMonad` and `PrimBase` instances for `Lazy.ST` (GHC >= 8.2).
     thanks to Avi Dessauer (@Avi-D-coder) for this first contribution
 

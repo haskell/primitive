@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 -- |
@@ -17,6 +19,8 @@
 module Control.Monad.Primitive (
   PrimMonad(..), RealWorld, primitive_,
   PrimBase(..),
+  MonadPrim,
+  MonadPrimBase,
   liftPrim, primToPrim, primToIO, primToST, ioToPrim, stToPrim,
   unsafePrimToPrim, unsafePrimToIO, unsafePrimToST, unsafeIOToPrim,
   unsafeSTToPrim, unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
@@ -224,6 +228,20 @@ instance PrimBase (L.ST s) where
   internal = internal . L.lazyToStrictST
   {-# INLINE internal #-}
 #endif
+
+-- | 'PrimMonad''s state token type can be annoying to handle
+--   in constraints. This typeclass lets users (visually) notice
+--   'PrimState' equality constraints less, by witnessing that
+--   @s ~ 'PrimState' m@.
+class (PrimMonad m, s ~ PrimState m) => MonadPrim s m | m -> s where
+instance (PrimMonad m, s ~ PrimState m) => MonadPrim s m
+
+-- | 'PrimBase''s state token type can be annoying to handle
+--   in constraints. This typeclass lets users (visually) notice
+--   'PrimState' equality constraints less, by witnessing that
+--   @s ~ 'PrimState' m@.
+class (PrimBase m, s ~ PrimState m) => MonadPrimBase s m | m -> s where
+instance (PrimBase m, s ~ PrimState m) => MonadPrimBase s m
 
 -- | Lifts a 'PrimBase' into another 'PrimMonad' with the same underlying state
 -- token type.
