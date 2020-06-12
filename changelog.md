@@ -11,6 +11,8 @@
   * Add functions for manipulating pinned Prim Arrays
     by Andrew Martin
 
+  * Add `copyPtrToMutableByteArray`.
+
   * Add `NFData` instances for `ByteArray`, `MutableByteArray`,
     `PrimArray` and `MutablePrimArray`.
     by Callan McGill
