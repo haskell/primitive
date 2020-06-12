@@ -17,6 +17,8 @@
     
   * Add `clonePrimArray` and `cloneMutablePrimArray`.
 
+  * Add `cloneMutableByteArray` and `cloneByteArray`.
+
   * Add `Prim` instances for `WordPtr` and `IntPtr`.
 
   * Add `NFData` instances for `Array` and `SmallArray`.
