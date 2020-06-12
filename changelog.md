@@ -24,6 +24,8 @@
   * Add `NFData` instances for `Array` and `SmallArray`.
     by Callan McGill
 
+  * Add `copyByteArrayToPtr` and `copyMutableByteArrayToPtr`.
+
 ## Changes in version 0.7.0.1
 
   * Allow building with GHC 8.12.
