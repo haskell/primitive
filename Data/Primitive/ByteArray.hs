@@ -11,8 +11,11 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Primitive operations on ByteArrays
---
+-- Primitive operations on byte arrays. Most functions in this module include
+-- an element type in their type signature and interpret the unit for offsets
+-- and lengths as that element. A few functions (e.g. 'copyByteArray') do
+-- not include an element type. Such functions interpret offsets and lengths
+-- as units of 8-bit words.
 
 module Data.Primitive.ByteArray (
   -- * Types
@@ -374,40 +377,45 @@ copyMutableByteArray (MutableByteArray dst#) doff
 
 #if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a byte array to an unmanaged Pointer Address. These must not
---   overlap. This function is only available when compiling with GHC 7.8
---   or newer.
+--   overlap. The offset and length given in elements, not in bytes. This function
+--   is only available when compiling with GHC 7.8 or newer.
 --
--- /Note:/ this function does not do bounds or overlap checking.
+--   /Note:/ this function does not do bounds or overlap checking.
 --
 --   @since 0.7.1.0
 copyByteArrayToPtr
-  :: PrimMonad m
-  => Ptr Word8 -- ^ destination
+  :: forall m a. (PrimMonad m, Prim a)
+  => Ptr a -- ^ destination
   -> ByteArray -- ^ source array
-  -> Int -- ^ offset into source array
-  -> Int -- ^ number of bytes to copy
+  -> Int -- ^ offset into source array, interpreted as elements of type @a@
+  -> Int -- ^ number of elements to copy
   -> m ()
 {-# INLINE copyByteArrayToPtr #-}
 copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
-  = primitive_ (copyByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
+  = primitive_ (copyByteArrayToAddr# src# (unI# soff *# siz# ) dst# (unI# sz))
+  where
+  siz# = sizeOf# (undefined :: a)
 
--- | Copy a slice of a mutable byte array to an unmanaged Pointer address. These must
---   not overlap. This function is only available when compiling with GHC 7.8
+-- | Copy a slice of a mutable byte array to an unmanaged Pointer address.
+--   These must not overlap. The offset and length given in elements, not
+--   in bytes. This function is only available when compiling with GHC 7.8
 --   or newer.
 --
--- /Note:/ this function does not do bounds or overlap checking.
+--   /Note:/ this function does not do bounds or overlap checking.
 --
 --   @since 0.7.1.0
 copyMutableByteArrayToPtr
-  :: PrimMonad m
-  => Ptr Word8 -- ^ destination
+  :: forall m a. (PrimMonad m, Prim a)
+  => Ptr a -- ^ destination
   -> MutableByteArray (PrimState m) -- ^ source array
-  -> Int -- ^ offset into source array
-  -> Int -- ^ number of bytes to copy
+  -> Int -- ^ offset into source array, interpreted as elements of type @a@
+  -> Int -- ^ number of elements to copy
   -> m ()
 {-# INLINE copyMutableByteArrayToPtr #-}
 copyMutableByteArrayToPtr (Ptr dst#) (MutableByteArray src#) soff sz
-  = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
+  = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff *# siz# ) dst# (unI# sz))
+  where
+  siz# = sizeOf# (undefined :: a)
 
 ------
 --- These latter two should be DEPRECATED
@@ -416,6 +424,8 @@ copyMutableByteArrayToPtr (Ptr dst#) (MutableByteArray src#) soff sz
 -- | Copy a slice of a byte array to an unmanaged address. These must not
 --   overlap. This function is only available when compiling with GHC 7.8
 --   or newer.
+--
+--   Note: This function is just 'copyByteArrayToPtr' where @a@ is 'Word8'.
 --
 --   @since 0.6.4.0
 copyByteArrayToAddr
@@ -432,6 +442,8 @@ copyByteArrayToAddr (Ptr dst#) (ByteArray src#) soff sz
 -- | Copy a slice of a mutable byte array to an unmanaged address. These must
 --   not overlap. This function is only available when compiling with GHC 7.8
 --   or newer.
+--
+--   Note: This function is just 'copyMutableByteArrayToPtr' where @a@ is 'Word8'.
 --
 --   @since 0.6.4.0
 copyMutableByteArrayToAddr
