@@ -13,9 +13,9 @@
 --
 -- Primitive operations on byte arrays. Most functions in this module include
 -- an element type in their type signature and interpret the unit for offsets
--- and lengths as that element. A few functions (e.g. 'copyByteArray') do
--- not include an element type. Such functions interpret offsets and lengths
--- as units of 8-bit words.
+-- and lengths as that element. A few functions (e.g. 'copyByteArray',
+-- 'freezeByteArray') do not include an element type. Such functions
+-- interpret offsets and lengths as units of 8-bit words.
 
 module Data.Primitive.ByteArray (
   -- * Types
@@ -41,6 +41,7 @@ module Data.Primitive.ByteArray (
   compareByteArrays,
 
   -- * Freezing and thawing
+  freezeByteArray,
   unsafeFreezeByteArray, unsafeThawByteArray,
 
   -- * Block operations
@@ -213,6 +214,23 @@ getSizeofMutableByteArray (MutableByteArray arr#)
 getSizeofMutableByteArray arr
   = return (sizeofMutableByteArray arr)
 #endif
+
+-- | Create an immutable copy of a slice of a byte array. The offset and
+-- length are given in bytes.
+--
+-- This operation makes a copy of the specified section, so it is safe to
+-- continue using the mutable array afterward.
+freezeByteArray
+  :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ source
+  -> Int                            -- ^ offset in bytes
+  -> Int                            -- ^ length in bytes
+  -> m ByteArray
+{-# INLINE freezeByteArray #-}
+freezeByteArray !src !off !len = do
+  dst <- newByteArray len
+  copyMutableByteArray dst 0 src off len
+  unsafeFreezeByteArray dst
 
 -- | Convert a mutable byte array to an immutable one without copying. The
 -- array should not be modified after the conversion.
