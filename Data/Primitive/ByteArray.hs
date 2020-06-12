@@ -571,13 +571,13 @@ compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#
 #else
 -- Emulate GHC 8.4's 'GHC.Prim.compareByteArrays#'
 compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#)
-  = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba ba1# off1# ba2# off2# n))) 0
+  = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba_offs ba1# off1# ba2# off2# n))) 0
   where
     n = fromIntegral (I# n#) :: CSize
     fromCInt = fromIntegral :: CInt -> Int
 
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp"
-  memcmp_ba :: ByteArray# -> ByteArray# -> CSize -> IO CInt
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp_offset"
+  memcmp_ba_offs :: ByteArray# -> Int# -> ByteArray# -> Int# -> CSize -> IO CInt
 #endif
 
 
