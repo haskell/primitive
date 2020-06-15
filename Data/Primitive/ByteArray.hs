@@ -525,8 +525,8 @@ fillByteArray
 fillByteArray = setByteArray
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
-  memmove_mba :: MutableByteArray# s -> CInt
-              -> MutableByteArray# s -> CInt
+  memmove_mba :: MutableByteArray# s -> CPtrdiff
+              -> MutableByteArray# s -> CPtrdiff
               -> CSize -> IO ()
 
 instance Eq (MutableByteArray s) where
