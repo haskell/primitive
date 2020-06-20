@@ -241,7 +241,7 @@ instance (PrimMonad m, s ~ PrimState m) => MonadPrim s m
 --   'PrimState' equality constraints less, by witnessing that
 --   @s ~ 'PrimState' m@.
 class (PrimBase m, MonadPrim s m) => MonadPrimBase s m
-instance (PrimBase m, s ~ PrimState m) => MonadPrimBase s m
+instance (PrimBase m, MonadPrim s m) => MonadPrimBase s m
 
 -- | Lifts a 'PrimBase' into another 'PrimMonad' with the same underlying state
 -- token type.
