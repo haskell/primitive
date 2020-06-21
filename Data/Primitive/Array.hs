@@ -23,8 +23,8 @@ module Data.Primitive.Array (
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
   fromListN, fromList,
-  mapArray',
-  traverseArrayP
+  imapArray, mapArray', imapArray',
+  itraverseArray, traverseArrayP, itraverseArrayP
 ) where
 
 import Control.DeepSeq
@@ -581,6 +581,43 @@ traverseArray f = \ !ary ->
  #-}
 #endif
 
+-- | Traverse an array with an index. When applicable, 'itraverseArrayP'
+-- will likely be more efficient.
+--
+-- @since 0.6.4.1
+itraverseArray
+  :: Applicative f
+  => (Int -> a -> f b)
+  -> Array a
+  -> f (Array b)
+itraverseArray f = \ !ary ->
+  let
+    !len = sizeofArray ary
+    go !i
+      | i == len = pure $ STA $ \mary -> unsafeFreezeArray (MutableArray mary)
+      | (# x #) <- indexArray## ary i
+      = liftA2 (\b (STA m) -> STA $ \mary ->
+                  writeArray (MutableArray mary) i b >> m mary)
+               (f i x) (go (i + 1))
+  in if len == 0
+     then pure emptyArray
+     else runSTA len <$> go 0
+{-# INLINE [1] itraverseArray #-}
+
+{-# RULES
+"itraverse/ST" forall (f :: Int -> a -> ST s b). itraverseArray f =
+   itraverseArrayP f
+"itraverse/IO" forall (f :: Int -> a -> IO b). itraverseArray f =
+   itraverseArrayP f
+ #-}
+#if MIN_VERSION_base(4,8,0)
+{-# RULES
+"itraverse/Id" forall (f :: Int -> a -> Identity b). itraverseArray f =
+   (coerce :: (Array a -> Array (Identity b))
+           -> Array a -> Identity (Array b)) (imapArray f)
+ #-}
+#endif
+
 -- | This is the fastest, most straightforward way to traverse
 -- an array, but it only works correctly with a sufficiently
 -- "affine" 'PrimMonad' instance. In particular, it must only produce
@@ -608,7 +645,55 @@ traverseArrayP f = \ !ary ->
     go 0 mary
 {-# INLINE traverseArrayP #-}
 
+-- | This is the fastest, most straightforward way to traverse
+-- an array, but it only works correctly with a sufficiently
+-- "affine" 'PrimMonad' instance. In particular, it must only produce
+-- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- monads, for example, will not work right at all.
+--
+-- @since 0.6.4.1
+itraverseArrayP
+  :: PrimMonad m
+  => (Int -> a -> m b)
+  -> Array a
+  -> m (Array b)
+itraverseArrayP f = \ !ary ->
+  let
+    !sz = sizeofArray ary
+    go !i !mary
+      | i == sz
+      = unsafeFreezeArray mary
+      | otherwise
+      = do
+          a <- indexArrayM ary i
+          b <- f i a
+          writeArray mary i b
+          go (i + 1) mary
+  in do
+    mary <- newArray sz badTraverseValue
+    go 0 mary
+{-# INLINE itraverseArrayP #-}
+
+-- | Lazy map over the elements of the array with an index.
+--
+-- @since 0.6.4.1
+imapArray :: (Int -> a -> b) -> Array a -> Array b
+imapArray f a =
+  createArray (sizeofArray a) (die "mapArray'" "impossible") $ \mb ->
+    let go i | i == sizeofArray a
+             = return ()
+             | otherwise
+             = do x <- indexArrayM a i
+                  -- We use indexArrayM here so that we will perform the
+                  -- indexing eagerly even if f is lazy.
+                  let !y = f i x
+                  writeArray mb i y >> go (i+1)
+     in go 0
+{-# INLINE imapArray #-}
+
 -- | Strict map over the elements of the array.
+--
+-- @since 0.6.4.1
 mapArray' :: (a -> b) -> Array a -> Array b
 mapArray' f a =
   createArray (sizeofArray a) (die "mapArray'" "impossible") $ \mb ->
@@ -622,6 +707,23 @@ mapArray' f a =
                   writeArray mb i y >> go (i+1)
      in go 0
 {-# INLINE mapArray' #-}
+
+-- | Strict map over the elements of the array with an index.
+--
+-- @since 0.6.4.1
+imapArray' :: (Int -> a -> b) -> Array a -> Array b
+imapArray' f a =
+  createArray (sizeofArray a) (die "mapArray'" "impossible") $ \mb ->
+    let go i | i == sizeofArray a
+             = return ()
+             | otherwise
+             = do x <- indexArrayM a i
+                  -- We use indexArrayM here so that we will perform the
+                  -- indexing eagerly even if f is lazy.
+                  let !y = f i x
+                  writeArray mb i y >> go (i+1)
+     in go 0
+{-# INLINE imapArray' #-}
 
 arrayFromListN :: Int -> [a] -> Array a
 arrayFromListN n l =

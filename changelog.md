@@ -81,7 +81,7 @@
  * Implement `isByteArrayPinned` and `isMutableByteArrayPinned`.
 
  * Add `Eq1`, `Ord1`, `Show1`, and `Read1` instances for `Array` and
-   `SmallArray`.
+   `SmallArray`. Add indexed maps and traversals.
 
  * Improve the test suite. This includes having property tests for
    typeclasses from `base` such as `Eq`, `Ord`, `Functor`, `Applicative`,
