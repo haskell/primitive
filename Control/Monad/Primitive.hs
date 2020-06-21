@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 -- |
@@ -233,7 +232,7 @@ instance PrimBase (L.ST s) where
 --   in constraints. This typeclass lets users (visually) notice
 --   'PrimState' equality constraints less, by witnessing that
 --   @s ~ 'PrimState' m@.
-class (PrimMonad m, s ~ PrimState m) => MonadPrim s m | m -> s
+class (PrimMonad m, s ~ PrimState m) => MonadPrim s m
 instance (PrimMonad m, s ~ PrimState m) => MonadPrim s m
 
 -- | 'PrimBase''s state token type can be annoying to handle
