@@ -23,6 +23,7 @@ module Data.Primitive.Array (
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
   fromListN, fromList,
+  arrayFromListN, arrayFromList,
   mapArray',
   traverseArrayP
 ) where
@@ -623,6 +624,8 @@ mapArray' f a =
      in go 0
 {-# INLINE mapArray' #-}
 
+-- | Create an array from a list of a known length. If the length
+--   of the list does not match the given length, this throws an exception.
 arrayFromListN :: Int -> [a] -> Array a
 arrayFromListN n l =
   createArray n (die "fromListN" "uninitialized element") $ \sma ->
@@ -636,6 +639,7 @@ arrayFromListN n l =
           else die "fromListN" "list length greater than specified size"
     in go 0 l
 
+-- | Create an array from a list.
 arrayFromList :: [a] -> Array a
 arrayFromList l = arrayFromListN (length l) l
 

@@ -36,6 +36,8 @@
 
   * Add `copyByteArrayToPtr` and `copyMutableByteArrayToPtr`.
 
+  * Export `arrayFromList` and `arrayFromListN`.
+
 ## Changes in version 0.7.0.1
 
   * Allow building with GHC 8.12.
