@@ -88,7 +88,8 @@ test-suite test-qc
                , tagged
                , transformers >=0.4
                , transformers-compat
-               , semigroups
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups
 
   cpp-options:   -DHAVE_UNARY_LAWS
   ghc-options: -O2
