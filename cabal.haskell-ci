@@ -1,4 +1,4 @@
-ghc-head:               True
+ghc-head:               False
 jobs:                   2
 no-tests-no-benchmarks: False
 unconstrained:          False
