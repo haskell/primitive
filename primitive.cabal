@@ -82,7 +82,7 @@ test-suite test-qc
                , ghc-prim
                , primitive
                , quickcheck-classes-base >=0.6 && <0.7
-               , QuickCheck ^>= 2.13
+               , QuickCheck >= 2.13 && < 2.15
                , tasty ^>= 1.2
                , tasty-quickcheck
                , tagged
