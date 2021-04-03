@@ -545,17 +545,15 @@ createSmallArray n x f = runSmallArray $ do
   pure mary
 
 emptySmallArray# :: (# #) -> SmallArray# a
-emptySmallArray# _ = case emptySmallArray of SmallArray ar -> ar
-{-# NOINLINE emptySmallArray# #-}
+emptySmallArray# _ = smallArrayOf# (# #)
+{-# INLINE emptySmallArray# #-}
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.SmallArray." ++ fun ++ ": " ++ problem
 
 emptySmallArray :: SmallArray a
-emptySmallArray =
-  runST $ newSmallArray 0 (die "emptySmallArray" "impossible")
-            >>= unsafeFreezeSmallArray
-{-# NOINLINE emptySmallArray #-}
+emptySmallArray = SmallArray (smallArrayOf# (# #))
+{-# INLINE emptySmallArray #-}
 
 
 infixl 1 ?
@@ -762,7 +760,7 @@ instance Functor SmallArray where
   x <$ sa = createSmallArray (length sa) x noOp
 
 instance Applicative SmallArray where
-  pure x = createSmallArray 1 x noOp
+  pure x = SmallArray (smallArrayOf# (# x #)) -- createSmallArray 1 x noOp
 
   sa *> sb = createSmallArray (la*lb) (die "*>" "impossible") $ \smb ->
     fix ? 0 $ \go i ->
