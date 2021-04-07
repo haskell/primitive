@@ -421,8 +421,8 @@ deriving instance Prim Fd
 
 -- | @since 0.7.1.0
 instance Prim WordPtr where
-  sizeOf# _ = sizeOf# (undefined :: Ptr ()) 
-  alignment# _ = alignment# (undefined :: Ptr ()) 
+  sizeOf# _ = sizeOf# (undefined :: Ptr ())
+  alignment# _ = alignment# (undefined :: Ptr ())
   indexByteArray# a i = ptrToWordPtr (indexByteArray# a i)
   readByteArray# a i s0 = case readByteArray# a i s0 of
     (# s1, p #) -> (# s1, ptrToWordPtr p #)
@@ -433,11 +433,11 @@ instance Prim WordPtr where
     (# s1, p #) -> (# s1, ptrToWordPtr p #)
   writeOffAddr# a i wp = writeOffAddr# a i (wordPtrToPtr wp)
   setOffAddr# a i n wp = setOffAddr# a i n (wordPtrToPtr wp)
-  
+
 -- | @since 0.7.1.0
 instance Prim IntPtr where
-  sizeOf# _ = sizeOf# (undefined :: Ptr ()) 
-  alignment# _ = alignment# (undefined :: Ptr ()) 
+  sizeOf# _ = sizeOf# (undefined :: Ptr ())
+  alignment# _ = alignment# (undefined :: Ptr ())
   indexByteArray# a i = ptrToIntPtr (indexByteArray# a i)
   readByteArray# a i s0 = case readByteArray# a i s0 of
     (# s1, p #) -> (# s1, ptrToIntPtr p #)
