@@ -45,14 +45,14 @@ int hsprimitive_memcmp_offset( HsWord8 *s1, HsInt off1, HsWord8 *s2, HsInt off2,
   return memcmp( s1 + off1, s2 + off2, n );
 }
 
-void hsprimitive_memset_Word8 (HsWord8 *p, ptrdiff_t off, size_t n, HsWord x)
+void hsprimitive_memset_Word8 (HsWord8 *p, ptrdiff_t off, size_t n, HsWord8 x)
 {
   memset( (char *)(p+off), x, n );
 }
 
 /* MEMSET(HsWord8, HsWord) */
-MEMSET(Word16, HsWord)
-MEMSET(Word32, HsWord)
+MEMSET(Word16, HsWord16)
+MEMSET(Word32, HsWord32)
 MEMSET(Word64, HsWord64)
 MEMSET(Word, HsWord)
 MEMSET(Ptr, HsPtr)
