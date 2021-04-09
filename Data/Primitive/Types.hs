@@ -250,7 +250,14 @@ instance Prim (ty) where {                                      \
 ; {-# INLINE setOffAddr# #-}                                    \
 }
 
-#if __GLASGOW_HASKELL__ >= 710
+#if __GLASGOW_HASKELL__ >= 902
+liberate# :: State# s -> State# r
+liberate# = unsafeCoerce#
+shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word8# -> IO ()
+shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.word2Int# (GHC.Exts.word8ToWord# w)) (liberate# s)), () #))
+shimmedSetInt8Array# :: MutableByteArray# s -> Int -> Int -> Int8# -> IO ()
+shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.int8ToInt# i) (liberate# s)), () #))
+#elif __GLASGOW_HASKELL__ >= 710
 liberate# :: State# s -> State# r
 liberate# = unsafeCoerce#
 shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word# -> IO ()
