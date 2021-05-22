@@ -43,6 +43,7 @@ module Data.Primitive.PrimArray
   , indexPrimArray
     -- * Freezing and Thawing
   , freezePrimArray
+  , thawPrimArray
   , unsafeFreezePrimArray
   , unsafeThawPrimArray
     -- * Block Operations
@@ -220,7 +221,7 @@ die fun problem = error $ "Data.Primitive.PrimArray." ++ fun ++ ": " ++ problem
 
 -- | Create a 'PrimArray' from a list.
 --
--- @primArrayFromList vs = `byteArrayFromListN` (length vs) vs@
+-- @primArrayFromList vs = `primArrayFromListN` (length vs) vs@
 primArrayFromList :: Prim a => [a] -> PrimArray a
 primArrayFromList vs = primArrayFromListN (L.length vs) vs
 
@@ -502,7 +503,24 @@ freezePrimArray !src !off !len = do
   copyMutablePrimArray dst 0 src off len
   unsafeFreezePrimArray dst
 
--- | Convert a mutable byte array to an immutable one without copying. The
+-- | Create a mutable primitive array from a slice of an immutable primitive array.
+-- The offset and length are given in elements.
+--
+-- This operation makes a copy of the specified slice, so it is safe to
+-- use the immutable array afterward.
+thawPrimArray
+  :: (PrimMonad m, Prim a)
+  => PrimArray a -- ^ source
+  -> Int         -- ^ offset in elements
+  -> Int         -- ^ length in elements
+  -> m (MutablePrimArray (PrimState m) a)
+{-# INLINE thawPrimArray #-}
+thawPrimArray !src !off !len = do
+  dst <- newPrimArray len
+  copyPrimArray dst 0 src off len
+  return dst
+
+-- | Convert a mutable primitive array to an immutable one without copying. The
 -- array should not be modified after the conversion.
 unsafeFreezePrimArray
   :: PrimMonad m => MutablePrimArray (PrimState m) a -> m (PrimArray a)
@@ -532,9 +550,9 @@ sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
 
 #if __GLASGOW_HASKELL__ >= 802
--- | Check whether or not the byte array is pinned. Pinned primitive arrays cannot
+-- | Check whether or not the primitive array is pinned. Pinned primitive arrays cannot
 --   be moved by the garbage collector. It is safe to use 'primArrayContents'
---   on such byte arrays. This function is only available when compiling with
+--   on such arrays. This function is only available when compiling with
 --   GHC 8.2 or newer.
 --
 --   @since 0.7.1.0
