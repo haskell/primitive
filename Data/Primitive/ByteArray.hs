@@ -41,7 +41,7 @@ module Data.Primitive.ByteArray (
   compareByteArrays,
 
   -- * Freezing and thawing
-  freezeByteArray,
+  freezeByteArray, thawByteArray,
   unsafeFreezeByteArray, unsafeThawByteArray,
 
   -- * Block operations
@@ -231,6 +231,25 @@ freezeByteArray !src !off !len = do
   dst <- newByteArray len
   copyMutableByteArray dst 0 src off len
   unsafeFreezeByteArray dst
+
+-- | Create a mutable byte array from a slice of an immutable byte array.
+-- The offset and length are given in bytes.
+--
+-- This operation makes a copy of the specified slice, so it is safe to
+-- use the immutable array afterward.
+--
+-- @since 0.7.2.0
+thawByteArray
+  :: PrimMonad m
+  => ByteArray -- ^ source
+  -> Int       -- ^ offset in bytes
+  -> Int       -- ^ length in bytes
+  -> m (MutableByteArray (PrimState m))
+{-# INLINE thawByteArray #-}
+thawByteArray !src !off !len = do
+  dst <- newByteArray len
+  copyByteArray dst 0 src off len
+  return dst
 
 -- | Convert a mutable byte array to an immutable one without copying. The
 -- array should not be modified after the conversion.
