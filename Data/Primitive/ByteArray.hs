@@ -237,6 +237,8 @@ freezeByteArray !src !off !len = do
 --
 -- This operation makes a copy of the specified slice, so it is safe to
 -- use the immutable array afterward.
+--
+-- @since 0.7.2.0
 thawByteArray
   :: PrimMonad m
   => ByteArray -- ^ source

@@ -1,3 +1,7 @@
+## Changes in version 0.7.2.0
+
+  * Add `thawByteArray` and `thawPrimArray`.
+
 ## Changes in version 0.7.1.0
 
   * Introduce convenience class `MonadPrim` and `MonadPrimBase`.
