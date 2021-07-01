@@ -74,6 +74,8 @@ import qualified GHC.ST as GHCST
 
 import Foreign.C.Types
 import Data.Word ( Word8 )
+import Data.Bits ( (.&.), unsafeShiftR )
+import GHC.Show ( intToDigit )
 import GHC.Base ( Int(..) )
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts ( IsList(..) )
@@ -562,12 +564,24 @@ instance Typeable s => Data (MutableByteArray s) where
   dataTypeOf _ = mkNoRepType "Data.Primitive.ByteArray.MutableByteArray"
 
 -- | @since 0.6.3.0
+--
+-- Behavior changed in 0.7.2.0. Before 0.7.2.0, this instance rendered
+-- 8-bit words less than 16 as a single hexadecimal digit (e.g. 13 was @0xD@).
+-- Starting with 0.7.2.0, all 8-bit words are represented as two digits
+-- (e.g. 13 is @0x0D@).
 instance Show ByteArray where
   showsPrec _ ba =
       showString "[" . go 0
     where
+      showW8 :: Word8 -> String -> String
+      showW8 !w s =
+          '0'
+        : 'x'
+        : intToDigit (fromIntegral (unsafeShiftR w 4))
+        : intToDigit (fromIntegral (w .&. 0x0F))
+        : s
       go i
-        | i < sizeofByteArray ba = comma . showString "0x" . showHex (indexByteArray ba i :: Word8) . go (i+1)
+        | i < sizeofByteArray ba = comma . showW8 (indexByteArray ba i :: Word8) . go (i+1)
         | otherwise              = showChar ']'
         where
           comma | i == 0    = id

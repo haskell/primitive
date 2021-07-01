@@ -2,6 +2,10 @@
 
   * Add `thawByteArray` and `thawPrimArray`.
 
+  * Changed the `Show` instance of `ByteArray` so that all 8-bit words
+    are rendered as two digits. For example, display `0x0D` instead of `0xD`
+    for as an element.
+
 ## Changes in version 0.7.1.0
 
   * Introduce convenience class `MonadPrim` and `MonadPrimBase`.
