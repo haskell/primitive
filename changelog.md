@@ -70,6 +70,8 @@
 
 ## Changes in version 0.6.4.1
 
+ * Add `Prim` instance for `Complex`.
+ 
  * Add instances for the following newtypes from `base`:
    `Const`, `Identity`, `Down`, `Dual`, `Sum`, `Product`,
    `First`, `Last`, `Min`, `Max`

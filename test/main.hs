@@ -18,6 +18,7 @@
 
 import Control.Monad
 import Control.Monad.ST
+import Data.Complex
 import Data.Primitive
 import Data.Word
 import Data.Proxy (Proxy(..))
@@ -164,6 +165,9 @@ main = do
 
      ,testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
+      ]
+    , testGroup "Complex"
+      [ lawsToTest (QCC.primLaws (Proxy :: Proxy (Complex Double)))
       ]
 #if __GLASGOW_HASKELL__ >= 805
     ,testGroup "PrimStorable"
