@@ -357,8 +357,11 @@ testByteArray = do
         arr3 = mkByteArray ([0xde, 0xad, 0xbe, 0xee] :: [Word8])
         arr4 = mkByteArray ([0xde, 0xad, 0xbe, 0xdd] :: [Word8])
         arr5 = mkByteArray ([0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xdd] :: [Word8])
+        arr6 = mkByteArray ([0xde, 0xad, 0x00, 0x01, 0xb0] :: [Word8])
     when (show arr1 /= "[0xde, 0xad, 0xbe, 0xef]") $
         fail $ "ByteArray Show incorrect: "++show arr1
+    when (show arr6 /= "[0xde, 0xad, 0x00, 0x01, 0xb0]") $
+        fail $ "ByteArray Show incorrect: "++ show arr6
     when (compareByteArrays arr3 1 arr4 1 3 /= GT) $
         fail $ "arr3[1,3] should be greater than arr4[1,3]"
     when (compareByteArrays arr3 0 arr4 1 3 /= GT) $
