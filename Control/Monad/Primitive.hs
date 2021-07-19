@@ -40,13 +40,16 @@ import Data.Monoid (Monoid)
 
 import Control.Monad.Trans.Cont     ( ContT    )
 import Control.Monad.Trans.Identity ( IdentityT (IdentityT) )
-import Control.Monad.Trans.List     ( ListT    )
 import Control.Monad.Trans.Maybe    ( MaybeT   )
-import Control.Monad.Trans.Error    ( ErrorT, Error)
 import Control.Monad.Trans.Reader   ( ReaderT  )
 import Control.Monad.Trans.State    ( StateT   )
 import Control.Monad.Trans.Writer   ( WriterT  )
 import Control.Monad.Trans.RWS      ( RWST     )
+
+#if !MIN_VERSION_transformers(0,6,0)
+import Control.Monad.Trans.List     ( ListT    )
+import Control.Monad.Trans.Error    ( ErrorT, Error)
+#endif
 
 #if MIN_VERSION_transformers(0,4,0)
 import Control.Monad.Trans.Except   ( ExceptT  )
@@ -117,18 +120,20 @@ instance PrimBase m => PrimBase (IdentityT m) where
   internal (IdentityT m) = internal m
   {-# INLINE internal #-}
 
+#if !MIN_VERSION_transformers(0,6,0)
 instance PrimMonad m => PrimMonad (ListT m) where
   type PrimState (ListT m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
 
-instance PrimMonad m => PrimMonad (MaybeT m) where
-  type PrimState (MaybeT m) = PrimState m
-  primitive = lift . primitive
-  {-# INLINE primitive #-}
-
 instance (Error e, PrimMonad m) => PrimMonad (ErrorT e m) where
   type PrimState (ErrorT e m) = PrimState m
+  primitive = lift . primitive
+  {-# INLINE primitive #-}
+#endif
+
+instance PrimMonad m => PrimMonad (MaybeT m) where
+  type PrimState (MaybeT m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
 

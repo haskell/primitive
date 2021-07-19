@@ -55,7 +55,7 @@ Library
 
   Build-Depends: base >= 4.5 && < 4.17
                , deepseq >= 1.1 && < 1.5
-               , transformers >= 0.2 && < 0.6
+               , transformers >= 0.2 && < 0.7
   if !impl(ghc >= 8.0)
     Build-Depends: fail == 4.9.*
 
