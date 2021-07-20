@@ -39,16 +39,11 @@ jobs:
           ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
           dist-newstyle
         key: ${{ runner.os }}-${{ matrix.ghc }}
-    # We rebuild tests several times to avoid intermittent failures on Windows
-    # https://github.com/haskell/actions/issues/36
-    # We also use --enable-tests and --enable-benchmarks to avoid
-    # test and bench commands from reconfiguring and thus rebuilding.
     - name: Build
       run: cabal build
     - name: Test
       run: cabal test
     #- name: Bench
-    #  run: |
-    #    cabal bench
+    #  run: cabal bench
     - name: Haddock
       run: cabal haddock
