@@ -1,0 +1,54 @@
+name: ci
+on:
+  push:
+    branches:
+      - master
+  pull_request: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        ghc: ['8.0', '8.2', '8.4', '8.6', '8.8', '8.10', '9.0']
+        include:
+        - os: windows-latest
+          ghc: 'latest'
+        - os: macOS-latest
+          ghc: 'latest'
+        - os: ubuntu-16.04 # testing that cbits are compatible with gcc-5
+          ghc: 'latest'
+    steps:
+    - uses: actions/checkout@v2
+    - uses: haskell/actions/setup@v1
+      id: setup-haskell-cabal
+      with:
+        ghc-version: ${{ matrix.ghc }}
+    - name: Update cabal package database
+      run: cabal update
+    - uses: actions/cache@v2
+      name: Cache cabal stuff
+      with:
+        path: |
+          ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
+          dist-newstyle
+        key: ${{ runner.os }}-${{ matrix.ghc }}
+    # We rebuild tests several times to avoid intermittent failures on Windows
+    # https://github.com/haskell/actions/issues/36
+    # We also use --enable-tests and --enable-benchmarks to avoid
+    # test and bench commands from reconfiguring and thus rebuilding.
+    - name: Build
+      run: cabal build
+    - name: Test
+      run: cabal test
+    #- name: Bench
+    #  run: |
+    #    cabal bench
+    - name: Haddock
+      run: cabal haddock
