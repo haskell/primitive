@@ -89,6 +89,7 @@ module Data.Primitive.PrimArray
   , mapMaybePrimArray
     -- * Effectful Map/Create
     -- $effectfulMapCreate
+
     -- ** Lazy Applicative
   , traversePrimArray
   , itraversePrimArray
