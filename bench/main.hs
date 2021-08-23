@@ -8,7 +8,6 @@
 import Gauge
 import Control.Monad.ST
 import Data.Primitive
-import Control.DeepSeq
 import Control.Monad.Trans.State.Strict
 
 -- These are fixed implementations of certain operations. In the event
@@ -68,10 +67,3 @@ cheap i = modify (\x -> x + i) >> return (i * i)
 
 numbers :: Array Int
 numbers = fromList (enumFromTo 0 10000)
-
-instance NFData a => NFData (Array a) where
-  rnf ary = go 0 where
-    !sz = sizeofArray ary
-    go !ix = if ix < sz
-      then ()
-      else rnf (indexArray ary ix) `seq` go (ix + 1)
