@@ -5,7 +5,7 @@
 {-# LANGUAGE UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Gauge
+import Test.Tasty.Bench
 import Control.Monad.ST
 import Data.Primitive
 import Control.Monad.Trans.State.Strict

@@ -48,7 +48,7 @@ benchmark bench
       base >= 4.8 && < 4.15
     , primitive
     , deepseq
-    , gauge
+    , tasty-bench
     , transformers >= 0.3
 
 source-repository head
