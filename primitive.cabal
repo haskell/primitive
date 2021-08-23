@@ -94,7 +94,24 @@ test-suite test-qc
   cpp-options:   -DHAVE_UNARY_LAWS
   ghc-options: -O2
 
-
+benchmark bench
+  Default-Language: Haskell2010
+  hs-source-dirs: bench
+  main-is: main.hs
+  type: exitcode-stdio-1.0
+  ghc-options: -O2
+  other-modules:
+    Array.Traverse.Closure
+    Array.Traverse.Unsafe
+    ByteArray.Compare
+    PrimArray.Compare
+    PrimArray.Traverse
+  build-depends:
+      base
+    , primitive
+    , deepseq
+    , tasty-bench
+    , transformers >= 0.3
 
 source-repository head
   type:     git

@@ -43,7 +43,7 @@ jobs:
       run: cabal build
     - name: Test
       run: cabal test
-    #- name: Bench
-    #  run: cabal bench
+    - name: Bench
+      run: cabal bench --benchmark-option=-l
     - name: Haddock
       run: cabal haddock
