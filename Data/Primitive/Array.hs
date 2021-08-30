@@ -672,33 +672,36 @@ instance Functor Array where
 
 instance Applicative Array where
   pure x = runArray $ newArray 1 x
-  ab <*> a = createArray (szab*sza) (die "<*>" "impossible") $ \mb ->
+
+  ab <*> a = createArray (szab * sza) (die "<*>" "impossible") $ \mb ->
     let go1 i = when (i < szab) $
             do
               f <- indexArrayM ab i
-              go2 (i*sza) f 0
-              go1 (i+1)
+              go2 (i * sza) f 0
+              go1 (i + 1)
         go2 off f j = when (j < sza) $
             do
               x <- indexArrayM a j
               writeArray mb (off + j) (f x)
               go2 off f (j + 1)
     in go1 0
-   where szab = sizeofArray ab ; sza = sizeofArray a
-  a *> b = createArray (sza*szb) (die "*>" "impossible") $ \mb ->
-    let go i | i < sza   = copyArray mb (i * szb) b 0 szb
+   where szab = sizeofArray ab; sza = sizeofArray a
+
+  a *> b = createArray (sza * szb) (die "*>" "impossible") $ \mb ->
+    let go i | i < sza   = copyArray mb (i * szb) b 0 szb *> go (i + 1)
              | otherwise = return ()
-     in go 0
-   where sza = sizeofArray a ; szb = sizeofArray b
-  a <* b = createArray (sza*szb) (die "<*" "impossible") $ \ma ->
-    let fill off i e | i < szb   = writeArray ma (off+i) e >> fill off (i+1) e
+    in go 0
+   where sza = sizeofArray a; szb = sizeofArray b
+
+  a <* b = createArray (sza * szb) (die "<*" "impossible") $ \ma ->
+    let fill off i e | i < szb   = writeArray ma (off + i) e >> fill off (i + 1) e
                      | otherwise = return ()
         go i | i < sza
              = do x <- indexArrayM a i
-                  fill (i*szb) 0 x >> go (i+1)
+                  fill (i * szb) 0 x >> go (i + 1)
              | otherwise = return ()
-     in go 0
-   where sza = sizeofArray a ; szb = sizeofArray b
+    in go 0
+   where sza = sizeofArray a; szb = sizeofArray b
 
 instance Alternative Array where
   empty = emptyArray
