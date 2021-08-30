@@ -81,6 +81,8 @@ main = do
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
       , TQC.testProperty "mapArray'" (QCCL.mapProp int16 int32 mapArray')
 #endif
+      , TQC.testProperty "*>" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs *> ys) === (toList xs *> toList ys)
+      , TQC.testProperty "<*" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs <* ys) === (toList xs <* toList ys)
       ]
     , testGroup "SmallArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
@@ -98,6 +100,8 @@ main = do
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
       , TQC.testProperty "mapSmallArray'" (QCCL.mapProp int16 int32 mapSmallArray')
 #endif
+      , TQC.testProperty "*>" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs *> ys) === (toList xs *> toList ys)
+      , TQC.testProperty "<*" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs <* ys) === (toList xs <* toList ys)
       ]
     , testGroup "ByteArray"
       [ testGroup "Ordering"
@@ -159,18 +163,15 @@ main = do
       , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
 #endif
       ]
-
-
-
-     ,testGroup "DefaultSetMethod"
+    , testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
 #if __GLASGOW_HASKELL__ >= 805
-    ,testGroup "PrimStorable"
+    , testGroup "PrimStorable"
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
       ]
 #endif
-     ,testGroup "Prim"
+    , testGroup "Prim"
       [ renameLawsToTest "Word" (primLaws (Proxy :: Proxy Word))
       , renameLawsToTest "Word8" (primLaws (Proxy :: Proxy Word8))
       , renameLawsToTest "Word16" (primLaws (Proxy :: Proxy Word16))
@@ -195,9 +196,7 @@ main = do
       , renameLawsToTest "Min" (primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
       , renameLawsToTest "Max" (primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
 #endif
-
       ]
-
     ]
 
 deriving instance Arbitrary a => Arbitrary (Down a)
