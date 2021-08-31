@@ -17,7 +17,7 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM, indexArray##,
-  freezeArray, thawArray, runArray,
+  freezeArray, thawArray, runArray, createArray,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
@@ -339,38 +339,8 @@ runArray
   -> Array a
 #if !MIN_VERSION_base(4,9,0)
 runArray m = runST $ m >>= unsafeFreezeArray
-
-createArray
-  :: Int
-  -> a
-  -> (forall s. MutableArray s a -> ST s ())
-  -> Array a
-createArray 0 _ _ = emptyArray
-createArray n x f = runArray $ do
-  mary <- newArray n x
-  f mary
-  pure mary
-
 #else /* Below, runRW# is available. */
 runArray m = Array (runArray# m)
-
--- This low-level business is designed to work with GHC's worker-wrapper
--- transformation. A lot of the time, we don't actually need an Array
--- constructor. By putting it on the outside, and being careful about
--- how we special-case the empty array, we can make GHC smarter about this.
--- The only downside is that separately created 0-length arrays won't share
--- their Array constructors, although they'll share their underlying
--- Array#s.
-createArray
-  :: Int
-  -> a
-  -> (forall s. MutableArray s a -> ST s ())
-  -> Array a
-createArray 0 _ _ = Array (emptyArray# (# #))
-createArray n x f = runArray $ do
-  mary <- newArray n x
-  f mary
-  pure mary
 
 runArray#
   :: (forall s. ST s (MutableArray s a))
@@ -386,6 +356,35 @@ emptyArray# :: (# #) -> Array# a
 emptyArray# _ = case emptyArray of Array ar -> ar
 {-# NOINLINE emptyArray# #-}
 #endif
+
+-- | Create an array of the given size with a default value,
+-- apply the monadic function and freeze the result.
+--
+-- > createArray n x f = runArray $ do
+-- >   mary <- newArray n x
+-- >   f mary
+-- >   pure mary
+createArray
+  :: Int
+  -> a
+  -> (forall s. MutableArray s a -> ST s ())
+  -> Array a
+#if !MIN_VERSION_base(4,9,0)
+createArray 0 _ _ = emptyArray
+#else
+-- This low-level business is designed to work with GHC's worker-wrapper
+-- transformation. A lot of the time, we don't actually need an Array
+-- constructor. By putting it on the outside, and being careful about
+-- how we special-case the empty array, we can make GHC smarter about this.
+-- The only downside is that separately created 0-length arrays won't share
+-- their Array constructors, although they'll share their underlying
+-- Array#s.
+createArray 0 _ _ = Array (emptyArray# (# #))
+#endif
+createArray n x f = runArray $ do
+  mary <- newArray n x
+  f mary
+  pure mary
 
 
 die :: String -> String -> a

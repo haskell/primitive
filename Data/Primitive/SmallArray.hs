@@ -54,6 +54,7 @@ module Data.Primitive.SmallArray
   , thawSmallArray
   , unsafeThawSmallArray
   , runSmallArray
+  , createSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
 #if MIN_VERSION_base(4,14,0)
@@ -528,19 +529,30 @@ unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
 #endif
 
-#if HAVE_SMALL_ARRAY
--- See the comment on runSmallArray for why we use emptySmallArray#.
+-- | Create an array of the given size with a default value,
+-- apply the monadic function and freeze the result.
+--
+-- > createSmallArray n x f = runSmallArray $ do
+-- >   mary <- newSmallArray n x
+-- >   f mary
+-- >   pure mary
 createSmallArray
   :: Int
   -> a
   -> (forall s. SmallMutableArray s a -> ST s ())
   -> SmallArray a
+#if HAVE_SMALL_ARRAY
+-- See the comment on runSmallArray for why we use emptySmallArray#.
 createSmallArray 0 _ _ = SmallArray (emptySmallArray# (# #))
+#else
+createSmallArray 0 _ _ = emptySmallArray
+#endif
 createSmallArray n x f = runSmallArray $ do
   mary <- newSmallArray n x
   f mary
   pure mary
 
+#if HAVE_SMALL_ARRAY
 emptySmallArray# :: (# #) -> SmallArray# a
 emptySmallArray# _ = case emptySmallArray of SmallArray ar -> ar
 {-# NOINLINE emptySmallArray# #-}

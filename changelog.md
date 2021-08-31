@@ -2,6 +2,8 @@
 
   * Export `runByteArray` and `runPrimArray`.
 
+  * Export `createArray` and `createSmallArray`.
+
   * Export `emptyByteArray`, `emptyPrimArray`, `emptyArray` and `emptySmallArray`.
 
 ## Changes in version 0.7.2.0
