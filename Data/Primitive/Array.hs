@@ -22,6 +22,7 @@ module Data.Primitive.Array (
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
+  emptyArray,
   fromListN, fromList,
   arrayFromListN, arrayFromList,
   mapArray',
@@ -324,12 +325,21 @@ cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
    (\s# -> case cloneMutableArray# arr# off# len# s# of
              (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
 
+-- | The empty 'Array'.
 emptyArray :: Array a
 emptyArray =
   runST $ newArray 0 (die "emptyArray" "impossible") >>= unsafeFreezeArray
 {-# NOINLINE emptyArray #-}
 
+-- | Execute the monadic action and freeze the resulting array.
+--
+-- > runArray m = runST $ m >>= unsafeFreezeArray
+runArray
+  :: (forall s. ST s (MutableArray s a))
+  -> Array a
 #if !MIN_VERSION_base(4,9,0)
+runArray m = runST $ m >>= unsafeFreezeArray
+
 createArray
   :: Int
   -> a
@@ -341,12 +351,8 @@ createArray n x f = runArray $ do
   f mary
   pure mary
 
-runArray
-  :: (forall s. ST s (MutableArray s a))
-  -> Array a
-runArray m = runST $ m >>= unsafeFreezeArray
-
 #else /* Below, runRW# is available. */
+runArray m = Array (runArray# m)
 
 -- This low-level business is designed to work with GHC's worker-wrapper
 -- transformation. A lot of the time, we don't actually need an Array
@@ -365,13 +371,6 @@ createArray n x f = runArray $ do
   mary <- newArray n x
   f mary
   pure mary
-
--- |
--- Execute the monadic action(s) and freeze the resulting array.
-runArray
-  :: (forall s. ST s (MutableArray s a))
-  -> Array a
-runArray m = Array (runArray# m)
 
 runArray#
   :: (forall s. ST s (MutableArray s a))

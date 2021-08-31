@@ -52,13 +52,14 @@ module Data.Primitive.SmallArray
   , freezeSmallArray
   , unsafeFreezeSmallArray
   , thawSmallArray
-  , runSmallArray
   , unsafeThawSmallArray
+  , runSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
 #if MIN_VERSION_base(4,14,0)
   , shrinkSmallMutableArray
 #endif
+  , emptySmallArray
   , smallArrayFromList
   , smallArrayFromListN
   , mapSmallArray'
@@ -493,17 +494,17 @@ mapSmallArray' f (SmallArray ar) = SmallArray (mapArray' f ar)
 #endif
 {-# INLINE mapSmallArray' #-}
 
-#ifndef HAVE_SMALL_ARRAY
+-- | Execute the monadic action and freeze the resulting array.
+--
+-- > runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
 runSmallArray
   :: (forall s. ST s (SmallMutableArray s a))
   -> SmallArray a
+#ifndef HAVE_SMALL_ARRAY
 runSmallArray m = SmallArray $ runArray $
   m >>= \(SmallMutableArray mary) -> return mary
 
 #elif !MIN_VERSION_base(4,9,0)
-runSmallArray
-  :: (forall s. ST s (SmallMutableArray s a))
-  -> SmallArray a
 runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
 
 #else
@@ -514,9 +515,6 @@ runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
 -- The only downside is that separately created 0-length arrays won't share
 -- their Array constructors, although they'll share their underlying
 -- Array#s.
-runSmallArray
-  :: (forall s. ST s (SmallMutableArray s a))
-  -> SmallArray a
 runSmallArray m = SmallArray (runSmallArray# m)
 
 runSmallArray#
@@ -528,7 +526,6 @@ runSmallArray# m = case runRW# $ \s ->
 
 unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
-
 #endif
 
 #if HAVE_SMALL_ARRAY
@@ -551,6 +548,7 @@ emptySmallArray# _ = case emptySmallArray of SmallArray ar -> ar
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.SmallArray." ++ fun ++ ": " ++ problem
 
+-- | The empty 'SmallArray'.
 emptySmallArray :: SmallArray a
 emptySmallArray =
   runST $ newSmallArray 0 (die "emptySmallArray" "impossible")

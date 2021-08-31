@@ -32,6 +32,7 @@ module Data.Primitive.ByteArray (
   readByteArray, writeByteArray, indexByteArray,
 
   -- * Constructing
+  emptyByteArray,
   byteArrayFromList, byteArrayFromListN,
 
   -- * Folding
@@ -41,7 +42,7 @@ module Data.Primitive.ByteArray (
   compareByteArrays,
 
   -- * Freezing and thawing
-  freezeByteArray, thawByteArray,
+  freezeByteArray, thawByteArray, runByteArray,
   unsafeFreezeByteArray, unsafeThawByteArray,
 
   -- * Block operations
@@ -696,7 +697,9 @@ calcLength :: [ByteArray] -> Int -> Int
 calcLength [] !n = n
 calcLength (x : xs) !n = calcLength xs (sizeofByteArray x + n)
 
+-- | The empty 'ByteArray'.
 emptyByteArray :: ByteArray
+{-# NOINLINE emptyByteArray #-}
 emptyByteArray = runST (newByteArray 0 >>= unsafeFreezeByteArray)
 
 replicateByteArray :: Int -> ByteArray -> ByteArray
@@ -769,10 +772,13 @@ cloneMutableByteArray src off n = do
   copyMutableByteArray dst 0 src off n
   return dst
 
-#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
+-- | Execute the monadic action and freeze the resulting array.
+--
+-- > runByteArray m = runST $ m >>= unsafeFreezeByteArray
 runByteArray
   :: (forall s. ST s (MutableByteArray s))
   -> ByteArray
+#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
 runByteArray m = ByteArray (runByteArray# m)
 
 runByteArray#
@@ -785,8 +791,5 @@ runByteArray# m = case runRW# $ \s ->
 unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
 #else /* In older GHCs, runRW# is not available. */
-runByteArray
-  :: (forall s. ST s (MutableByteArray s))
-  -> ByteArray
 runByteArray m = runST $ m >>= unsafeFreezeByteArray
 #endif

@@ -1,3 +1,9 @@
+## Changes in version 0.7.3.0
+
+  * Export `runByteArray` and `runPrimArray`.
+
+  * Export `emptyByteArray`, `emptyPrimArray`, `emptyArray` and `emptySmallArray`.
+
 ## Changes in version 0.7.2.0
 
   * Add `thawByteArray` and `thawPrimArray`.
@@ -29,7 +35,7 @@
   * Add `NFData` instances for `ByteArray`, `MutableByteArray`,
     `PrimArray` and `MutablePrimArray`.
     by Callan McGill
-    
+
   * Add `shrinkSmallMutableArray`.
 
   * Add `clonePrimArray` and `cloneMutablePrimArray`.

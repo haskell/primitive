@@ -44,6 +44,7 @@ module Data.Primitive.PrimArray
     -- * Freezing and Thawing
   , freezePrimArray
   , thawPrimArray
+  , runPrimArray
   , unsafeFreezePrimArray
   , unsafeThawPrimArray
     -- * Block Operations
@@ -81,6 +82,7 @@ module Data.Primitive.PrimArray
   , traversePrimArray_
   , itraversePrimArray_
     -- * Map/Create
+  , emptyPrimArray
   , mapPrimArray
   , imapPrimArray
   , generatePrimArray
@@ -272,7 +274,7 @@ instance Monoid (PrimArray a) where
 #endif
   mconcat = byteArrayToPrimArray . mconcat . map primArrayToByteArray
 
--- | The empty primitive array.
+-- | The empty 'PrimArray'.
 emptyPrimArray :: PrimArray a
 {-# NOINLINE emptyPrimArray #-}
 emptyPrimArray = runST $ primitive $ \s0# -> case newByteArray# 0# s0# of
@@ -1143,10 +1145,13 @@ cloneMutablePrimArray src off n = do
   copyMutablePrimArray dst 0 src off n
   return dst
 
-#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
+-- | Execute the monadic action and freeze the resulting array.
+--
+-- > runPrimArray m = runST $ m >>= unsafeFreezePrimArray
 runPrimArray
   :: (forall s. ST s (MutablePrimArray s a))
   -> PrimArray a
+#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
 runPrimArray m = PrimArray (runPrimArray# m)
 
 runPrimArray#
@@ -1159,8 +1164,5 @@ runPrimArray# m = case runRW# $ \s ->
 unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
 #else /* In older GHCs, runRW# is not available. */
-runPrimArray
-  :: (forall s. ST s (MutablePrimArray s a))
-  -> PrimArray a
 runPrimArray m = runST $ m >>= unsafeFreezePrimArray
 #endif
