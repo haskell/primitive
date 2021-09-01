@@ -17,11 +17,12 @@ module Data.Primitive.Array (
   Array(..), MutableArray(..),
 
   newArray, readArray, writeArray, indexArray, indexArrayM, indexArray##,
-  freezeArray, thawArray, runArray,
+  freezeArray, thawArray, runArray, createArray,
   unsafeFreezeArray, unsafeThawArray, sameMutableArray,
   copyArray, copyMutableArray,
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
+  emptyArray,
   fromListN, fromList,
   arrayFromListN, arrayFromList,
   mapArray',
@@ -324,53 +325,21 @@ cloneMutableArray (MutableArray arr#) (I# off#) (I# len#) = primitive
    (\s# -> case cloneMutableArray# arr# off# len# s# of
              (# s'#, arr'# #) -> (# s'#, MutableArray arr'# #))
 
+-- | The empty 'Array'.
 emptyArray :: Array a
 emptyArray =
   runST $ newArray 0 (die "emptyArray" "impossible") >>= unsafeFreezeArray
 {-# NOINLINE emptyArray #-}
 
+-- | Execute the monadic action and freeze the resulting array.
+--
+-- > runArray m = runST $ m >>= unsafeFreezeArray
+runArray
+  :: (forall s. ST s (MutableArray s a))
+  -> Array a
 #if !MIN_VERSION_base(4,9,0)
-createArray
-  :: Int
-  -> a
-  -> (forall s. MutableArray s a -> ST s ())
-  -> Array a
-createArray 0 _ _ = emptyArray
-createArray n x f = runArray $ do
-  mary <- newArray n x
-  f mary
-  pure mary
-
-runArray
-  :: (forall s. ST s (MutableArray s a))
-  -> Array a
 runArray m = runST $ m >>= unsafeFreezeArray
-
 #else /* Below, runRW# is available. */
-
--- This low-level business is designed to work with GHC's worker-wrapper
--- transformation. A lot of the time, we don't actually need an Array
--- constructor. By putting it on the outside, and being careful about
--- how we special-case the empty array, we can make GHC smarter about this.
--- The only downside is that separately created 0-length arrays won't share
--- their Array constructors, although they'll share their underlying
--- Array#s.
-createArray
-  :: Int
-  -> a
-  -> (forall s. MutableArray s a -> ST s ())
-  -> Array a
-createArray 0 _ _ = Array (emptyArray# (# #))
-createArray n x f = runArray $ do
-  mary <- newArray n x
-  f mary
-  pure mary
-
--- |
--- Execute the monadic action(s) and freeze the resulting array.
-runArray
-  :: (forall s. ST s (MutableArray s a))
-  -> Array a
 runArray m = Array (runArray# m)
 
 runArray#
@@ -387,6 +356,37 @@ emptyArray# :: (# #) -> Array# a
 emptyArray# _ = case emptyArray of Array ar -> ar
 {-# NOINLINE emptyArray# #-}
 #endif
+
+-- | Create an array of the given size with a default value,
+-- apply the monadic function and freeze the result. If the
+-- size is 0, return 'emptyArray' (rather than a new copy thereof).
+--
+-- > createArray 0 _ _ = emptyArray
+-- > createArray n x f = runArray $ do
+-- >   mary <- newArray n x
+-- >   f mary
+-- >   pure mary
+createArray
+  :: Int
+  -> a
+  -> (forall s. MutableArray s a -> ST s ())
+  -> Array a
+#if !MIN_VERSION_base(4,9,0)
+createArray 0 _ _ = emptyArray
+#else
+-- This low-level business is designed to work with GHC's worker-wrapper
+-- transformation. A lot of the time, we don't actually need an Array
+-- constructor. By putting it on the outside, and being careful about
+-- how we special-case the empty array, we can make GHC smarter about this.
+-- The only downside is that separately created 0-length arrays won't share
+-- their Array constructors, although they'll share their underlying
+-- Array#s.
+createArray 0 _ _ = Array (emptyArray# (# #))
+#endif
+createArray n x f = runArray $ do
+  mary <- newArray n x
+  f mary
+  pure mary
 
 
 die :: String -> String -> a

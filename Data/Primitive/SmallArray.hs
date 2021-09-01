@@ -52,13 +52,15 @@ module Data.Primitive.SmallArray
   , freezeSmallArray
   , unsafeFreezeSmallArray
   , thawSmallArray
-  , runSmallArray
   , unsafeThawSmallArray
+  , runSmallArray
+  , createSmallArray
   , sizeofSmallArray
   , sizeofSmallMutableArray
 #if MIN_VERSION_base(4,14,0)
   , shrinkSmallMutableArray
 #endif
+  , emptySmallArray
   , smallArrayFromList
   , smallArrayFromListN
   , mapSmallArray'
@@ -493,17 +495,17 @@ mapSmallArray' f (SmallArray ar) = SmallArray (mapArray' f ar)
 #endif
 {-# INLINE mapSmallArray' #-}
 
-#ifndef HAVE_SMALL_ARRAY
+-- | Execute the monadic action and freeze the resulting array.
+--
+-- > runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
 runSmallArray
   :: (forall s. ST s (SmallMutableArray s a))
   -> SmallArray a
+#ifndef HAVE_SMALL_ARRAY
 runSmallArray m = SmallArray $ runArray $
   m >>= \(SmallMutableArray mary) -> return mary
 
 #elif !MIN_VERSION_base(4,9,0)
-runSmallArray
-  :: (forall s. ST s (SmallMutableArray s a))
-  -> SmallArray a
 runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
 
 #else
@@ -514,9 +516,6 @@ runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
 -- The only downside is that separately created 0-length arrays won't share
 -- their Array constructors, although they'll share their underlying
 -- Array#s.
-runSmallArray
-  :: (forall s. ST s (SmallMutableArray s a))
-  -> SmallArray a
 runSmallArray m = SmallArray (runSmallArray# m)
 
 runSmallArray#
@@ -528,22 +527,34 @@ runSmallArray# m = case runRW# $ \s ->
 
 unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
-
 #endif
 
-#if HAVE_SMALL_ARRAY
--- See the comment on runSmallArray for why we use emptySmallArray#.
+-- | Create an array of the given size with a default value,
+-- apply the monadic function and freeze the result. If the
+-- size is 0, return 'emptySmallArray' (rather than a new copy thereof).
+--
+-- > createSmallArray 0 _ _ = emptySmallArray
+-- > createSmallArray n x f = runSmallArray $ do
+-- >   mary <- newSmallArray n x
+-- >   f mary
+-- >   pure mary
 createSmallArray
   :: Int
   -> a
   -> (forall s. SmallMutableArray s a -> ST s ())
   -> SmallArray a
+#if HAVE_SMALL_ARRAY
+-- See the comment on runSmallArray for why we use emptySmallArray#.
 createSmallArray 0 _ _ = SmallArray (emptySmallArray# (# #))
+#else
+createSmallArray 0 _ _ = emptySmallArray
+#endif
 createSmallArray n x f = runSmallArray $ do
   mary <- newSmallArray n x
   f mary
   pure mary
 
+#if HAVE_SMALL_ARRAY
 emptySmallArray# :: (# #) -> SmallArray# a
 emptySmallArray# _ = case emptySmallArray of SmallArray ar -> ar
 {-# NOINLINE emptySmallArray# #-}
@@ -551,6 +562,7 @@ emptySmallArray# _ = case emptySmallArray of SmallArray ar -> ar
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.SmallArray." ++ fun ++ ": " ++ problem
 
+-- | The empty 'SmallArray'.
 emptySmallArray :: SmallArray a
 emptySmallArray =
   runST $ newSmallArray 0 (die "emptySmallArray" "impossible")
