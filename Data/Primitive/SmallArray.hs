@@ -764,36 +764,36 @@ instance Functor SmallArray where
 instance Applicative SmallArray where
   pure x = createSmallArray 1 x noOp
 
-  sa *> sb = createSmallArray (la*lb) (die "*>" "impossible") $ \smb ->
+  sa *> sb = createSmallArray (la * lb) (die "*>" "impossible") $ \smb ->
     fix ? 0 $ \go i ->
       when (i < la) $
-        copySmallArray smb 0 sb 0 lb *> go (i+1)
+        copySmallArray smb (i * lb) sb 0 lb *> go (i + 1)
    where
-   la = length sa ; lb = length sb
+    la = length sa; lb = length sb
 
-  a <* b = createSmallArray (sza*szb) (die "<*" "impossible") $ \ma ->
+  a <* b = createSmallArray (sza * szb) (die "<*" "impossible") $ \ma ->
     let fill off i e = when (i < szb) $
-                         writeSmallArray ma (off+i) e >> fill off (i+1) e
+                         writeSmallArray ma (off + i) e >> fill off (i + 1) e
         go i = when (i < sza) $ do
                  x <- indexSmallArrayM a i
-                 fill (i*szb) 0 x
-                 go (i+1)
+                 fill (i * szb) 0 x
+                 go (i + 1)
      in go 0
-   where sza = sizeofSmallArray a ; szb = sizeofSmallArray b
+   where sza = sizeofSmallArray a; szb = sizeofSmallArray b
 
-  ab <*> a = createSmallArray (szab*sza) (die "<*>" "impossible") $ \mb ->
+  ab <*> a = createSmallArray (szab * sza) (die "<*>" "impossible") $ \mb ->
     let go1 i = when (i < szab) $
             do
               f <- indexSmallArrayM ab i
-              go2 (i*sza) f 0
-              go1 (i+1)
+              go2 (i * sza) f 0
+              go1 (i + 1)
         go2 off f j = when (j < sza) $
             do
               x <- indexSmallArrayM a j
               writeSmallArray mb (off + j) (f x)
               go2 off f (j + 1)
     in go1 0
-   where szab = sizeofSmallArray ab ; sza = sizeofSmallArray a
+   where szab = sizeofSmallArray ab; sza = sizeofSmallArray a
 
 instance Alternative SmallArray where
   empty = emptySmallArray
