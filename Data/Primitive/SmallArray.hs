@@ -530,8 +530,10 @@ unST (GHCST.ST f) = f
 #endif
 
 -- | Create an array of the given size with a default value,
--- apply the monadic function and freeze the result.
+-- apply the monadic function and freeze the result. If the
+-- size is 0, return 'emptySmallArray' (rather than a new copy thereof).
 --
+-- > createSmallArray 0 _ _ = emptySmallArray
 -- > createSmallArray n x f = runSmallArray $ do
 -- >   mary <- newSmallArray n x
 -- >   f mary

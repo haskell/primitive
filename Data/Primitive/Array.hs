@@ -358,8 +358,10 @@ emptyArray# _ = case emptyArray of Array ar -> ar
 #endif
 
 -- | Create an array of the given size with a default value,
--- apply the monadic function and freeze the result.
+-- apply the monadic function and freeze the result. If the
+-- size is 0, return 'emptyArray' (rather than a new copy thereof).
 --
+-- > createArray 0 _ _ = emptyArray
 -- > createArray n x f = runArray $ do
 -- >   mary <- newArray n x
 -- >   f mary
