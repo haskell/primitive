@@ -18,7 +18,7 @@
 --
 -- Small arrays are boxed (im)mutable arrays.
 --
--- The underlying structure of the 'Array' type contains a card table, allowing
+-- The underlying structure of the 'Data.Primitive.Array.Array' type contains a card table, allowing
 -- segments of the array to be marked as having been mutated. This allows the
 -- garbage collector to only re-traverse segments of the array that have been
 -- marked during certain phases, rather than having to traverse the entire
@@ -30,11 +30,11 @@
 -- entire array. These advantages make them suitable for use as arrays that are
 -- known to be small.
 --
--- The card size is 128, so for uses much larger than that, 'Array' would likely
--- be superior.
+-- The card size is 128, so for uses much larger than that,
+-- 'Data.Primitive.Array.Array' would likely be superior.
 --
 -- The underlying type, 'SmallArray#', was introduced in GHC 7.10, so prior to
--- that version, this module simply implements small arrays as 'Array'.
+-- that version, this module simply implements small arrays as 'Data.Primitive.Array.Array'.
 
 module Data.Primitive.SmallArray
   ( SmallArray(..)
@@ -109,7 +109,7 @@ import qualified Data.Primitive.Array as Array
 #endif
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
-import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
+import Data.Functor.Classes (Eq1(..), Ord1(..), Show1(..), Read1(..))
 #endif
 
 #if HAVE_SMALL_ARRAY
@@ -240,7 +240,7 @@ writeSmallArray (SmallMutableArray a) = writeArray a
 --
 -- > let x = indexSmallArray sa 0
 --
--- And does not prevent 'sa' from being garbage collected.
+-- It also does not prevent 'sa' from being garbage collected.
 --
 -- Note that 'Identity' is not adequate for this use, as it is a newtype, and
 -- cannot be evaluated without evaluating the element.
@@ -277,6 +277,8 @@ indexSmallArray (SmallArray a) = indexArray a
 -- | Read a value from the immutable array at the given index, returning
 -- the result in an unboxed unary tuple. This is currently used to implement
 -- folds.
+--
+-- /Note:/ this function does not do bounds checking.
 indexSmallArray## :: SmallArray a -> Int -> (# a #)
 #if HAVE_SMALL_ARRAY
 indexSmallArray## (SmallArray ary) (I# i) = indexSmallArray# ary i
@@ -287,7 +289,7 @@ indexSmallArray## (SmallArray a) = indexArray## a
 
 -- | Create a copy of a slice of an immutable array.
 --
--- /Note:/ The provided Array should contain the full subrange
+-- /Note:/ The provided array should contain the full subrange
 -- specified by the two Ints, but this is not checked.
 cloneSmallArray
   :: SmallArray a -- ^ source
@@ -304,7 +306,7 @@ cloneSmallArray (SmallArray a) i j = SmallArray $ cloneArray a i j
 
 -- | Create a copy of a slice of a mutable array.
 --
--- /Note:/ The provided Array should contain the full subrange
+-- /Note:/ The provided array should contain the full subrange
 -- specified by the two Ints, but this is not checked.
 cloneSmallMutableArray
   :: PrimMonad m
@@ -325,6 +327,9 @@ cloneSmallMutableArray (SmallMutableArray ma) i j =
 -- | Create an immutable array corresponding to a slice of a mutable array.
 --
 -- This operation copies the portion of the array to be frozen.
+--
+-- /Note:/ The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 freezeSmallArray
   :: PrimMonad m
   => SmallMutableArray (PrimState m) a -- ^ source
@@ -360,6 +365,9 @@ unsafeFreezeSmallArray (SmallMutableArray ma) =
 -- | Create a mutable array corresponding to a slice of an immutable array.
 --
 -- This operation copies the portion of the array to be thawed.
+--
+-- /Note:/ The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 thawSmallArray
   :: PrimMonad m
   => SmallArray a -- ^ source
@@ -433,6 +441,7 @@ copySmallMutableArray (SmallMutableArray dst) i (SmallMutableArray src) =
 #endif
 {-# INLINE copySmallMutableArray #-}
 
+-- | The number of elements in an immutable array.
 sizeofSmallArray :: SmallArray a -> Int
 #if HAVE_SMALL_ARRAY
 sizeofSmallArray (SmallArray sa#) = I# (sizeofSmallArray# sa#)
@@ -441,6 +450,7 @@ sizeofSmallArray (SmallArray a) = sizeofArray a
 #endif
 {-# INLINE sizeofSmallArray #-}
 
+-- | The number of elements in a mutable array.
 sizeofSmallMutableArray :: SmallMutableArray s a -> Int
 #if HAVE_SMALL_ARRAY
 sizeofSmallMutableArray (SmallMutableArray sa#) =
@@ -453,7 +463,7 @@ sizeofSmallMutableArray (SmallMutableArray ma) = sizeofMutableArray ma
 -- | This is the fastest, most straightforward way to traverse
 -- an array, but it only works correctly with a sufficiently
 -- "affine" 'PrimMonad' instance. In particular, it must only produce
--- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- __one__ result array. 'Control.Monad.Trans.List.ListT'-transformed
 -- monads, for example, will not work right at all.
 traverseSmallArrayP
   :: PrimMonad m
@@ -504,10 +514,8 @@ runSmallArray
 #ifndef HAVE_SMALL_ARRAY
 runSmallArray m = SmallArray $ runArray $
   m >>= \(SmallMutableArray mary) -> return mary
-
 #elif !MIN_VERSION_base(4,9,0)
 runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
-
 #else
 -- This low-level business is designed to work with GHC's worker-wrapper
 -- transformation. A lot of the time, we don't actually need an Array
@@ -586,7 +594,7 @@ smallArrayLiftEq p sa1 sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
     = True
     | (# x #) <- indexSmallArray## sa1 i
     , (# y #) <- indexSmallArray## sa2 i
-    = p x y && loop (i-1)
+    = p x y && loop (i - 1)
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 -- | @since 0.6.4.0
@@ -613,7 +621,7 @@ smallArrayLiftCompare elemCompare a1 a2 = loop 0
     | i < mn
     , (# x1 #) <- indexSmallArray## a1 i
     , (# x2 #) <- indexSmallArray## a2 i
-    = elemCompare x1 x2 `mappend` loop (i+1)
+    = elemCompare x1 x2 `mappend` loop (i + 1)
     | otherwise = compare (length a1) (length a2)
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
@@ -640,7 +648,7 @@ instance Foldable SmallArray where
       go i
         | i == sz = z
         | (# x #) <- indexSmallArray## ary i
-        = f x (go (i+1))
+        = f x (go (i + 1))
     in go 0
   {-# INLINE foldr #-}
   foldl f = \z !ary ->
@@ -648,7 +656,7 @@ instance Foldable SmallArray where
       go i
         | i < 0 = z
         | (# x #) <- indexSmallArray## ary i
-        = f (go (i-1)) x
+        = f (go (i - 1)) x
     in go (sizeofSmallArray ary - 1)
   {-# INLINE foldl #-}
   foldr1 f = \ !ary ->
@@ -657,7 +665,7 @@ instance Foldable SmallArray where
       go i =
         case indexSmallArray## ary i of
           (# x #) | i == sz -> x
-                  | otherwise -> f x (go (i+1))
+                  | otherwise -> f x (go (i + 1))
     in if sz < 0
        then die "foldr1" "Empty SmallArray"
        else go 0
@@ -678,7 +686,7 @@ instance Foldable SmallArray where
       go i !acc
         | i == -1 = acc
         | (# x #) <- indexSmallArray## ary i
-        = go (i-1) (f x acc)
+        = go (i - 1) (f x acc)
     in go (sizeofSmallArray ary - 1) z
   {-# INLINE foldr' #-}
   foldl' f = \z !ary ->
@@ -687,7 +695,7 @@ instance Foldable SmallArray where
       go i !acc
         | i == sz = acc
         | (# x #) <- indexSmallArray## ary i
-        = go (i+1) (f acc x)
+        = go (i + 1) (f acc x)
     in go 0 z
   {-# INLINE foldl' #-}
   null a = sizeofSmallArray a == 0
@@ -702,7 +710,7 @@ instance Foldable SmallArray where
      go i !e
        | i == sz = e
        | (# x #) <- indexSmallArray## ary i
-       = go (i+1) (max e x)
+       = go (i + 1) (max e x)
   {-# INLINE maximum #-}
   minimum ary | sz == 0   = die "minimum" "Empty SmallArray"
               | (# frst #) <- indexSmallArray## ary 0
@@ -711,14 +719,14 @@ instance Foldable SmallArray where
          go i !e
            | i == sz = e
            | (# x #) <- indexSmallArray## ary i
-           = go (i+1) (min e x)
+           = go (i + 1) (min e x)
   {-# INLINE minimum #-}
   sum = foldl' (+) 0
   {-# INLINE sum #-}
   product = foldl' (*) 1
   {-# INLINE product #-}
 
-newtype STA a = STA {_runSTA :: forall s. SmallMutableArray# s a -> ST s (SmallArray a)}
+newtype STA a = STA { _runSTA :: forall s. SmallMutableArray# s a -> ST s (SmallArray a) }
 
 runSTA :: Int -> STA a -> SmallArray a
 runSTA !sz = \ (STA m) -> runST $ newSmallArray_ sz >>=
@@ -750,8 +758,8 @@ traverseSmallArray f = \ !ary ->
                   writeSmallArray (SmallMutableArray mary) i b >> m mary)
                (f x) (go (i + 1))
   in if len == 0
-     then pure emptySmallArray
-     else runSTA len <$> go 0
+    then pure emptySmallArray
+    else runSTA len <$> go 0
 {-# INLINE [1] traverseSmallArray #-}
 
 {-# RULES
@@ -768,7 +776,7 @@ instance Functor SmallArray where
     fix ? 0 $ \go i ->
       when (i < length sa) $ do
         x <- indexSmallArrayM sa i
-        writeSmallArray smb i (f x) *> go (i+1)
+        writeSmallArray smb i (f x) *> go (i + 1)
   {-# INLINE fmap #-}
 
   x <$ sa = createSmallArray (length sa) x noOp
@@ -839,25 +847,25 @@ instance Monad SmallArray where
   return = pure
   (>>) = (*>)
 
-  sa >>= f = collect 0 EmptyStack (la-1)
+  sa >>= f = collect 0 EmptyStack (la - 1)
    where
-   la = length sa
-   collect sz stk i
-     | i < 0 = createSmallArray sz (die ">>=" "impossible") $ fill 0 stk
-     | (# x #) <- indexSmallArray## sa i
-     , let sb = f x
-           lsb = length sb
-       -- If we don't perform this check, we could end up allocating
-       -- a stack full of empty arrays if someone is filtering most
-       -- things out. So we refrain from pushing empty arrays.
-     = if lsb == 0
-       then collect sz stk (i-1)
-       else collect (sz + lsb) (PushArray sb stk) (i-1)
+    la = length sa
+    collect sz stk i
+      | i < 0 = createSmallArray sz (die ">>=" "impossible") $ fill 0 stk
+      | (# x #) <- indexSmallArray## sa i
+      , let sb = f x
+            lsb = length sb
+        -- If we don't perform this check, we could end up allocating
+        -- a stack full of empty arrays if someone is filtering most
+        -- things out. So we refrain from pushing empty arrays.
+      = if lsb == 0
+        then collect sz stk (i - 1)
+        else collect (sz + lsb) (PushArray sb stk) (i - 1)
 
-   fill _ EmptyStack _ = return ()
-   fill off (PushArray sb sbs) smb =
-     copySmallArray smb off sb 0 (length sb)
-       *> fill (off + length sb) sbs smb
+    fill _ EmptyStack _ = return ()
+    fill off (PushArray sb sbs) smb =
+      copySmallArray smb off sb 0 (length sb)
+        *> fill (off + length sb) sbs smb
 
 #if !(MIN_VERSION_base(4,13,0))
   fail = Fail.fail
@@ -877,7 +885,7 @@ zipW nm = \f sa sb -> let mn = length sa `min` length sb in
       x <- indexSmallArrayM sa i
       y <- indexSmallArrayM sb i
       writeSmallArray mc i (f x y)
-      go (i+1)
+      go (i + 1)
 {-# INLINE zipW #-}
 
 instance MonadZip SmallArray where
@@ -892,13 +900,13 @@ instance MonadZip SmallArray where
       when (i < sz) $ case indexSmallArray sab i of
         (x, y) -> do writeSmallArray sma i x
                      writeSmallArray smb i y
-                     go $ i+1
+                     go (i + 1)
     (,) <$> unsafeFreezeSmallArray sma
         <*> unsafeFreezeSmallArray smb
 
 instance MonadFix SmallArray where
   mfix f = createSmallArray (sizeofSmallArray (f err))
-                            (die "mfix" "impossible") $ flip fix 0 $
+                            (die "mfix" "impossible") $ fix ? 0 $
     \r !i !mary -> when (i < sz) $ do
                       writeSmallArray mary i (fix (\xi -> f xi `indexSmallArray` i))
                       r (i + 1) mary
@@ -923,7 +931,7 @@ instance Monoid (SmallArray a) where
         go off (a:as) =
           copySmallArray ma off a 0 (sizeofSmallArray a) >> go (off + sizeofSmallArray a) as
      in go 0 l
-   where n = sum . fmap length $ l
+   where n = sum (fmap length l)
 
 instance IsList (SmallArray a) where
   type Item (SmallArray a) = a
@@ -999,7 +1007,7 @@ instance (Typeable s, Typeable a) => Data (SmallMutableArray s a) where
 #endif
 
 -- | Create a 'SmallArray' from a list of a known length. If the length
---   of the list does not match the given length, this throws an exception.
+-- of the list does not match the given length, this throws an exception.
 smallArrayFromListN :: Int -> [a] -> SmallArray a
 #if HAVE_SMALL_ARRAY
 smallArrayFromListN n l =
@@ -1011,7 +1019,7 @@ smallArrayFromListN n l =
       go !ix (x : xs) = if ix < n
         then do
           writeSmallArray sma ix x
-          go (ix+1) xs
+          go (ix + 1) xs
         else die "smallArrayFromListN" "list length greater than specified size"
   in go 0 l
 #else

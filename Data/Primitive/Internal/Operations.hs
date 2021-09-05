@@ -8,9 +8,7 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Internal operations
---
-
+-- Internal operations.
 
 module Data.Primitive.Internal.Operations (
   setWord8Array#, setWord16Array#, setWord32Array#,
@@ -138,4 +136,3 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Double"
   setDoubleOffAddr# :: Addr# -> CPtrdiff -> CSize -> Double# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Char"
   setWideCharOffAddr# :: Addr# -> CPtrdiff -> CSize -> Char# -> IO ()
-

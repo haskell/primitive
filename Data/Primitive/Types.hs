@@ -16,51 +16,33 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Basic types and classes for primitive array operations
---
+-- Basic types and classes for primitive array operations.
 
 module Data.Primitive.Types (
-  Prim(..)
-  ,sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#
-  ,PrimStorable(..)
-  ,Ptr(..)
+  Prim(..),
+  sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#,
+  PrimStorable(..),
+  Ptr(..)
 ) where
 
 import Control.Monad.Primitive
 import Data.Primitive.MachDeps
 import Data.Primitive.Internal.Operations
-import Foreign.Ptr (IntPtr,intPtrToPtr,ptrToIntPtr)
-import Foreign.Ptr (WordPtr,wordPtrToPtr,ptrToWordPtr)
+import Foreign.Ptr (IntPtr, intPtrToPtr, ptrToIntPtr, WordPtr, wordPtrToPtr, ptrToWordPtr)
 import Foreign.C.Types
 import System.Posix.Types
 
-import GHC.Base (
-    Int(..), Char(..),
-  )
-import GHC.Float (
-    Float(..), Double(..)
-  )
-import GHC.Word (
-    Word(..), Word8(..), Word16(..), Word32(..), Word64(..)
-  )
-import GHC.Int (
-    Int8(..), Int16(..), Int32(..), Int64(..)
-  )
+import GHC.Word (Word8(..), Word16(..), Word32(..), Word64(..))
+import GHC.Int (Int8(..), Int16(..), Int32(..), Int64(..))
 
-import GHC.Ptr (
-    Ptr(..), FunPtr(..)
-  )
-import GHC.Stable (
-    StablePtr(..)
-  )
+import GHC.Stable (StablePtr(..))
 
 import GHC.Exts
 #if __GLASGOW_HASKELL__ >= 706
     hiding (setByteArray#)
 #endif
 
-
-import Data.Primitive.Internal.Compat ( isTrue# )
+import Data.Primitive.Internal.Compat (isTrue#)
 import Foreign.Storable (Storable)
 
 
@@ -91,9 +73,8 @@ import qualified Data.Semigroup as Semigroup
 -- and interfacing with unmanaged memory (functions suffixed with @Addr#@).
 -- Endianness is platform-dependent.
 class Prim a where
-
   -- | Size of values of type @a@. The argument is not used.
-  sizeOf#    :: a -> Int#
+  sizeOf# :: a -> Int#
 
   -- | Alignment of values of type @a@. The argument is not used.
   alignment# :: a -> Int#
@@ -112,7 +93,13 @@ class Prim a where
 
   -- | Fill a slice of the mutable array with a value. The offset and length
   -- of the chunk are in elements of type @a@ rather than in bytes.
-  setByteArray# :: MutableByteArray# s -> Int# -> Int# -> a -> State# s -> State# s
+  setByteArray#
+    :: MutableByteArray# s
+    -> Int# -- ^ offset
+    -> Int# -- ^ length
+    -> a
+    -> State# s
+    -> State# s
 
   -- | Read a value from a memory position given by an address and an offset.
   -- The memory block the address refers to must be immutable. The offset is in
@@ -129,25 +116,31 @@ class Prim a where
 
   -- | Fill a memory block given by an address, an offset and a length.
   -- The offset and length are in elements of type @a@ rather than in bytes.
-  setOffAddr# :: Addr# -> Int# -> Int# -> a -> State# s -> State# s
+  setOffAddr#
+    :: Addr#
+    -> Int# -- ^ offset
+    -> Int# -- ^ length
+    -> a
+    -> State# s
+    -> State# s
 
 -- | Size of values of type @a@. The argument is not used.
 --
 -- This function has existed since 0.1, but was moved from 'Data.Primitive'
--- to 'Data.Primitive.Types' in version 0.6.3.0
+-- to 'Data.Primitive.Types' in version 0.6.3.0.
 sizeOf :: Prim a => a -> Int
 sizeOf x = I# (sizeOf# x)
 
 -- | Alignment of values of type @a@. The argument is not used.
 --
 -- This function has existed since 0.1, but was moved from 'Data.Primitive'
--- to 'Data.Primitive.Types' in version 0.6.3.0
+-- to 'Data.Primitive.Types' in version 0.6.3.0.
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
 
 -- | An implementation of 'setByteArray#' that calls 'writeByteArray#'
 -- to set each element. This is helpful when writing a 'Prim' instance
--- for a multi-word data type for which there is no cpu-accelerated way
+-- for a multi-word data type for which there is no CPU-accelerated way
 -- to broadcast a value to contiguous memory. It is typically used
 -- alongside 'defaultSetOffAddr#'. For example:
 --
@@ -214,40 +207,40 @@ instance Prim a => Storable (PrimStorable a) where
     writeOffAddr# addr# i# a s#
 
 #define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, set_arr, idx_addr, rd_addr, wr_addr, set_addr) \
-instance Prim (ty) where {                                      \
-  sizeOf# _ = unI# sz                                           \
-; alignment# _ = unI# align                                     \
-; indexByteArray# arr# i# = ctr (idx_arr arr# i#)               \
-; readByteArray#  arr# i# s# = case rd_arr arr# i# s# of        \
-                        { (# s1#, x# #) -> (# s1#, ctr x# #) }  \
-; writeByteArray# arr# i# (ctr x#) s# = wr_arr arr# i# x# s#    \
-; setByteArray# arr# i# n# (ctr x#) s#                          \
-    = let { i = fromIntegral (I# i#)                            \
-          ; n = fromIntegral (I# n#)                            \
-          } in                                                  \
-      case unsafeCoerce# (internal (set_arr arr# i n x#)) s# of \
-        { (# s1#, _ #) -> s1# }                                 \
-                                                                \
-; indexOffAddr# addr# i# = ctr (idx_addr addr# i#)              \
-; readOffAddr#  addr# i# s# = case rd_addr addr# i# s# of       \
-                        { (# s1#, x# #) -> (# s1#, ctr x# #) }  \
-; writeOffAddr# addr# i# (ctr x#) s# = wr_addr addr# i# x# s#   \
-; setOffAddr# addr# i# n# (ctr x#) s#                           \
-    = let { i = fromIntegral (I# i#)                            \
-          ; n = fromIntegral (I# n#)                            \
-          } in                                                  \
+instance Prim (ty) where {                                        \
+  sizeOf# _ = unI# sz                                             \
+; alignment# _ = unI# align                                       \
+; indexByteArray# arr# i# = ctr (idx_arr arr# i#)                 \
+; readByteArray#  arr# i# s# = case rd_arr arr# i# s# of          \
+                        { (# s1#, x# #) -> (# s1#, ctr x# #) }    \
+; writeByteArray# arr# i# (ctr x#) s# = wr_arr arr# i# x# s#      \
+; setByteArray# arr# i# n# (ctr x#) s#                            \
+    = let { i = fromIntegral (I# i#)                              \
+          ; n = fromIntegral (I# n#)                              \
+          } in                                                    \
+      case unsafeCoerce# (internal (set_arr arr# i n x#)) s# of   \
+        { (# s1#, _ #) -> s1# }                                   \
+                                                                  \
+; indexOffAddr# addr# i# = ctr (idx_addr addr# i#)                \
+; readOffAddr#  addr# i# s# = case rd_addr addr# i# s# of         \
+                        { (# s1#, x# #) -> (# s1#, ctr x# #) }    \
+; writeOffAddr# addr# i# (ctr x#) s# = wr_addr addr# i# x# s#     \
+; setOffAddr# addr# i# n# (ctr x#) s#                             \
+    = let { i = fromIntegral (I# i#)                              \
+          ; n = fromIntegral (I# n#)                              \
+          } in                                                    \
       case unsafeCoerce# (internal (set_addr addr# i n x#)) s# of \
-        { (# s1#, _ #) -> s1# }                                 \
-; {-# INLINE sizeOf# #-}                                        \
-; {-# INLINE alignment# #-}                                     \
-; {-# INLINE indexByteArray# #-}                                \
-; {-# INLINE readByteArray# #-}                                 \
-; {-# INLINE writeByteArray# #-}                                \
-; {-# INLINE setByteArray# #-}                                  \
-; {-# INLINE indexOffAddr# #-}                                  \
-; {-# INLINE readOffAddr# #-}                                   \
-; {-# INLINE writeOffAddr# #-}                                  \
-; {-# INLINE setOffAddr# #-}                                    \
+        { (# s1#, _ #) -> s1# }                                   \
+; {-# INLINE sizeOf# #-}                                          \
+; {-# INLINE alignment# #-}                                       \
+; {-# INLINE indexByteArray# #-}                                  \
+; {-# INLINE readByteArray# #-}                                   \
+; {-# INLINE writeByteArray# #-}                                  \
+; {-# INLINE setByteArray# #-}                                    \
+; {-# INLINE indexOffAddr# #-}                                    \
+; {-# INLINE readOffAddr# #-}                                     \
+; {-# INLINE writeOffAddr# #-}                                    \
+; {-# INLINE setOffAddr# #-}                                      \
 }
 
 #if __GLASGOW_HASKELL__ >= 902

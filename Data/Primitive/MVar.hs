@@ -8,14 +8,17 @@
 -- License     : BSD2
 -- Portability : non-portable
 --
--- Primitive operations on @MVar@. This module provides a similar interface
+-- Primitive operations on 'MVar'. This module provides a similar interface
 -- to "Control.Concurrent.MVar". However, the functions are generalized to
 -- work in any 'PrimMonad' instead of only working in 'IO'. Note that all
 -- of the functions here are completely deterministic. Users of 'MVar' are
 -- responsible for designing abstractions that guarantee determinism in
 -- the presence of multi-threading.
 --
+-- For a more detailed explanation, see "Control.Concurrent.MVar".
+--
 -- @since 0.6.4.0
+
 module Data.Primitive.MVar
   ( MVar(..)
   , newMVar
@@ -31,13 +34,15 @@ module Data.Primitive.MVar
 
 import Control.Monad.Primitive
 import Data.Primitive.Internal.Compat (isTrue#)
-import GHC.Exts (MVar#,newMVar#,takeMVar#,sameMVar#,putMVar#,tryTakeMVar#,
-  isEmptyMVar#,tryPutMVar#,(/=#))
-
+import GHC.Exts
+  ( MVar#, newMVar#, takeMVar#, sameMVar#, putMVar#, tryTakeMVar#, isEmptyMVar#, tryPutMVar#, (/=#)
 #if __GLASGOW_HASKELL__ >= 708
-import GHC.Exts (readMVar#,tryReadMVar#)
+  , readMVar#, tryReadMVar#
 #endif
+  )
 
+-- | A synchronizing variable, used for communication between concurrent threads.
+-- It can be thought of as a box, which may be empty or full.
 data MVar s a = MVar (MVar# s a)
 
 instance Eq (MVar s a) where
@@ -49,21 +54,30 @@ newEmptyMVar = primitive $ \ s# ->
   case newMVar# s# of
     (# s2#, svar# #) -> (# s2#, MVar svar# #)
 
-
 -- | Create a new 'MVar' that holds the supplied argument.
 newMVar :: PrimMonad m => a -> m (MVar (PrimState m) a)
-newMVar value =
-  newEmptyMVar >>= \ mvar ->
-  putMVar mvar value >>
+newMVar value = do
+  mvar <- newEmptyMVar
+  putMVar mvar value
   return mvar
 
--- | Return the contents of the 'MVar'.  If the 'MVar' is currently
--- empty, 'takeMVar' will wait until it is full.  After a 'takeMVar',
+-- | Return the contents of the 'MVar'. If the 'MVar' is currently
+-- empty, 'takeMVar' will wait until it is full. After a 'takeMVar',
 -- the 'MVar' is left empty.
+--
+-- There are two further important properties of 'takeMVar':
+--
+-- * 'takeMVar' is single-wakeup. That is, if there are multiple
+--   threads blocked in 'takeMVar', and the 'MVar' becomes full,
+--   only one thread will be woken up. The runtime guarantees that
+--   the woken thread completes its 'takeMVar' operation.
+-- * When multiple threads are blocked on an 'MVar', they are
+--   woken up in FIFO order. This is useful for providing
+--   fairness properties of abstractions built using 'MVar's.
 takeMVar :: PrimMonad m => MVar (PrimState m) a -> m a
 takeMVar (MVar mvar#) = primitive $ \ s# -> takeMVar# mvar# s#
 
--- | Atomically read the contents of an 'MVar'.  If the 'MVar' is
+-- | Atomically read the contents of an 'MVar'. If the 'MVar' is
 -- currently empty, 'readMVar' will wait until it is full.
 -- 'readMVar' is guaranteed to receive the next 'putMVar'.
 --
@@ -89,14 +103,24 @@ readMVar mv = do
   return a
 #endif
 
--- |Put a value into an 'MVar'.  If the 'MVar' is currently full,
+-- | Put a value into an 'MVar'. If the 'MVar' is currently full,
 -- 'putMVar' will wait until it becomes empty.
+--
+-- There are two further important properties of 'putMVar':
+--
+-- * 'putMVar' is single-wakeup. That is, if there are multiple
+--   threads blocked in 'putMVar', and the 'MVar' becomes empty,
+--   only one thread will be woken up. The runtime guarantees that
+--   the woken thread completes its 'putMVar' operation.
+-- * When multiple threads are blocked on an 'MVar', they are
+--   woken up in FIFO order. This is useful for providing
+--   fairness properties of abstractions built using 'MVar's.
 putMVar :: PrimMonad m => MVar (PrimState m) a -> a -> m ()
 putMVar (MVar mvar#) x = primitive_ (putMVar# mvar# x)
 
--- |A non-blocking version of 'takeMVar'.  The 'tryTakeMVar' function
+-- | A non-blocking version of 'takeMVar'. The 'tryTakeMVar' function
 -- returns immediately, with 'Nothing' if the 'MVar' was empty, or
--- @'Just' a@ if the 'MVar' was full with contents @a@.  After 'tryTakeMVar',
+-- @'Just' a@ if the 'MVar' was full with contents @a@. After 'tryTakeMVar',
 -- the 'MVar' is left empty.
 tryTakeMVar :: PrimMonad m => MVar (PrimState m) a -> m (Maybe a)
 tryTakeMVar (MVar m) = primitive $ \ s ->
@@ -104,8 +128,7 @@ tryTakeMVar (MVar m) = primitive $ \ s ->
     (# s', 0#, _ #) -> (# s', Nothing #) -- MVar is empty
     (# s', _,  a #) -> (# s', Just a  #) -- MVar is full
 
-
--- |A non-blocking version of 'putMVar'.  The 'tryPutMVar' function
+-- | A non-blocking version of 'putMVar'. The 'tryPutMVar' function
 -- attempts to put the value @a@ into the 'MVar', returning 'True' if
 -- it was successful, or 'False' otherwise.
 tryPutMVar :: PrimMonad m => MVar (PrimState m) a -> a -> m Bool
@@ -114,7 +137,7 @@ tryPutMVar (MVar mvar#) x = primitive $ \ s# ->
         (# s, 0# #) -> (# s, False #)
         (# s, _  #) -> (# s, True #)
 
--- | A non-blocking version of 'readMVar'.  The 'tryReadMVar' function
+-- | A non-blocking version of 'readMVar'. The 'tryReadMVar' function
 -- returns immediately, with 'Nothing' if the 'MVar' was empty, or
 -- @'Just' a@ if the 'MVar' was full with contents @a@.
 --
@@ -145,10 +168,10 @@ tryReadMVar mv = do
 
 -- | Check whether a given 'MVar' is empty.
 --
--- Notice that the boolean value returned  is just a snapshot of
--- the state of the MVar. By the time you get to react on its result,
--- the MVar may have been filled (or emptied) - so be extremely
--- careful when using this operation.   Use 'tryTakeMVar' instead if possible.
+-- Notice that the boolean value returned is just a snapshot of
+-- the state of the 'MVar'. By the time you get to react on its result,
+-- the 'MVar' may have been filled (or emptied) - so be extremely
+-- careful when using this operation. Use 'tryTakeMVar' instead if possible.
 isEmptyMVar :: PrimMonad m => MVar (PrimState m) a -> m Bool
 isEmptyMVar (MVar mv#) = primitive $ \ s# ->
   case isEmptyMVar# mv# s# of

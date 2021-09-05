@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP, MagicHash #-}
+
 -- |
 -- Module      : Data.Primitive.MachDeps
 -- Copyright   : (c) Roman Leshchinskiy 2009-2012
@@ -7,8 +8,7 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Machine-dependent constants
---
+-- Machine-dependent constants.
 
 module Data.Primitive.MachDeps where
 
@@ -120,4 +120,3 @@ type Int64_# = Int64#
 type Word64_# = Word#
 type Int64_# = Int#
 #endif
-

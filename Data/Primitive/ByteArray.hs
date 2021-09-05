@@ -68,7 +68,6 @@ module Data.Primitive.ByteArray (
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Control.DeepSeq
-import Data.Data (mkNoRepType)
 import Data.Primitive.Types
 
 import qualified GHC.ST as GHCST
@@ -77,7 +76,6 @@ import Foreign.C.Types
 import Data.Word ( Word8 )
 import Data.Bits ( (.&.), unsafeShiftR )
 import GHC.Show ( intToDigit )
-import GHC.Base ( Int(..) )
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts ( IsList(..) )
 #endif
@@ -87,9 +85,8 @@ import GHC.Exts
 #endif
 
 import Data.Typeable ( Typeable )
-import Data.Data ( Data(..) )
+import Data.Data ( Data(..), mkNoRepType )
 import Data.Primitive.Internal.Compat ( isTrue# )
-import Numeric
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as SG
@@ -110,12 +107,12 @@ import GHC.Exts (compareByteArrays#)
 import System.IO.Unsafe (unsafeDupablePerformIO)
 #endif
 
--- | Byte arrays
+-- | Byte arrays.
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
 
--- | Mutable byte arrays associated with a primitive state token
+-- | Mutable byte arrays associated with a primitive state token.
 data MutableByteArray s = MutableByteArray (MutableByteArray# s)
-                                        deriving( Typeable )
+  deriving ( Typeable )
 
 instance NFData ByteArray where
   rnf (ByteArray _) = ()
@@ -223,6 +220,9 @@ getSizeofMutableByteArray arr
 --
 -- This operation makes a copy of the specified section, so it is safe to
 -- continue using the mutable array afterward.
+--
+-- /Note:/ The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 freezeByteArray
   :: PrimMonad m
   => MutableByteArray (PrimState m) -- ^ source
@@ -240,6 +240,9 @@ freezeByteArray !src !off !len = do
 --
 -- This operation makes a copy of the specified slice, so it is safe to
 -- use the immutable array afterward.
+--
+-- /Note:/ The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 --
 -- @since 0.7.2.0
 thawByteArray
@@ -304,19 +307,19 @@ shrinkMutableByteArray (MutableByteArray arr#) (I# n#)
 
 #if __GLASGOW_HASKELL__ >= 802
 -- | Check whether or not the byte array is pinned. Pinned byte arrays cannot
---   be moved by the garbage collector. It is safe to use 'byteArrayContents'
---   on such byte arrays. This function is only available when compiling with
---   GHC 8.2 or newer.
+-- be moved by the garbage collector. It is safe to use 'byteArrayContents'
+-- on such byte arrays. This function is only available when compiling with
+-- GHC 8.2 or newer.
 --
---   @since 0.6.4.0
+-- @since 0.6.4.0
 isByteArrayPinned :: ByteArray -> Bool
 {-# INLINE isByteArrayPinned #-}
 isByteArrayPinned (ByteArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
 
 -- | Check whether or not the mutable byte array is pinned. This function is
---   only available when compiling with GHC 8.2 or newer.
+-- only available when compiling with GHC 8.2 or newer.
 --
---   @since 0.6.4.0
+-- @since 0.6.4.0
 isMutableByteArrayPinned :: MutableByteArray s -> Bool
 {-# INLINE isMutableByteArrayPinned #-}
 isMutableByteArrayPinned (MutableByteArray marr#) = isTrue# (Exts.isMutableByteArrayPinned# marr#)
@@ -356,7 +359,7 @@ foldrByteArray :: forall a b. (Prim a) => (a -> b -> b) -> b -> ByteArray -> b
 foldrByteArray f z arr = go 0
   where
     go i
-      | i < maxI  = f (indexByteArray arr i) (go (i+1))
+      | i < maxI  = f (indexByteArray arr i) (go (i + 1))
       | otherwise = z
     maxI = sizeofByteArray arr `quot` sizeOf (undefined :: a)
 
@@ -367,7 +370,7 @@ byteArrayFromList :: Prim a => [a] -> ByteArray
 byteArrayFromList xs = byteArrayFromListN (length xs) xs
 
 -- | Create a 'ByteArray' from a list of a known length. If the length
---   of the list does not match the given length, this throws an exception.
+-- of the list does not match the given length, this throws an exception.
 byteArrayFromListN :: Prim a => Int -> [a] -> ByteArray
 byteArrayFromListN n ys = runST $ do
     marr <- newByteArray (n * sizeOf (head ys))
@@ -389,13 +392,13 @@ unI# (I# n#) = n#
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m)
-                                        -- ^ destination array
-                 -> Int                 -- ^ offset into destination array
-                 -> ByteArray           -- ^ source array
-                 -> Int                 -- ^ offset into source array
-                 -> Int                 -- ^ number of bytes to copy
-                 -> m ()
+  :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ destination array
+  -> Int                            -- ^ offset into destination array
+  -> ByteArray                      -- ^ source array
+  -> Int                            -- ^ offset into source array
+  -> Int                            -- ^ number of bytes to copy
+  -> m ()
 {-# INLINE copyByteArray #-}
 copyByteArray (MutableByteArray dst#) doff (ByteArray src#) soff sz
   = primitive_ (copyByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
@@ -405,27 +408,26 @@ copyByteArray (MutableByteArray dst#) doff (ByteArray src#) soff sz
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyMutableByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m)
-                                        -- ^ destination array
-                 -> Int                 -- ^ offset into destination array
-                 -> MutableByteArray (PrimState m)
-                                        -- ^ source array
-                 -> Int                 -- ^ offset into source array
-                 -> Int                 -- ^ number of bytes to copy
-                 -> m ()
+  :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ destination array
+  -> Int                            -- ^ offset into destination array
+  -> MutableByteArray (PrimState m) -- ^ source array
+  -> Int                            -- ^ offset into source array
+  -> Int                            -- ^ number of bytes to copy
+  -> m ()
 {-# INLINE copyMutableByteArray #-}
 copyMutableByteArray (MutableByteArray dst#) doff
                      (MutableByteArray src#) soff sz
   = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
 
 #if __GLASGOW_HASKELL__ >= 708
--- | Copy a slice of a byte array to an unmanaged Pointer Address. These must not
---   overlap. The offset and length given in elements, not in bytes. This function
---   is only available when compiling with GHC 7.8 or newer.
+-- | Copy a slice of a byte array to an unmanaged pointer address. These must not
+-- overlap. The offset and length are given in elements, not in bytes. This function
+-- is only available when compiling with GHC 7.8 or newer.
 --
---   /Note:/ this function does not do bounds or overlap checking.
+-- /Note:/ this function does not do bounds or overlap checking.
 --
---   @since 0.7.1.0
+-- @since 0.7.1.0
 copyByteArrayToPtr
   :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination
@@ -439,14 +441,14 @@ copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
   where
   siz# = sizeOf# (undefined :: a)
 
--- | Copy a slice of a mutable byte array to an unmanaged Pointer address.
---   These must not overlap. The offset and length given in elements, not
---   in bytes. This function is only available when compiling with GHC 7.8
---   or newer.
+-- | Copy a slice of a mutable byte array to an unmanaged pointer address.
+-- These must not overlap. The offset and length are given in elements, not
+-- in bytes. This function is only available when compiling with GHC 7.8
+-- or newer.
 --
---   /Note:/ this function does not do bounds or overlap checking.
+-- /Note:/ this function does not do bounds or overlap checking.
 --
---   @since 0.7.1.0
+-- @since 0.7.1.0
 copyMutableByteArrayToPtr
   :: forall m a. (PrimMonad m, Prim a)
   => Ptr a -- ^ destination
@@ -465,12 +467,12 @@ copyMutableByteArrayToPtr (Ptr dst#) (MutableByteArray src#) soff sz
 -----
 
 -- | Copy a slice of a byte array to an unmanaged address. These must not
---   overlap. This function is only available when compiling with GHC 7.8
---   or newer.
+-- overlap. This function is only available when compiling with GHC 7.8
+-- or newer.
 --
---   Note: This function is just 'copyByteArrayToPtr' where @a@ is 'Word8'.
+-- Note: This function is just 'copyByteArrayToPtr' where @a@ is 'Word8'.
 --
---   @since 0.6.4.0
+-- @since 0.6.4.0
 copyByteArrayToAddr
   :: PrimMonad m
   => Ptr Word8 -- ^ destination
@@ -483,12 +485,12 @@ copyByteArrayToAddr (Ptr dst#) (ByteArray src#) soff sz
   = primitive_ (copyByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
 
 -- | Copy a slice of a mutable byte array to an unmanaged address. These must
---   not overlap. This function is only available when compiling with GHC 7.8
---   or newer.
+-- not overlap. This function is only available when compiling with GHC 7.8
+-- or newer.
 --
---   Note: This function is just 'copyMutableByteArrayToPtr' where @a@ is 'Word8'.
+-- Note: This function is just 'copyMutableByteArrayToPtr' where @a@ is 'Word8'.
 --
---   @since 0.6.4.0
+-- @since 0.6.4.0
 copyMutableByteArrayToAddr
   :: PrimMonad m
   => Ptr Word8 -- ^ destination
@@ -504,14 +506,13 @@ copyMutableByteArrayToAddr (Ptr dst#) (MutableByteArray src#) soff sz
 -- | Copy a slice of a mutable byte array into another, potentially
 -- overlapping array.
 moveByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m)
-                                        -- ^ destination array
-                 -> Int                 -- ^ offset into destination array
-                 -> MutableByteArray (PrimState m)
-                                        -- ^ source array
-                 -> Int                 -- ^ offset into source array
-                 -> Int                 -- ^ number of bytes to copy
-                 -> m ()
+  :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ destination array
+  -> Int                            -- ^ offset into destination array
+  -> MutableByteArray (PrimState m) -- ^ source array
+  -> Int                            -- ^ offset into source array
+  -> Int                            -- ^ number of bytes to copy
+  -> m ()
 {-# INLINE moveByteArray #-}
 moveByteArray (MutableByteArray dst#) doff
               (MutableByteArray src#) soff sz
@@ -524,11 +525,12 @@ moveByteArray (MutableByteArray dst#) doff
 --
 -- /Note:/ this function does not do bounds checking.
 setByteArray
-  :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -- ^ array to fill
-                           -> Int                 -- ^ offset into array
-                           -> Int                 -- ^ number of values to fill
-                           -> a                   -- ^ value to fill with
-                           -> m ()
+  :: (Prim a, PrimMonad m)
+  => MutableByteArray (PrimState m) -- ^ array to fill
+  -> Int                            -- ^ offset into array
+  -> Int                            -- ^ number of values to fill
+  -> a                              -- ^ value to fill with
+  -> m ()
 {-# INLINE setByteArray #-}
 setByteArray (MutableByteArray dst#) (I# doff#) (I# sz#) x
   = primitive_ (setByteArray# dst# doff# sz# x)
@@ -537,12 +539,12 @@ setByteArray (MutableByteArray dst#) (I# doff#) (I# sz#) x
 --
 -- /Note:/ this function does not do bounds checking.
 fillByteArray
-  :: PrimMonad m => MutableByteArray (PrimState m)
-                                        -- ^ array to fill
-                 -> Int                 -- ^ offset into array
-                 -> Int                 -- ^ number of bytes to fill
-                 -> Word8               -- ^ byte to fill with
-                 -> m ()
+  :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ array to fill
+  -> Int                            -- ^ offset into array
+  -> Int                            -- ^ number of bytes to fill
+  -> Word8                          -- ^ byte to fill with
+  -> m ()
 {-# INLINE fillByteArray #-}
 fillByteArray = setByteArray
 
@@ -609,12 +611,12 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp"
 
 -- | Lexicographic comparison of equal-length slices into two byte arrays.
 -- This wraps the @compareByteArrays#@ primop, which wraps @memcmp@.
-compareByteArrays ::
-     ByteArray -- ^ Array A
-  -> Int -- ^ Offset A, given in bytes
-  -> ByteArray -- ^ Array B
-  -> Int -- ^ Offset B, given in bytes
-  -> Int -- ^ Length of slice, given in bytes
+compareByteArrays
+  :: ByteArray -- ^ array A
+  -> Int       -- ^ offset A, given in bytes
+  -> ByteArray -- ^ array B
+  -> Int       -- ^ offset B, given in bytes
+  -> Int       -- ^ length of the slice, given in bytes
   -> Ordering
 {-# INLINE compareByteArrays #-}
 #if __GLASGOW_HASKELL__ >= 804
@@ -719,7 +721,7 @@ instance SG.Semigroup ByteArray where
   sconcat = mconcat . F.toList
   stimes i arr
     | itgr < 1 = emptyByteArray
-    | itgr <= (fromIntegral (maxBound :: Int)) = replicateByteArray (fromIntegral itgr) arr
+    | itgr <= fromIntegral (maxBound :: Int) = replicateByteArray (fromIntegral itgr) arr
     | otherwise = error "Data.Primitive.ByteArray#stimes: cannot allocate the requested amount of memory"
     where itgr = toInteger i :: Integer
 #endif
@@ -747,8 +749,8 @@ die fun problem = error $ "Data.Primitive.ByteArray." ++ fun ++ ": " ++ problem
 -- | Return a newly allocated array with the specified subrange of the
 -- provided array. The provided array should contain the full subrange
 -- specified by the two Ints, but this is not checked.
-cloneByteArray ::
-     ByteArray -- ^ source array
+cloneByteArray
+  :: ByteArray -- ^ source array
   -> Int       -- ^ offset into destination array
   -> Int       -- ^ number of bytes to copy
   -> ByteArray
