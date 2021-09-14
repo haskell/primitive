@@ -33,13 +33,9 @@ module Data.Primitive.MVar
   ) where
 
 import Control.Monad.Primitive
-import Data.Primitive.Internal.Compat (isTrue#)
 import GHC.Exts
   ( MVar#, newMVar#, takeMVar#, sameMVar#, putMVar#, tryTakeMVar#, isEmptyMVar#, tryPutMVar#, (/=#)
-#if __GLASGOW_HASKELL__ >= 708
-  , readMVar#, tryReadMVar#
-#endif
-  )
+  , readMVar#, tryReadMVar#, isTrue# )
 
 -- | A synchronizing variable, used for communication between concurrent threads.
 -- It can be thought of as a box, which may be empty or full.
@@ -84,24 +80,13 @@ takeMVar (MVar mvar#) = primitive $ \ s# -> takeMVar# mvar# s#
 -- /Multiple Wakeup:/ 'readMVar' is multiple-wakeup, so when multiple readers
 -- are blocked on an 'MVar', all of them are woken up at the same time.
 --
--- /Compatibility note:/ On GHCs prior to 7.8, 'readMVar' is a combination
--- of 'takeMVar' and 'putMVar'. Consequently, its behavior differs in the
--- following ways:
---
 -- * It is single-wakeup instead of multiple-wakeup.
 -- * It might not receive the value from the next call to 'putMVar' if
 --   there is already a pending thread blocked on 'takeMVar'.
 -- * If another thread puts a value in the 'MVar' in between the
 --   calls to 'takeMVar' and 'putMVar', that value may be overridden.
 readMVar :: PrimMonad m => MVar (PrimState m) a -> m a
-#if __GLASGOW_HASKELL__ >= 708
 readMVar (MVar mvar#) = primitive $ \ s# -> readMVar# mvar# s#
-#else
-readMVar mv = do
-  a <- takeMVar mv
-  putMVar mv a
-  return a
-#endif
 
 -- | Put a value into an 'MVar'. If the 'MVar' is currently full,
 -- 'putMVar' will wait until it becomes empty.
@@ -141,30 +126,16 @@ tryPutMVar (MVar mvar#) x = primitive $ \ s# ->
 -- returns immediately, with 'Nothing' if the 'MVar' was empty, or
 -- @'Just' a@ if the 'MVar' was full with contents @a@.
 --
--- /Compatibility note:/ On GHCs prior to 7.8, 'tryReadMVar' is a combination
--- of 'tryTakeMVar' and 'putMVar'. Consequently, its behavior differs in the
--- following ways:
---
 -- * It is single-wakeup instead of multiple-wakeup.
 -- * In the presence of other threads calling 'putMVar', 'tryReadMVar'
 --   may block.
 -- * If another thread puts a value in the 'MVar' in between the
 --   calls to 'tryTakeMVar' and 'putMVar', that value may be overridden.
 tryReadMVar :: PrimMonad m => MVar (PrimState m) a -> m (Maybe a)
-#if __GLASGOW_HASKELL__ >= 708
 tryReadMVar (MVar m) = primitive $ \ s ->
     case tryReadMVar# m s of
         (# s', 0#, _ #) -> (# s', Nothing #)      -- MVar is empty
         (# s', _,  a #) -> (# s', Just a  #)      -- MVar is full
-#else
-tryReadMVar mv = do
-  ma <- tryTakeMVar mv
-  case ma of
-    Just a -> do
-      putMVar mv a
-      return (Just a)
-    Nothing -> return Nothing
-#endif
 
 -- | Check whether a given 'MVar' is empty.
 --

@@ -27,8 +27,8 @@ module Data.Primitive.MutVar (
 
 import Control.Monad.Primitive ( PrimMonad(..), primitive_ )
 import GHC.Exts ( MutVar#, sameMutVar#, newMutVar#
-                , readMutVar#, writeMutVar#, atomicModifyMutVar# )
-import Data.Primitive.Internal.Compat ( isTrue# )
+                , readMutVar#, writeMutVar#, atomicModifyMutVar#
+                , isTrue# )
 import Data.Typeable ( Typeable )
 
 -- | A 'MutVar' behaves like a single-element mutable array associated

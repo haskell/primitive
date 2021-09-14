@@ -28,9 +28,7 @@ import Data.Primitive.Ptr
 import Foreign.Marshal.Alloc
 import GHC.Exts (State#,Int#,Int(I#),(+#),(<#))
 
-#if MIN_VERSION_base(4,7,0)
 import GHC.Exts (IsList(fromList,toList))
-#endif
 
 import System.IO.Unsafe
 import Test.QuickCheck hiding ((.&.))
@@ -48,9 +46,7 @@ primLaws p = Laws "Prim"
   , ("ByteArray Get-Put (putting back what you got out has no effect)", primGetPutByteArray p)
   , ("ByteArray Put-Put (putting twice is same as putting once)", primPutPutByteArray p)
   , ("ByteArray Set Range", primSetByteArray p)
-#if MIN_VERSION_base(4,7,0)
   , ("ByteArray List Conversion Roundtrips", primListByteArray p)
-#endif
   , ("Ptr Put-Get (you get back what you put in)", primPutGetAddr p)
   , ("Ptr List Conversion Roundtrips", primListAddr p)
   ]
@@ -142,11 +138,9 @@ primSetByteArray _ = property $ \(as :: [a]) (z :: a) -> do
     arr3 <- unsafeFreezePrimArray marr3
     return (arr2 == arr3)
 
-#if MIN_VERSION_base(4,7,0)
 primListByteArray :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
 primListByteArray _ = property $ \(as :: [a]) ->
   as == toList (fromList as :: PrimArray a)
-#endif
 
 internalDefaultSetPrimArray :: Prim a
   => MutablePrimArray s a -> Int -> Int -> a -> ST s ()

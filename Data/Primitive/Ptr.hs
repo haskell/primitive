@@ -36,10 +36,8 @@ module Data.Primitive.Ptr (
 
 import Control.Monad.Primitive
 import Data.Primitive.Types
-#if __GLASGOW_HASKELL__ >= 708
 import Data.Primitive.PrimArray (MutablePrimArray(..))
 import Data.Primitive.ByteArray (MutableByteArray(..))
-#endif
 
 import GHC.Exts
 import GHC.Ptr
@@ -106,11 +104,8 @@ setPtr :: (Prim a, PrimMonad m) => Ptr a -> Int -> a -> m ()
 setPtr (Ptr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
 
 
-#if __GLASGOW_HASKELL__ >= 708
 -- | Copy from a pointer to a mutable primitive array.
 -- The offset and length are given in elements of type @a@.
--- This function is only available when building with GHC 7.8
--- or newer.
 copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   => MutablePrimArray (PrimState m) a -- ^ destination array
   -> Int -- ^ destination offset
@@ -125,8 +120,6 @@ copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) 
 
 -- | Copy from a pointer to a mutable byte array.
 -- The offset and length are given in elements of type @a@.
--- This function is only available when building with GHC 7.8
--- or newer.
 copyPtrToMutableByteArray :: forall m a. (PrimMonad m, Prim a)
   => MutableByteArray (PrimState m) -- ^ destination array
   -> Int   -- ^ destination offset given in elements of type @a@
@@ -138,4 +131,3 @@ copyPtrToMutableByteArray (MutableByteArray ba#) (I# doff#) (Ptr addr#) (I# n#) 
   primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
   where
   siz# = sizeOf# (undefined :: a)
-#endif

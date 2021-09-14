@@ -31,16 +31,12 @@ module Data.Primitive.Array (
 import Control.DeepSeq
 import Control.Monad.Primitive
 
-import GHC.Exts
-#if (MIN_VERSION_base(4,7,0))
-  hiding (toList)
-#endif
+import GHC.Exts hiding (toList)
 import qualified GHC.Exts as Exts
 
 import Data.Typeable ( Typeable )
 import Data.Data
   (Data(..), DataType, mkDataType, mkNoRepType, Constr, mkConstr, Fixity(..), constrIndex)
-import Data.Primitive.Internal.Compat (isTrue#)
 
 import Control.Monad.ST (ST, runST)
 
@@ -49,22 +45,14 @@ import Control.Monad (MonadPlus(..), when, liftM2)
 import qualified Control.Monad.Fail as Fail
 import Control.Monad.Fix
 import qualified Data.Foldable as Foldable
-#if MIN_VERSION_base(4,4,0)
 import Control.Monad.Zip
-#endif
 import Data.Foldable (Foldable(..), toList)
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Traversable (Traversable(..))
-import Data.Monoid
-#endif
 #if MIN_VERSION_base(4,9,0)
 import qualified GHC.ST as GHCST
 import qualified Data.Foldable as F
 import Data.Semigroup
 #endif
-#if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity
-#endif
 #if MIN_VERSION_base(4,10,0)
 import GHC.Exts (runRW#)
 #elif MIN_VERSION_base(4,9,0)
@@ -76,9 +64,7 @@ import Text.ParserCombinators.ReadPrec (ReadPrec)
 import qualified Text.ParserCombinators.ReadPrec as RdPrc
 import Text.ParserCombinators.ReadP
 
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 import Data.Functor.Classes (Eq1(..), Ord1(..), Show1(..), Read1(..))
-#endif
 
 -- | Boxed arrays.
 data Array a = Array
@@ -252,23 +238,10 @@ copyArray :: PrimMonad m
           -> Int                             -- ^ number of elements to copy
           -> m ()
 {-# INLINE copyArray #-}
-#if __GLASGOW_HASKELL__ > 706
--- NOTE: copyArray# and copyMutableArray# are slightly broken in GHC 7.6.* and earlier
 copyArray (MutableArray dst#) (I# doff#) (Array src#) (I# soff#) (I# len#)
   = primitive_ (copyArray# src# soff# dst# doff# len#)
-#else
-copyArray !dst !doff !src !soff !len = go 0
-  where
-    go i | i < len = do
-                       x <- indexArrayM src (soff + i)
-                       writeArray dst (doff + i) x
-                       go (i + 1)
-         | otherwise = return ()
-#endif
 
--- | Copy a slice of a mutable array to another array. The two arrays must
--- not be the same when using this library with GHC versions 7.6 and older.
--- In GHC 7.8 and newer, overlapping arrays will behave correctly.
+-- | Copy a slice of a mutable array to another array. The two arrays may overlap.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyMutableArray :: PrimMonad m
@@ -279,20 +252,9 @@ copyMutableArray :: PrimMonad m
           -> Int                             -- ^ number of elements to copy
           -> m ()
 {-# INLINE copyMutableArray #-}
-#if __GLASGOW_HASKELL__ > 706
--- NOTE: copyArray# and copyMutableArray# are slightly broken in GHC 7.6.* and earlier
 copyMutableArray (MutableArray dst#) (I# doff#)
                  (MutableArray src#) (I# soff#) (I# len#)
   = primitive_ (copyMutableArray# src# soff# dst# doff# len#)
-#else
-copyMutableArray !dst !doff !src !soff !len = go 0
-  where
-    go i | i < len = do
-                       x <- readArray src (soff + i)
-                       writeArray dst (doff + i) x
-                       go (i + 1)
-         | otherwise = return ()
-#endif
 
 -- | Return a newly allocated 'Array' with the specified subrange of the
 -- provided 'Array'.
@@ -400,14 +362,12 @@ arrayLiftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 -
 instance Eq a => Eq (Array a) where
   a1 == a2 = arrayLiftEq (==) a1 a2
 
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 -- | @since 0.6.4.0
 instance Eq1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = arrayLiftEq
 #else
   eq1 = arrayLiftEq (==)
-#endif
 #endif
 
 instance Eq (MutableArray s a) where
@@ -428,14 +388,12 @@ arrayLiftCompare elemCompare a1 a2 = loop 0
 instance Ord a => Ord (Array a) where
   compare a1 a2 = arrayLiftCompare compare a1 a2
 
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 -- | @since 0.6.4.0
 instance Ord1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = arrayLiftCompare
 #else
   compare1 = arrayLiftCompare compare
-#endif
 #endif
 
 instance Foldable Array where
@@ -481,7 +439,6 @@ instance Foldable Array where
        then die "foldl1" "empty array"
        else go sz
   {-# INLINE foldl1 #-}
-#if MIN_VERSION_base(4,6,0)
   foldr' f = \z !ary ->
     let
       go i !acc
@@ -499,8 +456,6 @@ instance Foldable Array where
         = go (i + 1) (f acc x)
     in go 0 z
   {-# INLINE foldl' #-}
-#endif
-#if MIN_VERSION_base(4,8,0)
   null a = sizeofArray a == 0
   {-# INLINE null #-}
   length = sizeofArray
@@ -528,7 +483,6 @@ instance Foldable Array where
   {-# INLINE sum #-}
   product = foldl' (*) 1
   {-# INLINE product #-}
-#endif
 
 newtype STA a = STA { _runSTA :: forall s. MutableArray# s a -> ST s (Array a) }
 
@@ -571,14 +525,10 @@ traverseArray f = \ !ary ->
    traverseArrayP f
 "traverse/IO" forall (f :: a -> IO b). traverseArray f =
    traverseArrayP f
- #-}
-#if MIN_VERSION_base(4,8,0)
-{-# RULES
 "traverse/Id" forall (f :: a -> Identity b). traverseArray f =
    (coerce :: (Array a -> Array (Identity b))
            -> Array a -> Identity (Array b)) (fmap f)
  #-}
-#endif
 
 -- | This is the fastest, most straightforward way to traverse
 -- an array, but it only works correctly with a sufficiently
@@ -641,19 +591,11 @@ arrayFromListN n l =
 arrayFromList :: [a] -> Array a
 arrayFromList l = arrayFromListN (length l) l
 
-#if MIN_VERSION_base(4,7,0)
 instance Exts.IsList (Array a) where
   type Item (Array a) = a
   fromListN = arrayFromListN
   fromList = arrayFromList
   toList = toList
-#else
-fromListN :: Int -> [a] -> Array a
-fromListN = arrayFromListN
-
-fromList :: [a] -> Array a
-fromList = arrayFromList
-#endif
 
 instance Functor Array where
   fmap f a =
@@ -664,9 +606,7 @@ instance Functor Array where
                = do x <- indexArrayM a i
                     writeArray mb i (f x) >> go (i + 1)
        in go 0
-#if MIN_VERSION_base(4,8,0)
   e <$ a = createArray (sizeofArray a) e (\ !_ -> pure ())
-#endif
 
 instance Applicative Array where
   pure x = runArray $ newArray 1 x
@@ -822,7 +762,6 @@ listLiftShowsPrec _ sl _ = sl
 instance Show a => Show (Array a) where
   showsPrec p a = arrayLiftShowsPrec showsPrec showList p a
 
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 -- | @since 0.6.4.0
 instance Show1 Array where
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
@@ -830,12 +769,10 @@ instance Show1 Array where
 #else
   showsPrec1 = arrayLiftShowsPrec showsPrec showList
 #endif
-#endif
 
 instance Read a => Read (Array a) where
   readPrec = arrayLiftReadPrec readPrec readListPrec
 
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
 -- | @since 0.6.4.0
 instance Read1 Array where
 #if MIN_VERSION_base(4,10,0)
@@ -844,7 +781,6 @@ instance Read1 Array where
   liftReadsPrec = arrayLiftReadsPrec
 #else
   readsPrec1 = arrayLiftReadsPrec readsPrec readList
-#endif
 #endif
 
 -- We're really forgiving here. We accept

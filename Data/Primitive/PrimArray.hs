@@ -34,9 +34,7 @@ module Data.Primitive.PrimArray
   , newPinnedPrimArray
   , newAlignedPinnedPrimArray
   , resizeMutablePrimArray
-#if __GLASGOW_HASKELL__ >= 710
   , shrinkMutablePrimArray
-#endif
     -- * Element Access
   , readPrimArray
   , writePrimArray
@@ -50,10 +48,8 @@ module Data.Primitive.PrimArray
     -- * Block Operations
   , copyPrimArray
   , copyMutablePrimArray
-#if __GLASGOW_HASKELL__ >= 708
   , copyPrimArrayToPtr
   , copyMutablePrimArrayToPtr
-#endif
   , clonePrimArray
   , cloneMutablePrimArray
   , setPrimArray
@@ -109,10 +105,9 @@ module Data.Primitive.PrimArray
   ) where
 
 import GHC.Exts
-import Data.Primitive.Internal.Compat (isTrue#)
 import Data.Primitive.Types
 import Data.Primitive.ByteArray (ByteArray(..))
-import Data.Monoid (Monoid(..), (<>))
+import Data.Monoid ((<>))
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Primitive
@@ -159,12 +154,7 @@ instance NFData (MutablePrimArray s a) where
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =
     case reallyUnsafePtrEquality# (unsafeCoerce# ba1 :: ()) (unsafeCoerce# ba2 :: ()) of
-#if __GLASGOW_HASKELL__ >= 708
       r -> isTrue# r
-#else
-      1# -> True
-      _ -> False
-#endif
 
 -- | @since 0.6.4.0
 instance (Eq a, Prim a) => Eq (PrimArray a) where
@@ -199,14 +189,12 @@ instance (Ord a, Prim a) => Ord (PrimArray a) where
       | otherwise = compare sz1 sz2
   {-# INLINE compare #-}
 
-#if MIN_VERSION_base(4,7,0)
 -- | @since 0.6.4.0
 instance Prim a => IsList (PrimArray a) where
   type Item (PrimArray a) = a
   fromList = primArrayFromList
   fromListN = primArrayFromListN
   toList = primArrayToList
-#endif
 
 -- | @since 0.6.4.0
 instance (Show a, Prim a) => Show (PrimArray a) where
@@ -303,23 +291,12 @@ resizeMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   -> Int -- ^ new size
   -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE resizeMutablePrimArray #-}
-#if __GLASGOW_HASKELL__ >= 710
 resizeMutablePrimArray (MutablePrimArray arr#) (I# n#)
   = primitive (\s# -> case resizeMutableByteArray# arr# (n# *# sizeOf# (undefined :: a)) s# of
                         (# s'#, arr'# #) -> (# s'#, MutablePrimArray arr'# #))
-#else
-resizeMutablePrimArray arr n
-  = do arr' <- newPrimArray n
-       copyMutablePrimArray arr' 0 arr 0 (min (sizeofMutablePrimArray arr) n)
-       return arr'
-#endif
 
--- Although it is possible to shim resizeMutableByteArray for old GHCs, this
--- is not the case with shrinkMutablePrimArray.
-#if __GLASGOW_HASKELL__ >= 710
 -- | Shrink a mutable primitive array. The new size is given in elements.
 -- It must be smaller than the old size. The array will be resized in place.
--- This function is only available when compiling with GHC 7.10 or newer.
 shrinkMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   => MutablePrimArray (PrimState m) a
   -> Int -- ^ new size
@@ -327,7 +304,6 @@ shrinkMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
 {-# INLINE shrinkMutablePrimArray #-}
 shrinkMutablePrimArray (MutablePrimArray arr#) (I# n#)
   = primitive_ (shrinkMutableByteArray# arr# (n# *# sizeOf# (undefined :: a)))
-#endif
 
 -- | Read a value from the array at the given index.
 --
@@ -394,12 +370,10 @@ copyPrimArray (MutablePrimArray dst#) (I# doff#) (PrimArray src#) (I# soff#) (I#
       (n# *# sizeOf# (undefined :: a))
     )
 
-#if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of an immutable primitive array to a pointer.
 -- The offset and length are given in elements of type @a@.
 -- This function assumes that the 'Prim' instance of @a@
--- agrees with the 'Storable' instance. This function is only
--- available when building with GHC 7.8 or newer.
+-- agrees with the 'Storable' instance.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyPrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
@@ -418,8 +392,7 @@ copyPrimArrayToPtr (Ptr addr#) (PrimArray ba#) (I# soff#) (I# n#) =
 -- | Copy a slice of a mutable primitive array to a pointer.
 -- The offset and length are given in elements of type @a@.
 -- This function assumes that the 'Prim' instance of @a@
--- agrees with the 'Storable' instance. This function is only
--- available when building with GHC 7.8 or newer.
+-- agrees with the 'Storable' instance.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyMutablePrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
@@ -434,7 +407,6 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
         let s'# = copyMutableByteArrayToAddr# mba# (soff# *# siz#) addr# (n# *# siz#) s#
         in (# s'#, () #))
   where siz# = sizeOf# (undefined :: a)
-#endif
 
 -- | Fill a slice of a mutable primitive array with a value.
 --

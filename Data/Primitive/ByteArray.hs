@@ -24,9 +24,7 @@ module Data.Primitive.ByteArray (
   -- * Allocation
   newByteArray, newPinnedByteArray, newAlignedPinnedByteArray,
   resizeMutableByteArray,
-#if __GLASGOW_HASKELL__ >= 710
   shrinkMutableByteArray,
-#endif
 
   -- * Element access
   readByteArray, writeByteArray, indexByteArray,
@@ -47,10 +45,8 @@ module Data.Primitive.ByteArray (
 
   -- * Block operations
   copyByteArray, copyMutableByteArray,
-#if __GLASGOW_HASKELL__ >= 708
   copyByteArrayToPtr, copyMutableByteArrayToPtr,
   copyByteArrayToAddr, copyMutableByteArrayToAddr,
-#endif
   moveByteArray,
   setByteArray, fillByteArray,
   cloneByteArray, cloneMutableByteArray,
@@ -76,25 +72,15 @@ import Foreign.C.Types
 import Data.Word ( Word8 )
 import Data.Bits ( (.&.), unsafeShiftR )
 import GHC.Show ( intToDigit )
-#if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts ( IsList(..) )
-#endif
-import GHC.Exts
-#if __GLASGOW_HASKELL__ >= 706
-    hiding (setByteArray#)
-#endif
+import GHC.Exts hiding (setByteArray#)
 
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..), mkNoRepType )
-import Data.Primitive.Internal.Compat ( isTrue# )
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as SG
 import qualified Data.Foldable as F
-#endif
-
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Monoid (Monoid(..))
 #endif
 
 #if __GLASGOW_HASKELL__ >= 802
@@ -190,16 +176,9 @@ resizeMutableByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int
                  -> m (MutableByteArray (PrimState m))
 {-# INLINE resizeMutableByteArray #-}
-#if __GLASGOW_HASKELL__ >= 710
 resizeMutableByteArray (MutableByteArray arr#) (I# n#)
   = primitive (\s# -> case resizeMutableByteArray# arr# n# s# of
                         (# s'#, arr'# #) -> (# s'#, MutableByteArray arr'# #))
-#else
-resizeMutableByteArray arr n
-  = do arr' <- newByteArray n
-       copyMutableByteArray arr' 0 arr 0 (min (sizeofMutableByteArray arr) n)
-       return arr'
-#endif
 
 -- | Get the size of a byte array in bytes. Unlike 'sizeofMutableByteArray',
 -- this function ensures sequencing in the presence of resizing.
@@ -288,12 +267,8 @@ sizeofMutableByteArray :: MutableByteArray s -> Int
 {-# INLINE sizeofMutableByteArray #-}
 sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr#)
 
--- Although it is possible to shim resizeMutableByteArray for old GHCs, this
--- is not the case with shrinkMutableByteArray.
-#if __GLASGOW_HASKELL__ >= 710
 -- | Shrink a mutable byte array. The new size is given in bytes.
 -- It must be smaller than the old size. The array will be resized in place.
--- This function is only available when compiling with GHC 7.10 or newer.
 --
 -- @since 0.7.1.0
 shrinkMutableByteArray :: PrimMonad m
@@ -303,7 +278,6 @@ shrinkMutableByteArray :: PrimMonad m
 {-# INLINE shrinkMutableByteArray #-}
 shrinkMutableByteArray (MutableByteArray arr#) (I# n#)
   = primitive_ (shrinkMutableByteArray# arr# n#)
-#endif
 
 #if __GLASGOW_HASKELL__ >= 802
 -- | Check whether or not the byte array is pinned. Pinned byte arrays cannot
@@ -420,10 +394,8 @@ copyMutableByteArray (MutableByteArray dst#) doff
                      (MutableByteArray src#) soff sz
   = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
 
-#if __GLASGOW_HASKELL__ >= 708
 -- | Copy a slice of a byte array to an unmanaged pointer address. These must not
--- overlap. The offset and length are given in elements, not in bytes. This function
--- is only available when compiling with GHC 7.8 or newer.
+-- overlap. The offset and length are given in elements, not in bytes.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 --
@@ -443,8 +415,7 @@ copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
 
 -- | Copy a slice of a mutable byte array to an unmanaged pointer address.
 -- These must not overlap. The offset and length are given in elements, not
--- in bytes. This function is only available when compiling with GHC 7.8
--- or newer.
+-- in bytes.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 --
@@ -467,8 +438,7 @@ copyMutableByteArrayToPtr (Ptr dst#) (MutableByteArray src#) soff sz
 -----
 
 -- | Copy a slice of a byte array to an unmanaged address. These must not
--- overlap. This function is only available when compiling with GHC 7.8
--- or newer.
+-- overlap.
 --
 -- Note: This function is just 'copyByteArrayToPtr' where @a@ is 'Word8'.
 --
@@ -485,8 +455,7 @@ copyByteArrayToAddr (Ptr dst#) (ByteArray src#) soff sz
   = primitive_ (copyByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
 
 -- | Copy a slice of a mutable byte array to an unmanaged address. These must
--- not overlap. This function is only available when compiling with GHC 7.8
--- or newer.
+-- not overlap.
 --
 -- Note: This function is just 'copyMutableByteArrayToPtr' where @a@ is 'Word8'.
 --
@@ -501,7 +470,6 @@ copyMutableByteArrayToAddr
 {-# INLINE copyMutableByteArrayToAddr #-}
 copyMutableByteArrayToAddr (Ptr dst#) (MutableByteArray src#) soff sz
   = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff) dst# (unI# sz))
-#endif
 
 -- | Copy a slice of a mutable byte array into another, potentially
 -- overlapping array.
@@ -638,12 +606,7 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp_offset"
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =
     case reallyUnsafePtrEquality# (unsafeCoerce# ba1 :: ()) (unsafeCoerce# ba2 :: ()) of
-#if __GLASGOW_HASKELL__ >= 708
       r -> isTrue# r
-#else
-      1# -> True
-      0# -> False
-#endif
 
 -- | @since 0.6.3.0
 instance Eq ByteArray where
@@ -733,7 +696,6 @@ instance Monoid ByteArray where
 #endif
   mconcat = concatByteArray
 
-#if __GLASGOW_HASKELL__ >= 708
 -- | @since 0.6.3.0
 instance Exts.IsList ByteArray where
   type Item ByteArray = Word8
@@ -741,7 +703,6 @@ instance Exts.IsList ByteArray where
   toList = foldrByteArray (:) []
   fromList xs = byteArrayFromListN (length xs) xs
   fromListN = byteArrayFromListN
-#endif
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.ByteArray." ++ fun ++ ": " ++ problem
