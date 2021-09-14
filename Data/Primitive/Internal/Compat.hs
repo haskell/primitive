@@ -8,18 +8,15 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Compatibility functions
---
+-- Compatibility functions.
 
 module Data.Primitive.Internal.Compat (
-    isTrue#
-  ) where
+  isTrue#
+) where
 
 #if MIN_VERSION_base(4,7,0)
 import GHC.Exts (isTrue#)
-#endif
-
-#if !MIN_VERSION_base(4,7,0)
+#else
 isTrue# :: Bool -> Bool
 isTrue# b = b
 #endif

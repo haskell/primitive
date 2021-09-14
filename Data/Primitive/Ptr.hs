@@ -11,7 +11,7 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Primitive operations on machine addresses
+-- Primitive operations on machine addresses.
 --
 -- @since 0.6.4.0
 
@@ -41,9 +41,7 @@ import Data.Primitive.PrimArray (MutablePrimArray(..))
 import Data.Primitive.ByteArray (MutableByteArray(..))
 #endif
 
-import GHC.Base ( Int(..) )
 import GHC.Exts
-
 import GHC.Ptr
 import Foreign.Marshal.Utils
 
@@ -54,8 +52,8 @@ advancePtr :: forall a. Prim a => Ptr a -> Int -> Ptr a
 advancePtr (Ptr a#) (I# i#) = Ptr (plusAddr# a# (i# *# sizeOf# (undefined :: a)))
 
 -- | Subtract a pointer from another pointer. The result represents
---   the number of elements of type @a@ that fit in the contiguous
---   memory range bounded by these two pointers.
+-- the number of elements of type @a@ that fit in the contiguous
+-- memory range bounded by these two pointers.
 subtractPtr :: forall a. Prim a => Ptr a -> Ptr a -> Int
 {-# INLINE subtractPtr #-}
 subtractPtr (Ptr a#) (Ptr b#) = I# (quotInt# (minusAddr# a# b#) (sizeOf# (undefined :: a)))
@@ -93,8 +91,8 @@ copyPtr (Ptr dst#) (Ptr src#) n
 -- | Copy the given number of elements from the second 'Ptr' to the first. The
 -- areas may overlap.
 movePtr :: forall m a. (PrimMonad m, Prim a)
-  => Ptr a -- ^ destination address
-  -> Ptr a -- ^ source address
+  => Ptr a -- ^ destination pointer
+  -> Ptr a -- ^ source pointer
   -> Int -- ^ number of elements
   -> m ()
 {-# INLINE movePtr #-}

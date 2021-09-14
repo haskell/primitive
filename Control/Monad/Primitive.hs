@@ -12,8 +12,7 @@
 -- Maintainer  : Roman Leshchinskiy <rl@cse.unsw.edu.au>
 -- Portability : non-portable
 --
--- Primitive state-transformer monads
---
+-- Primitive state-transformer monads.
 
 module Control.Monad.Primitive (
   PrimMonad(..), RealWorld, primitive_,
@@ -69,12 +68,12 @@ import qualified Control.Monad.Trans.RWS.Strict    as Strict ( RWST   )
 import qualified Control.Monad.Trans.State.Strict  as Strict ( StateT )
 import qualified Control.Monad.Trans.Writer.Strict as Strict ( WriterT )
 
--- | Class of monads which can perform primitive state-transformer actions
+-- | Class of monads which can perform primitive state-transformer actions.
 class Monad m => PrimMonad m where
-  -- | State token type
+  -- | State token type.
   type PrimState m
 
-  -- | Execute a primitive operation
+  -- | Execute a primitive operation.
   primitive :: (State# (PrimState m) -> (# State# (PrimState m), a #)) -> m a
 
 -- | Class of primitive monads for state-transformer actions.
@@ -85,10 +84,10 @@ class Monad m => PrimMonad m where
 --
 -- @since 0.6.0.0
 class PrimMonad m => PrimBase m where
-  -- | Expose the internal structure of the monad
+  -- | Expose the internal structure of the monad.
   internal :: m a -> State# (PrimState m) -> (# State# (PrimState m), a #)
 
--- | Execute a primitive operation with no result
+-- | Execute a primitive operation with no result.
 primitive_ :: PrimMonad m
               => (State# (PrimState m) -> State# (PrimState m)) -> m ()
 {-# INLINE primitive_ #-}
@@ -100,6 +99,7 @@ instance PrimMonad IO where
   type PrimState IO = RealWorld
   primitive = IO
   {-# INLINE primitive #-}
+
 instance PrimBase IO where
   internal (IO p) = p
   {-# INLINE internal #-}
@@ -189,6 +189,7 @@ instance ( Monoid w
   type PrimState (AccumT w m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
+
 instance PrimMonad m => PrimMonad (SelectT r m) where
   type PrimState (SelectT r m) = PrimState m
   primitive = lift . primitive
@@ -214,6 +215,7 @@ instance PrimMonad (ST s) where
   type PrimState (ST s) = s
   primitive = ST
   {-# INLINE primitive #-}
+
 instance PrimBase (ST s) where
   internal (ST p) = p
   {-# INLINE internal #-}

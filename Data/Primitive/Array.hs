@@ -11,7 +11,6 @@
 -- Portability : non-portable
 --
 -- Primitive arrays of boxed values.
---
 
 module Data.Primitive.Array (
   Array(..), MutableArray(..),
@@ -31,27 +30,22 @@ module Data.Primitive.Array (
 
 import Control.DeepSeq
 import Control.Monad.Primitive
-import Data.Data (mkNoRepType)
 
-import GHC.Base  ( Int(..) )
 import GHC.Exts
 #if (MIN_VERSION_base(4,7,0))
   hiding (toList)
 #endif
 import qualified GHC.Exts as Exts
-#if (MIN_VERSION_base(4,7,0))
-import GHC.Exts (fromListN, fromList)
-#endif
 
 import Data.Typeable ( Typeable )
 import Data.Data
-  (Data(..), DataType, mkDataType, Constr, mkConstr, Fixity(..), constrIndex)
-import Data.Primitive.Internal.Compat ( isTrue# )
+  (Data(..), DataType, mkDataType, mkNoRepType, Constr, mkConstr, Fixity(..), constrIndex)
+import Data.Primitive.Internal.Compat (isTrue#)
 
-import Control.Monad.ST(ST,runST)
+import Control.Monad.ST (ST, runST)
 
 import Control.Applicative
-import Control.Monad (MonadPlus(..), when)
+import Control.Monad (MonadPlus(..), when, liftM2)
 import qualified Control.Monad.Fail as Fail
 import Control.Monad.Fix
 import qualified Data.Foldable as Foldable
@@ -83,11 +77,10 @@ import qualified Text.ParserCombinators.ReadPrec as RdPrc
 import Text.ParserCombinators.ReadP
 
 #if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
-import Data.Functor.Classes (Eq1(..),Ord1(..),Show1(..),Read1(..))
+import Data.Functor.Classes (Eq1(..), Ord1(..), Show1(..), Read1(..))
 #endif
-import Control.Monad (liftM2)
 
--- | Boxed arrays
+-- | Boxed arrays.
 data Array a = Array
   { array# :: Array# a }
   deriving ( Typeable )
@@ -105,10 +98,12 @@ data MutableArray s a = MutableArray
   { marray# :: MutableArray# s a }
   deriving ( Typeable )
 
+-- | The number of elements in an immutable array.
 sizeofArray :: Array a -> Int
 sizeofArray a = I# (sizeofArray# (array# a))
 {-# INLINE sizeofArray #-}
 
+-- | The number of elements in a mutable array.
 sizeofMutableArray :: MutableArray s a -> Int
 sizeofMutableArray a = I# (sizeofMutableArray# (marray# a))
 {-# INLINE sizeofMutableArray #-}
@@ -164,7 +159,7 @@ indexArray## arr (I# i) = indexArray# (array# arr) i
 -- >                        writeArray marr i (indexArray arr i) ...
 -- >                        ...
 --
--- But since primitive arrays are lazy, the calls to 'indexArray' will not be
+-- But since the arrays are lazy, the calls to 'indexArray' will not be
 -- evaluated. Rather, @marr@ will be filled with thunks each of which would
 -- retain a reference to @arr@. This is definitely not what we want!
 --
@@ -188,6 +183,9 @@ indexArrayM arr (I# i#)
 --
 -- This operation makes a copy of the specified section, so it is safe to
 -- continue using the mutable array afterward.
+--
+-- /Note:/ The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 freezeArray
   :: PrimMonad m
   => MutableArray (PrimState m) a -- ^ source
@@ -213,6 +211,9 @@ unsafeFreezeArray arr
 --
 -- This operation makes a copy of the specified slice, so it is safe to use the
 -- immutable array afterward.
+--
+-- /Note:/ The provided array should contain the full subrange
+-- specified by the two Ints, but this is not checked.
 thawArray
   :: PrimMonad m
   => Array a -- ^ source
@@ -259,18 +260,15 @@ copyArray (MutableArray dst#) (I# doff#) (Array src#) (I# soff#) (I# len#)
 copyArray !dst !doff !src !soff !len = go 0
   where
     go i | i < len = do
-                       x <- indexArrayM src (soff+i)
-                       writeArray dst (doff+i) x
-                       go (i+1)
+                       x <- indexArrayM src (soff + i)
+                       writeArray dst (doff + i) x
+                       go (i + 1)
          | otherwise = return ()
 #endif
 
 -- | Copy a slice of a mutable array to another array. The two arrays must
 -- not be the same when using this library with GHC versions 7.6 and older.
 -- In GHC 7.8 and newer, overlapping arrays will behave correctly.
---
--- /Note:/ The order of arguments is different from that of 'copyMutableArray#'. The primop
--- has the source first while this wrapper has the destination first.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyMutableArray :: PrimMonad m
@@ -290,16 +288,16 @@ copyMutableArray (MutableArray dst#) (I# doff#)
 copyMutableArray !dst !doff !src !soff !len = go 0
   where
     go i | i < len = do
-                       x <- readArray src (soff+i)
-                       writeArray dst (doff+i) x
-                       go (i+1)
+                       x <- readArray src (soff + i)
+                       writeArray dst (doff + i) x
+                       go (i + 1)
          | otherwise = return ()
 #endif
 
--- | Return a newly allocated Array with the specified subrange of the
--- provided Array.
+-- | Return a newly allocated 'Array' with the specified subrange of the
+-- provided 'Array'.
 --
--- /Note:/ The provided Array should contain the full subrange
+-- /Note:/ The provided array should contain the full subrange
 -- specified by the two Ints, but this is not checked.
 cloneArray :: Array a -- ^ source array
            -> Int     -- ^ offset into destination array
@@ -309,11 +307,11 @@ cloneArray :: Array a -- ^ source array
 cloneArray (Array arr#) (I# off#) (I# len#)
   = case cloneArray# arr# off# len# of arr'# -> Array arr'#
 
--- | Return a newly allocated MutableArray. with the specified subrange of
--- the provided MutableArray. The provided MutableArray should contain the
+-- | Return a newly allocated 'MutableArray'. with the specified subrange of
+-- the provided 'MutableArray'. The provided 'MutableArray' should contain the
 -- full subrange specified by the two Ints, but this is not checked.
 --
--- /Note:/ The provided Array should contain the full subrange
+-- /Note:/ The provided array should contain the full subrange
 -- specified by the two Ints, but this is not checked.
 cloneMutableArray :: PrimMonad m
         => MutableArray (PrimState m) a -- ^ source array
@@ -397,7 +395,7 @@ arrayLiftEq p a1 a2 = sizeofArray a1 == sizeofArray a2 && loop (sizeofArray a1 -
   where loop i | i < 0     = True
                | (# x1 #) <- indexArray## a1 i
                , (# x2 #) <- indexArray## a2 i
-               , otherwise = p x1 x2 && loop (i-1)
+               , otherwise = p x1 x2 && loop (i - 1)
 
 instance Eq a => Eq (Array a) where
   a1 == a2 = arrayLiftEq (==) a1 a2
@@ -423,7 +421,7 @@ arrayLiftCompare elemCompare a1 a2 = loop 0
     | i < mn
     , (# x1 #) <- indexArray## a1 i
     , (# x2 #) <- indexArray## a2 i
-    = elemCompare x1 x2 `mappend` loop (i+1)
+    = elemCompare x1 x2 `mappend` loop (i + 1)
     | otherwise = compare (sizeofArray a1) (sizeofArray a2)
 
 -- | Lexicographic ordering. Subject to change between major versions.
@@ -450,7 +448,7 @@ instance Foldable Array where
       go i
         | i == sz = z
         | (# x #) <- indexArray## ary i
-        = f x (go (i+1))
+        = f x (go (i + 1))
     in go 0
   {-# INLINE foldr #-}
   foldl f = \z !ary ->
@@ -458,7 +456,7 @@ instance Foldable Array where
       go i
         | i < 0 = z
         | (# x #) <- indexArray## ary i
-        = f (go (i-1)) x
+        = f (go (i - 1)) x
     in go (sizeofArray ary - 1)
   {-# INLINE foldl #-}
   foldr1 f = \ !ary ->
@@ -467,7 +465,7 @@ instance Foldable Array where
       go i =
         case indexArray## ary i of
           (# x #) | i == sz -> x
-                  | otherwise -> f x (go (i+1))
+                  | otherwise -> f x (go (i + 1))
     in if sz < 0
        then die "foldr1" "empty array"
        else go 0
@@ -489,7 +487,7 @@ instance Foldable Array where
       go i !acc
         | i == -1 = acc
         | (# x #) <- indexArray## ary i
-        = go (i-1) (f x acc)
+        = go (i - 1) (f x acc)
     in go (sizeofArray ary - 1) z
   {-# INLINE foldr' #-}
   foldl' f = \z !ary ->
@@ -498,7 +496,7 @@ instance Foldable Array where
       go i !acc
         | i == sz = acc
         | (# x #) <- indexArray## ary i
-        = go (i+1) (f acc x)
+        = go (i + 1) (f acc x)
     in go 0 z
   {-# INLINE foldl' #-}
 #endif
@@ -515,7 +513,7 @@ instance Foldable Array where
      go i !e
        | i == sz = e
        | (# x #) <- indexArray## ary i
-       = go (i+1) (max e x)
+       = go (i + 1) (max e x)
   {-# INLINE maximum #-}
   minimum ary | sz == 0   = die "minimum" "empty array"
               | (# frst #) <- indexArray## ary 0
@@ -524,7 +522,7 @@ instance Foldable Array where
          go i !e
            | i == sz = e
            | (# x #) <- indexArray## ary i
-           = go (i+1) (min e x)
+           = go (i + 1) (min e x)
   {-# INLINE minimum #-}
   sum = foldl' (+) 0
   {-# INLINE sum #-}
@@ -532,7 +530,7 @@ instance Foldable Array where
   {-# INLINE product #-}
 #endif
 
-newtype STA a = STA {_runSTA :: forall s. MutableArray# s a -> ST s (Array a)}
+newtype STA a = STA { _runSTA :: forall s. MutableArray# s a -> ST s (Array a) }
 
 runSTA :: Int -> STA a -> Array a
 runSTA !sz = \ (STA m) -> runST $ newArray_ sz >>= \ ar -> m (marray# ar)
@@ -564,8 +562,8 @@ traverseArray f = \ !ary ->
                   writeArray (MutableArray mary) i b >> m mary)
                (f x) (go (i + 1))
   in if len == 0
-     then pure emptyArray
-     else runSTA len <$> go 0
+    then pure emptyArray
+    else runSTA len <$> go 0
 {-# INLINE [1] traverseArray #-}
 
 {-# RULES
@@ -585,7 +583,7 @@ traverseArray f = \ !ary ->
 -- | This is the fastest, most straightforward way to traverse
 -- an array, but it only works correctly with a sufficiently
 -- "affine" 'PrimMonad' instance. In particular, it must only produce
--- *one* result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- /one/ result array. 'Control.Monad.Trans.List.ListT'-transformed
 -- monads, for example, will not work right at all.
 traverseArrayP
   :: PrimMonad m
@@ -620,12 +618,12 @@ mapArray' f a =
                   -- We use indexArrayM here so that we will perform the
                   -- indexing eagerly even if f is lazy.
                   let !y = f x
-                  writeArray mb i y >> go (i+1)
+                  writeArray mb i y >> go (i + 1)
      in go 0
 {-# INLINE mapArray' #-}
 
 -- | Create an array from a list of a known length. If the length
---   of the list does not match the given length, this throws an exception.
+-- of the list does not match the given length, this throws an exception.
 arrayFromListN :: Int -> [a] -> Array a
 arrayFromListN n l =
   createArray n (die "fromListN" "uninitialized element") $ \sma ->
@@ -664,7 +662,7 @@ instance Functor Array where
                = return ()
                | otherwise
                = do x <- indexArrayM a i
-                    writeArray mb i (f x) >> go (i+1)
+                    writeArray mb i (f x) >> go (i + 1)
        in go 0
 #if MIN_VERSION_base(4,8,0)
   e <$ a = createArray (sizeofArray a) e (\ !_ -> pure ())
@@ -707,7 +705,7 @@ instance Alternative Array where
   empty = emptyArray
   a1 <|> a2 = createArray (sza1 + sza2) (die "<|>" "impossible") $ \ma ->
     copyArray ma 0 a1 0 sza1 >> copyArray ma sza1 a2 0 sza2
-   where sza1 = sizeofArray a1 ; sza2 = sizeofArray a2
+   where sza1 = sizeofArray a1; sza2 = sizeofArray a2
   some a | sizeofArray a == 0 = emptyArray
          | otherwise = die "some" "infinite arrays are not well defined"
   many a | sizeofArray a == 0 = pure []
@@ -722,26 +720,26 @@ instance Monad Array where
   return = pure
   (>>) = (*>)
 
-  ary >>= f = collect 0 EmptyStack (la-1)
+  ary >>= f = collect 0 EmptyStack (la - 1)
    where
-   la = sizeofArray ary
-   collect sz stk i
-     | i < 0 = createArray sz (die ">>=" "impossible") $ fill 0 stk
-     | (# x #) <- indexArray## ary i
-     , let sb = f x
-           lsb = sizeofArray sb
-       -- If we don't perform this check, we could end up allocating
-       -- a stack full of empty arrays if someone is filtering most
-       -- things out. So we refrain from pushing empty arrays.
-     = if lsb == 0
-       then collect sz stk (i - 1)
-       else collect (sz + lsb) (PushArray sb stk) (i-1)
+    la = sizeofArray ary
+    collect sz stk i
+      | i < 0 = createArray sz (die ">>=" "impossible") $ fill 0 stk
+      | (# x #) <- indexArray## ary i
+      , let sb = f x
+            lsb = sizeofArray sb
+        -- If we don't perform this check, we could end up allocating
+        -- a stack full of empty arrays if someone is filtering most
+        -- things out. So we refrain from pushing empty arrays.
+      = if lsb == 0
+        then collect sz stk (i - 1)
+        else collect (sz + lsb) (PushArray sb stk) (i - 1)
 
-   fill _   EmptyStack         _   = return ()
-   fill off (PushArray sb sbs) smb
-     | let lsb = sizeofArray sb
-     = copyArray smb off sb 0 (lsb)
-         *> fill (off + lsb) sbs smb
+    fill _ EmptyStack _ = return ()
+    fill off (PushArray sb sbs) smb
+      | let lsb = sizeofArray sb
+      = copyArray smb off sb 0 lsb
+          *> fill (off + lsb) sbs smb
 
 #if !(MIN_VERSION_base(4,13,0))
   fail = Fail.fail
@@ -761,13 +759,12 @@ zipW s f aa ab = createArray mn (die s "impossible") $ \mc ->
                x <- indexArrayM aa i
                y <- indexArrayM ab i
                writeArray mc i (f x y)
-               go (i+1)
+               go (i + 1)
            | otherwise = return ()
    in go 0
  where mn = sizeofArray aa `min` sizeofArray ab
 {-# INLINE zipW #-}
 
-#if MIN_VERSION_base(4,4,0)
 instance MonadZip Array where
   mzip aa ab = zipW "mzip" (,) aa ab
   mzipWith f aa ab = zipW "mzipWith" f aa ab
@@ -779,11 +776,10 @@ instance MonadZip Array where
           (a, b) <- indexArrayM aab i
           writeArray ma i a
           writeArray mb i b
-          go (i+1)
+          go (i + 1)
         go _ = return ()
     go 0
     (,) <$> unsafeFreezeArray ma <*> unsafeFreezeArray mb
-#endif
 
 instance MonadFix Array where
   mfix f = createArray (sizeofArray (f err))
