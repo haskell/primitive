@@ -78,7 +78,7 @@ class Monad m => PrimMonad m where
 
 -- | Class of primitive monads for state-transformer actions.
 --
--- Unlike 'PrimMonad', this typeclass requires the @Monad@ to be fully
+-- Unlike 'PrimMonad', this typeclass requires that the @Monad@ be fully
 -- expressed as a state transformer, therefore disallowing other monad
 -- transformers on top of the base @IO@ or @ST@.
 --

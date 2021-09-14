@@ -18,12 +18,12 @@
 --
 -- Basic types and classes for primitive array operations.
 
-module Data.Primitive.Types (
-  Prim(..),
-  sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#,
-  PrimStorable(..),
-  Ptr(..)
-) where
+module Data.Primitive.Types
+  ( Prim(..)
+  , sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#
+  , PrimStorable(..)
+  , Ptr(..)
+  ) where
 
 import Control.Monad.Primitive
 import Data.Primitive.MachDeps

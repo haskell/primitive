@@ -463,7 +463,7 @@ sizeofSmallMutableArray (SmallMutableArray ma) = sizeofMutableArray ma
 -- | This is the fastest, most straightforward way to traverse
 -- an array, but it only works correctly with a sufficiently
 -- "affine" 'PrimMonad' instance. In particular, it must only produce
--- __one__ result array. 'Control.Monad.Trans.List.ListT'-transformed
+-- /one/ result array. 'Control.Monad.Trans.List.ListT'-transformed
 -- monads, for example, will not work right at all.
 traverseSmallArrayP
   :: PrimMonad m

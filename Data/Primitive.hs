@@ -11,17 +11,17 @@
 --
 -- Reexports all primitive operations.
 
-module Data.Primitive (
-  -- * Re-exports
-  module Data.Primitive.Types,
-  module Data.Primitive.Array,
-  module Data.Primitive.ByteArray,
-  module Data.Primitive.SmallArray,
-  module Data.Primitive.PrimArray,
-  module Data.Primitive.MutVar
+module Data.Primitive
+  ( -- * Re-exports
+    module Data.Primitive.Types
+  , module Data.Primitive.Array
+  , module Data.Primitive.ByteArray
+  , module Data.Primitive.SmallArray
+  , module Data.Primitive.PrimArray
+  , module Data.Primitive.MutVar
   -- * Naming Conventions
   -- $namingConventions
-) where
+  ) where
 
 import Data.Primitive.Types
 import Data.Primitive.Array
