@@ -33,9 +33,6 @@ import GHC.ST     ( ST(..) )
 import qualified Control.Monad.ST.Lazy as L
 
 import Control.Monad.Trans.Class (lift)
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (Monoid)
-#endif
 
 import Control.Monad.Trans.Cont     ( ContT    )
 import Control.Monad.Trans.Identity ( IdentityT (IdentityT) )
@@ -50,9 +47,7 @@ import Control.Monad.Trans.List     ( ListT    )
 import Control.Monad.Trans.Error    ( ErrorT, Error)
 #endif
 
-#if MIN_VERSION_transformers(0,4,0)
 import Control.Monad.Trans.Except   ( ExceptT  )
-#endif
 
 #if MIN_VERSION_transformers(0,5,3)
 import Control.Monad.Trans.Accum    ( AccumT   )
@@ -171,20 +166,15 @@ instance (Monoid w, PrimMonad m) => PrimMonad (CPS.RWST r w s m) where
   {-# INLINE primitive #-}
 #endif
 
-#if MIN_VERSION_transformers(0,4,0)
 instance PrimMonad m => PrimMonad (ExceptT e m) where
   type PrimState (ExceptT e m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
-#endif
 
 #if MIN_VERSION_transformers(0,5,3)
 -- | @since 0.6.3.0
 instance ( Monoid w
          , PrimMonad m
-# if !(MIN_VERSION_base(4,8,0))
-         , Functor m
-# endif
          ) => PrimMonad (AccumT w m) where
   type PrimState (AccumT w m) = PrimState m
   primitive = lift . primitive
@@ -349,13 +339,7 @@ touch x = unsafePrimToPrim
 --
 -- @since 0.6.2.0
 evalPrim :: forall a m . PrimMonad m => a -> m a
-#if MIN_VERSION_base(4,4,0)
 evalPrim a = primitive (\s -> seq# a s)
-#else
--- This may or may not work so well, but there's probably nothing better to do.
-{-# NOINLINE evalPrim #-}
-evalPrim a = unsafePrimToPrim (evaluate a :: IO a)
-#endif
 
 noDuplicate :: PrimMonad m => m ()
 #if __GLASGOW_HASKELL__ >= 802

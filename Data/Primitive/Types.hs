@@ -37,33 +37,21 @@ import GHC.Int (Int8(..), Int16(..), Int32(..), Int64(..))
 
 import GHC.Stable (StablePtr(..))
 
-import GHC.Exts
-#if __GLASGOW_HASKELL__ >= 706
-    hiding (setByteArray#)
-#endif
+import GHC.Exts hiding (setByteArray#)
 
-import Data.Primitive.Internal.Compat (isTrue#)
 import Foreign.Storable (Storable)
 
 
 import qualified Foreign.Storable as FS
 
-#if __GLASGOW_HASKELL__ >= 710
 import GHC.IO (IO(..))
 import qualified GHC.Exts
-#endif
 
 
 import Control.Applicative (Const(..))
-#if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
-#endif
-#if MIN_VERSION_base(4,6,0)
 import Data.Ord (Down(..))
-#else
-import GHC.Exts (Down(..))
-#endif
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Semigroup
 #endif
@@ -250,18 +238,13 @@ shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word8# -> IO ()
 shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.word2Int# (GHC.Exts.word8ToWord# w)) (liberate# s)), () #))
 shimmedSetInt8Array# :: MutableByteArray# s -> Int -> Int -> Int8# -> IO ()
 shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.int8ToInt# i) (liberate# s)), () #))
-#elif __GLASGOW_HASKELL__ >= 710
+#else
 liberate# :: State# s -> State# r
 liberate# = unsafeCoerce#
 shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word# -> IO ()
 shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.word2Int# w) (liberate# s)), () #))
 shimmedSetInt8Array# :: MutableByteArray# s -> Int -> Int -> Int# -> IO ()
 shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len i (liberate# s)), () #))
-#else
-shimmedSetWord8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()
-shimmedSetWord8Array# = setWord8Array#
-shimmedSetInt8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
-shimmedSetInt8Array# = setInt8Array#
 #endif
 
 unI# :: Int -> Int#
@@ -453,7 +436,6 @@ instance Prim IntPtr where
 deriving instance Prim a => Prim (Const a b)
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Down a)
-#if MIN_VERSION_base(4,8,0)
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Identity a)
 -- | @since 0.6.5.0
@@ -462,7 +444,6 @@ deriving instance Prim a => Prim (Monoid.Dual a)
 deriving instance Prim a => Prim (Monoid.Sum a)
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Monoid.Product a)
-#endif
 #if MIN_VERSION_base(4,9,0)
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Semigroup.First a)

@@ -28,18 +28,9 @@ import Data.Function (on)
 import Control.Applicative (Const(..))
 import PrimLaws (primLaws)
 
-#if !(MIN_VERSION_base(4,8,0))
-import Data.Monoid (Monoid(..))
-#endif
-#if MIN_VERSION_base(4,8,0)
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
-#endif
-#if MIN_VERSION_base(4,6,0)
 import Data.Ord (Down(..))
-#else
-import GHC.Exts (Down(..))
-#endif
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (stimes)
 import qualified Data.Semigroup as Semigroup
@@ -70,17 +61,13 @@ main = do
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 Array))
       , lawsToTest (QCC.traversableLaws (Proxy1 :: Proxy1 Array))
-#endif
-#if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
       , TQC.testProperty "mapArray'" (QCCL.mapProp int16 int32 mapArray')
-#endif
       , TQC.testProperty "*>" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs *> ys) === (toList xs *> toList ys)
       , TQC.testProperty "<*" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs <* ys) === (toList xs <* toList ys)
       ]
@@ -89,17 +76,13 @@ main = do
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,4,0)
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 SmallArray))
       , lawsToTest (QCC.traversableLaws (Proxy1 :: Proxy1 SmallArray))
-#endif
-#if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
       , TQC.testProperty "mapSmallArray'" (QCCL.mapProp int16 int32 mapSmallArray')
-#endif
       , TQC.testProperty "*>" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs *> ys) === (toList xs *> toList ys)
       , TQC.testProperty "<*" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs <* ys) === (toList xs <* toList ys)
       ]
@@ -127,16 +110,13 @@ main = do
       , lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
-#if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
       , TQC.testProperty "foldrByteArray" (QCCL.foldrProp word8 foldrByteArray)
-#endif
       ]
     , testGroup "PrimArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (PrimArray Word16)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (PrimArray Word16)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (PrimArray Word16)))
-#if MIN_VERSION_base(4,7,0)
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (PrimArray Word16)))
       , TQC.testProperty "foldrPrimArray" (QCCL.foldrProp int16 foldrPrimArray)
       , TQC.testProperty "foldrPrimArray'" (QCCL.foldrProp int16 foldrPrimArray')
@@ -161,7 +141,6 @@ main = do
       , TQC.testProperty "mapMaybePrimArray" (QCCL.mapMaybeProp int16 int32 mapMaybePrimArray)
       , TQC.testProperty "mapMaybePrimArrayA" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayA)
       , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
-#endif
       ]
     , testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
@@ -184,12 +163,10 @@ main = do
       , renameLawsToTest "Int64" (primLaws (Proxy :: Proxy Int64))
       , renameLawsToTest "Const" (primLaws (Proxy :: Proxy (Const Int16 Int16)))
       , renameLawsToTest "Down" (primLaws (Proxy :: Proxy (Down Int16)))
-#if MIN_VERSION_base(4,8,0)
       , renameLawsToTest "Identity" (primLaws (Proxy :: Proxy (Identity Int16)))
       , renameLawsToTest "Dual" (primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
       , renameLawsToTest "Sum" (primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
       , renameLawsToTest "Product" (primLaws (Proxy :: Proxy (Monoid.Product Int16)))
-#endif
 #if MIN_VERSION_base(4,9,0)
       , renameLawsToTest "First" (primLaws (Proxy :: Proxy (Semigroup.First Int16)))
       , renameLawsToTest "Last" (primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
