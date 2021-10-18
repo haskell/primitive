@@ -1,5 +1,7 @@
 ## Changes in version 0.7.3.0
 
+  * Correct implementations of `*>` for `Array` and `SmallArray`.
+
   * Drop support for GHC < 7.10
 
   * Export `runByteArray` and `runPrimArray`.
