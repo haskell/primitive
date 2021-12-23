@@ -32,7 +32,7 @@ import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
 import Data.Ord (Down(..))
 #if MIN_VERSION_base(4,9,0)
-import Data.Semigroup (stimes)
+import Data.Semigroup (stimes, stimesMonoid)
 import qualified Data.Semigroup as Semigroup
 #endif
 #if !(MIN_VERSION_base(4,11,0))
@@ -59,6 +59,7 @@ main = do
     [ testGroup "Array"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
+      , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
@@ -70,10 +71,14 @@ main = do
       , TQC.testProperty "mapArray'" (QCCL.mapProp int16 int32 mapArray')
       , TQC.testProperty "*>" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs *> ys) === (toList xs *> toList ys)
       , TQC.testProperty "<*" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs <* ys) === (toList xs <* toList ys)
+#if MIN_VERSION_base(4,9,0)
+      , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: Array Int) -> stimes n xs == stimesMonoid n xs
+#endif
       ]
     , testGroup "SmallArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (SmallArray Int)))
+      , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
@@ -85,6 +90,9 @@ main = do
       , TQC.testProperty "mapSmallArray'" (QCCL.mapProp int16 int32 mapSmallArray')
       , TQC.testProperty "*>" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs *> ys) === (toList xs *> toList ys)
       , TQC.testProperty "<*" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs <* ys) === (toList xs <* toList ys)
+#if MIN_VERSION_base(4,9,0)
+      , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: SmallArray Int) -> stimes n xs == stimesMonoid n xs
+#endif
       ]
     , testGroup "ByteArray"
       [ testGroup "Ordering"
@@ -109,13 +117,19 @@ main = do
         ]
       , lawsToTest (QCC.eqLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy ByteArray))
+      , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy ByteArray))
+      , lawsToTest (QCC.monoidLaws (Proxy :: Proxy ByteArray))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
       , TQC.testProperty "foldrByteArray" (QCCL.foldrProp word8 foldrByteArray)
+#if MIN_VERSION_base(4,9,0)
+      , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: ByteArray) -> stimes n xs == stimesMonoid n xs
+#endif
       ]
     , testGroup "PrimArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (PrimArray Word16)))
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (PrimArray Word16)))
+      , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy (PrimArray Word16)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (PrimArray Word16)))
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (PrimArray Word16)))
       , TQC.testProperty "foldrPrimArray" (QCCL.foldrProp int16 foldrPrimArray)
@@ -141,6 +155,9 @@ main = do
       , TQC.testProperty "mapMaybePrimArray" (QCCL.mapMaybeProp int16 int32 mapMaybePrimArray)
       , TQC.testProperty "mapMaybePrimArrayA" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayA)
       , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
+#if MIN_VERSION_base(4,9,0)
+      , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: PrimArray Word16) -> stimes n xs == stimesMonoid n xs
+#endif
       ]
     , testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
