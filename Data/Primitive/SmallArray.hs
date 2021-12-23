@@ -767,6 +767,17 @@ instance MonadFix SmallArray where
 instance Sem.Semigroup (SmallArray a) where
   (<>) = (<|>)
   sconcat = mconcat . toList
+  stimes n arr = case compare n 0 of
+    LT -> die "stimes" "negative multiplier"
+    EQ -> empty
+    GT -> createSmallArray (n' * sizeofSmallArray arr) (die "stimes" "impossible") $ \sma ->
+      let go i = if i < n'
+            then do
+              copySmallArray sma (i * sizeofSmallArray arr) arr 0 (sizeofSmallArray arr)
+              go (i + 1)
+            else return ()
+      in go 0
+    where n' = fromIntegral n :: Int
 #endif
 
 instance Monoid (SmallArray a) where

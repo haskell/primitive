@@ -682,11 +682,10 @@ replicateByteArray n arr = runST $ do
 instance SG.Semigroup ByteArray where
   (<>) = appendByteArray
   sconcat = mconcat . F.toList
-  stimes i arr
-    | itgr < 1 = emptyByteArray
-    | itgr <= fromIntegral (maxBound :: Int) = replicateByteArray (fromIntegral itgr) arr
-    | otherwise = error "Data.Primitive.ByteArray#stimes: cannot allocate the requested amount of memory"
-    where itgr = toInteger i :: Integer
+  stimes n arr = case compare n 0 of
+    LT -> die "stimes" "negative multiplier"
+    EQ -> emptyByteArray
+    GT -> replicateByteArray (fromIntegral n) arr
 #endif
 
 instance Monoid ByteArray where
