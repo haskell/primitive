@@ -37,7 +37,7 @@ module Data.Primitive.Ptr (
 import Control.Monad.Primitive
 import Data.Primitive.Types
 import Data.Primitive.PrimArray (MutablePrimArray(..))
-import Data.Primitive.ByteArray (MutableByteArray(..))
+import Data.Primitive.ByteArray (copyPtrToMutableByteArray)
 
 import GHC.Exts
 import GHC.Ptr
@@ -114,20 +114,6 @@ copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   -> m ()
 {-# INLINE copyPtrToMutablePrimArray #-}
 copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
-  primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
-  where
-  siz# = sizeOf# (undefined :: a)
-
--- | Copy from a pointer to a mutable byte array.
--- The offset and length are given in elements of type @a@.
-copyPtrToMutableByteArray :: forall m a. (PrimMonad m, Prim a)
-  => MutableByteArray (PrimState m) -- ^ destination array
-  -> Int   -- ^ destination offset given in elements of type @a@
-  -> Ptr a -- ^ source pointer
-  -> Int   -- ^ number of elements
-  -> m ()
-{-# INLINE copyPtrToMutableByteArray #-}
-copyPtrToMutableByteArray (MutableByteArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
   primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
   where
   siz# = sizeOf# (undefined :: a)

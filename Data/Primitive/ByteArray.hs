@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 -- |
 -- Module      : Data.Primitive.ByteArray
@@ -47,6 +48,7 @@ module Data.Primitive.ByteArray (
   copyByteArray, copyMutableByteArray,
   copyByteArrayToPtr, copyMutableByteArrayToPtr,
   copyByteArrayToAddr, copyMutableByteArrayToAddr,
+  copyPtrToMutableByteArray,
   moveByteArray,
   setByteArray, fillByteArray,
   cloneByteArray, cloneMutableByteArray,
@@ -72,26 +74,20 @@ import Foreign.C.Types
 import Data.Word ( Word8 )
 import Data.Bits ( (.&.), unsafeShiftR )
 import GHC.Show ( intToDigit )
-import qualified GHC.Exts as Exts ( IsList(..) )
+import qualified GHC.Exts as Exts
 import GHC.Exts hiding (setByteArray#)
 
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..), mkNoRepType )
+import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Haskell.TH.Lib as TH
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as SG
 import qualified Data.Foldable as F
 #endif
 
-#if __GLASGOW_HASKELL__ >= 802
-import GHC.Exts as Exts (isByteArrayPinned#,isMutableByteArrayPinned#)
-#endif
-
-#if __GLASGOW_HASKELL__ >= 804
-import GHC.Exts (compareByteArrays#)
-#else
-import System.IO.Unsafe (unsafeDupablePerformIO)
-#endif
+import System.IO.Unsafe (unsafePerformIO, unsafeDupablePerformIO)
 
 -- | Byte arrays.
 data ByteArray = ByteArray ByteArray# deriving ( Typeable )
@@ -99,6 +95,60 @@ data ByteArray = ByteArray ByteArray# deriving ( Typeable )
 -- | Mutable byte arrays associated with a primitive state token.
 data MutableByteArray s = MutableByteArray (MutableByteArray# s)
   deriving ( Typeable )
+
+-- | Respects array pinnedness for GHC >= 8.2
+instance TH.Lift ByteArray where
+#if MIN_VERSION_template_haskell(2,17,0)
+  liftTyped ba = TH.unsafeCodeCoerce (TH.lift ba)
+#elif MIN_VERSION_template_haskell(2,16,0)
+  liftTyped ba = TH.unsafeTExpCoerce (TH.lift ba)
+#endif
+
+  lift ba =
+    TH.appE
+      (if small
+         then [| fromLitAddrSmall# pinned len |]
+         else [| fromLitAddrLarge# pinned len |])
+      (TH.litE (TH.stringPrimL (toList ba)))
+    where
+      -- Pin it if the original was pinned; otherwise don't. This seems more
+      -- logical to me than the alternatives. Anyone who wants a different
+      -- pinnedness can just copy the compile-time byte array to one that
+      -- matches what they want at run-time.
+#if __GLASGOW_HASKELL__ >= 802
+      pinned = isByteArrayPinned ba
+#else
+      pinned = False
+#endif
+      len = sizeofByteArray ba
+      small = len <= 2048
+
+-- I don't think inlining these can be very helpful, so let's not
+-- do it.
+{-# NOINLINE fromLitAddrSmall# #-}
+fromLitAddrSmall# :: Bool -> Int -> Addr# -> ByteArray
+fromLitAddrSmall# pinned len ptr = inline (fromLitAddr# True pinned len ptr)
+
+{-# NOINLINE fromLitAddrLarge# #-}
+fromLitAddrLarge# :: Bool -> Int -> Addr# -> ByteArray
+fromLitAddrLarge# pinned len ptr = inline (fromLitAddr# False pinned len ptr)
+
+fromLitAddr# :: Bool -> Bool -> Int -> Addr# -> ByteArray
+fromLitAddr# small pinned !len !ptr = upIO $ do
+  mba <- if pinned
+         then newPinnedByteArray len
+         else newByteArray len
+  copyPtrToMutableByteArray mba 0 (Ptr ptr :: Ptr Word8) len
+  unsafeFreezeByteArray mba
+  where
+    -- We don't care too much about duplication if the byte arrays are
+    -- small. If they're large, we do. Since we don't allocate while
+    -- we copy (we do it with a primop!), I don't believe the thunk
+    -- deduplication mechanism can help us if two threads just happen
+    -- to try to build the ByteArray at the same time.
+    upIO
+      | small = unsafeDupablePerformIO
+      | otherwise = unsafePerformIO
 
 instance NFData ByteArray where
   rnf (ByteArray _) = ()
@@ -412,6 +462,23 @@ copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
   = primitive_ (copyByteArrayToAddr# src# (unI# soff *# siz# ) dst# (unI# sz))
   where
   siz# = sizeOf# (undefined :: a)
+
+-- | Copy from an unmanaged pointer address to a byte array. These must not
+-- overlap. The offset and length are given in elements, not in bytes.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
+copyPtrToMutableByteArray :: forall m a. (PrimMonad m, Prim a)
+  => MutableByteArray (PrimState m) -- ^ destination array
+  -> Int   -- ^ destination offset given in elements of type @a@
+  -> Ptr a -- ^ source pointer
+  -> Int   -- ^ number of elements
+  -> m ()
+{-# INLINE copyPtrToMutableByteArray #-}
+copyPtrToMutableByteArray (MutableByteArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
+  primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
+  where
+  siz# = sizeOf# (undefined :: a)
+
 
 -- | Copy a slice of a mutable byte array to an unmanaged pointer address.
 -- These must not overlap. The offset and length are given in elements, not

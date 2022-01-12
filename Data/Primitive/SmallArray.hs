@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 -- |
 -- Module : Data.Primitive.SmallArray
@@ -93,6 +94,7 @@ import GHC.Base (runRW#)
 #endif
 
 import Data.Functor.Classes (Eq1(..), Ord1(..), Show1(..), Read1(..))
+import Language.Haskell.TH.Syntax (Lift(..))
 
 data SmallArray a = SmallArray (SmallArray# a)
   deriving Typeable
@@ -107,6 +109,33 @@ instance NFData a => NFData (SmallArray a) where
 
 data SmallMutableArray s a = SmallMutableArray (SmallMutableArray# s a)
   deriving Typeable
+
+instance Lift a => Lift (SmallArray a) where
+#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped ary
+    | len == 0 = [|| SmallArray (emptySmallArray# (##)) ||]
+    | len == 1 = [|| pure frst ||]
+    | otherwise = [|| unsafeSmallArrayFromListN' len lst ||]
+#else
+  lift ary = [| unsafeSmallArrayFromListN' len lst |]
+#endif
+    where
+      len = length ary
+      lst = toList ary
+      frst = ary `indexSmallArray` 0
+
+-- | Strictly create an array from a list of a known length. If the length
+-- of the list does not match the given length, this makes demons fly
+-- out of your nose. We use it in the 'Lift' instance. If you edit the
+-- splice and break it, you get to keep both pieces.
+unsafeSmallArrayFromListN' :: Int -> [a] -> SmallArray a
+unsafeSmallArrayFromListN' n l =
+  createSmallArray n (die "fromListN" "uninitialized element") $ \sma ->
+    let go !_ix [] = return ()
+        go !ix (!x : xs) = do
+            writeSmallArray sma ix x
+            go (ix+1) xs
+    in go 0 l
 
 -- | Create a new small mutable array.
 --
