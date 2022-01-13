@@ -118,7 +118,7 @@ instance TH.Lift ByteArray where
 #if __GLASGOW_HASKELL__ >= 802
       pinned = isByteArrayPinned ba
 #else
-      pinned = False
+      pinned = True
 #endif
       len = sizeofByteArray ba
       small = len <= 2048
