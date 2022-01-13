@@ -331,17 +331,21 @@ shrinkMutableByteArray (MutableByteArray arr#) (I# n#)
 
 #if __GLASGOW_HASKELL__ >= 802
 -- | Check whether or not the byte array is pinned. Pinned byte arrays cannot
--- be moved by the garbage collector. It is safe to use 'byteArrayContents'
--- on such byte arrays. This function is only available when compiling with
--- GHC 8.2 or newer.
+-- be moved by the garbage collector. It is safe to use 'byteArrayContents' on
+-- such byte arrays.
+--
+-- Caution: This function is only available when compiling with GHC 8.2 or
+-- newer.
 --
 -- @since 0.6.4.0
 isByteArrayPinned :: ByteArray -> Bool
 {-# INLINE isByteArrayPinned #-}
 isByteArrayPinned (ByteArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
 
--- | Check whether or not the mutable byte array is pinned. This function is
--- only available when compiling with GHC 8.2 or newer.
+-- | Check whether or not the mutable byte array is pinned.
+--
+-- Caution: This function is only available when compiling with GHC 8.2 or
+-- newer.
 --
 -- @since 0.6.4.0
 isMutableByteArrayPinned :: MutableByteArray s -> Bool
