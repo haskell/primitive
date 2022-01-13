@@ -77,12 +77,12 @@ instance Lift a => Lift (Array a) where
 #if MIN_VERSION_template_haskell(2,16,0)
   liftTyped ary = case lst of
     [] -> [|| Array (emptyArray# (##)) ||]
-    [x] -> [|| pure x ||]
+    [x] -> [|| pure $! x ||]
     x : xs -> [|| unsafeArrayFromListN' len x xs ||]
 #else
   lift ary = case lst of
     [] -> [| Array (emptyArray# (##)) |]
-    [x] -> [| pure x |]
+    [x] -> [| pure $! x |]
     x : xs -> [| unsafeArrayFromListN' len x xs |]
 #endif
     where
