@@ -28,16 +28,14 @@ module Data.Primitive.Ptr (
   -- * Block operations
   copyPtr, movePtr, setPtr
 
-#if __GLASGOW_HASKELL__ >= 708
   , copyPtrToMutablePrimArray
   , copyPtrToMutableByteArray
-#endif
 ) where
 
 import Control.Monad.Primitive
 import Data.Primitive.Types
-import Data.Primitive.PrimArray (MutablePrimArray(..))
-import Data.Primitive.ByteArray (MutableByteArray(..))
+import Data.Primitive.PrimArray (copyPtrToMutablePrimArray)
+import Data.Primitive.ByteArray (copyPtrToMutableByteArray)
 
 import GHC.Exts
 import GHC.Ptr
@@ -102,32 +100,3 @@ movePtr (Ptr dst#) (Ptr src#) n
 setPtr :: (Prim a, PrimMonad m) => Ptr a -> Int -> a -> m ()
 {-# INLINE setPtr #-}
 setPtr (Ptr addr#) (I# n#) x = primitive_ (setOffAddr# addr# 0# n# x)
-
-
--- | Copy from a pointer to a mutable primitive array.
--- The offset and length are given in elements of type @a@.
-copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
-  => MutablePrimArray (PrimState m) a -- ^ destination array
-  -> Int -- ^ destination offset
-  -> Ptr a -- ^ source pointer
-  -> Int -- ^ number of elements
-  -> m ()
-{-# INLINE copyPtrToMutablePrimArray #-}
-copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
-  primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
-  where
-  siz# = sizeOf# (undefined :: a)
-
--- | Copy from a pointer to a mutable byte array.
--- The offset and length are given in elements of type @a@.
-copyPtrToMutableByteArray :: forall m a. (PrimMonad m, Prim a)
-  => MutableByteArray (PrimState m) -- ^ destination array
-  -> Int   -- ^ destination offset given in elements of type @a@
-  -> Ptr a -- ^ source pointer
-  -> Int   -- ^ number of elements
-  -> m ()
-{-# INLINE copyPtrToMutableByteArray #-}
-copyPtrToMutableByteArray (MutableByteArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
-  primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
-  where
-  siz# = sizeOf# (undefined :: a)

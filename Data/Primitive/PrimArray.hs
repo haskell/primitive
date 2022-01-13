@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 -- |
 -- Module      : Data.Primitive.PrimArray
@@ -50,6 +51,7 @@ module Data.Primitive.PrimArray
   , copyMutablePrimArray
   , copyPrimArrayToPtr
   , copyMutablePrimArrayToPtr
+  , copyPtrToMutablePrimArray
   , clonePrimArray
   , cloneMutablePrimArray
   , setPrimArray
@@ -116,6 +118,7 @@ import qualified Data.List as L
 import qualified Data.Primitive.ByteArray as PB
 import qualified Data.Primitive.Types as PT
 import qualified GHC.ST as GHCST
+import Language.Haskell.TH.Syntax (Lift (..))
 
 #if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (Semigroup)
@@ -132,6 +135,15 @@ import qualified GHC.Exts as Exts
 -- in its elements. This differs from the behavior of 'Data.Primitive.Array.Array',
 -- which is lazy in its elements.
 data PrimArray a = PrimArray ByteArray#
+
+instance Lift (PrimArray a) where
+#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped ary = [|| byteArrayToPrimArray ba ||]
+#else
+  lift ary = [| byteArrayToPrimArray ba |]
+#endif
+    where
+      ba = primArrayToByteArray ary
 
 instance NFData (PrimArray a) where
   rnf (PrimArray _) = ()
@@ -407,6 +419,24 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
         let s'# = copyMutableByteArrayToAddr# mba# (soff# *# siz#) addr# (n# *# siz#) s#
         in (# s'#, () #))
   where siz# = sizeOf# (undefined :: a)
+
+-- | Copy from a pointer to a mutable primitive array.
+-- The offset and length are given in elements of type @a@.
+-- This function assumes that the 'Prim' instance of @a@
+-- agrees with the 'Storable' instance.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
+copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
+  => MutablePrimArray (PrimState m) a -- ^ destination array
+  -> Int -- ^ destination offset
+  -> Ptr a -- ^ source pointer
+  -> Int -- ^ number of elements
+  -> m ()
+{-# INLINE copyPtrToMutablePrimArray #-}
+copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
+  primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
+  where
+  siz# = sizeOf# (undefined :: a)
 
 -- | Fill a slice of a mutable primitive array with a value.
 --

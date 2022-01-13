@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 -- |
 -- Module      : Data.Primitive.Array
@@ -65,11 +66,42 @@ import qualified Text.ParserCombinators.ReadPrec as RdPrc
 import Text.ParserCombinators.ReadP
 
 import Data.Functor.Classes (Eq1(..), Ord1(..), Show1(..), Read1(..))
+import Language.Haskell.TH.Syntax (Lift (..))
 
 -- | Boxed arrays.
 data Array a = Array
   { array# :: Array# a }
   deriving ( Typeable )
+
+instance Lift a => Lift (Array a) where
+#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped ary = case lst of
+    [] -> [|| Array (emptyArray# (##)) ||]
+    [x] -> [|| pure x ||]
+    x : xs -> [|| unsafeArrayFromListN' len x xs ||]
+#else
+  lift ary = case lst of
+    [] -> [| Array (emptyArray# (##)) |]
+    [x] -> [| pure x |]
+    x : xs -> [| unsafeArrayFromListN' len x xs |]
+#endif
+    where
+      len = length ary
+      lst = toList ary
+
+-- | Strictly create an array from a nonempty list (represented as
+-- a first element and a list of the rest) of a known length. If the length
+-- of the list does not match the given length, this makes demons fly
+-- out of your nose. We use it in the 'Lift' instance. If you edit the
+-- splice and break it, you get to keep both pieces.
+unsafeArrayFromListN' :: Int -> a -> [a] -> Array a
+unsafeArrayFromListN' n y ys =
+  createArray n y $ \ma ->
+    let go !_ix [] = return ()
+        go !ix (!x : xs) = do
+            writeArray ma ix x
+            go (ix+1) xs
+    in go 1 ys
 
 #if MIN_VERSION_deepseq(1,4,3)
 instance NFData1 Array where
