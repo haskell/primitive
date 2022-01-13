@@ -112,30 +112,33 @@ data SmallMutableArray s a = SmallMutableArray (SmallMutableArray# s a)
 
 instance Lift a => Lift (SmallArray a) where
 #if MIN_VERSION_template_haskell(2,16,0)
-  liftTyped ary
-    | len == 0 = [|| SmallArray (emptySmallArray# (##)) ||]
-    | len == 1 = [|| pure frst ||]
-    | otherwise = [|| unsafeSmallArrayFromListN' len lst ||]
+  liftTyped ary = case lst of
+    [] -> [|| SmallArray (emptySmallArray# (##)) ||]
+    [x] -> [|| pure x ||]
+    x : xs -> [|| unsafeSmallArrayFromListN' len x xs ||]
 #else
-  lift ary = [| unsafeSmallArrayFromListN' len lst |]
+  lift ary = case lst of
+    [] -> [| SmallArray (emptySmallArray# (##)) |]
+    [x] -> [| pure x |]
+    x : xs -> [| unsafeSmallArrayFromListN' len x xs |]
 #endif
     where
       len = length ary
       lst = toList ary
-      frst = ary `indexSmallArray` 0
 
--- | Strictly create an array from a list of a known length. If the length
+-- | Strictly create an array from a nonempty list (represented as
+-- a first element and a list of the rest) of a known length. If the length
 -- of the list does not match the given length, this makes demons fly
 -- out of your nose. We use it in the 'Lift' instance. If you edit the
 -- splice and break it, you get to keep both pieces.
-unsafeSmallArrayFromListN' :: Int -> [a] -> SmallArray a
-unsafeSmallArrayFromListN' n l =
-  createSmallArray n (die "fromListN" "uninitialized element") $ \sma ->
+unsafeSmallArrayFromListN' :: Int -> a -> [a] -> SmallArray a
+unsafeSmallArrayFromListN' n y ys =
+  createSmallArray n y $ \sma ->
     let go !_ix [] = return ()
         go !ix (!x : xs) = do
             writeSmallArray sma ix x
             go (ix+1) xs
-    in go 0 l
+    in go 1 ys
 
 -- | Create a new small mutable array.
 --
