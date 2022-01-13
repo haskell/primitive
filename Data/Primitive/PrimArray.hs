@@ -51,6 +51,7 @@ module Data.Primitive.PrimArray
   , copyMutablePrimArray
   , copyPrimArrayToPtr
   , copyMutablePrimArrayToPtr
+  , copyPtrToMutablePrimArray
   , clonePrimArray
   , cloneMutablePrimArray
   , setPrimArray
@@ -418,6 +419,24 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
         let s'# = copyMutableByteArrayToAddr# mba# (soff# *# siz#) addr# (n# *# siz#) s#
         in (# s'#, () #))
   where siz# = sizeOf# (undefined :: a)
+
+-- | Copy from a pointer to a mutable primitive array.
+-- The offset and length are given in elements of type @a@.
+-- This function assumes that the 'Prim' instance of @a@
+-- agrees with the 'Storable' instance.
+--
+-- /Note:/ this function does not do bounds or overlap checking.
+copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
+  => MutablePrimArray (PrimState m) a -- ^ destination array
+  -> Int -- ^ destination offset
+  -> Ptr a -- ^ source pointer
+  -> Int -- ^ number of elements
+  -> m ()
+{-# INLINE copyPtrToMutablePrimArray #-}
+copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
+  primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
+  where
+  siz# = sizeOf# (undefined :: a)
 
 -- | Fill a slice of a mutable primitive array with a value.
 --
