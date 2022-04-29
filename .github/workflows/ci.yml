@@ -22,7 +22,7 @@ jobs:
           ghc: 'latest'
         - os: macOS-latest
           ghc: 'latest'
-        - os: ubuntu-16.04 # testing that cbits are compatible with gcc-5
+        - os: ubuntu-latest
           ghc: 'latest'
     steps:
     - uses: actions/checkout@v2
