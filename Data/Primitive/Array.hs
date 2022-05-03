@@ -48,15 +48,11 @@ import Control.Monad.Fix
 import qualified Data.Foldable as Foldable
 import Control.Monad.Zip
 import Data.Foldable (Foldable(..), toList)
-#if MIN_VERSION_base(4,9,0)
 import qualified GHC.ST as GHCST
 import qualified Data.Foldable as F
 import Data.Semigroup
-#endif
 import Data.Functor.Identity
-#if MIN_VERSION_base(4,10,0)
-import GHC.Exts (runRW#)
-#elif MIN_VERSION_base(4,9,0)
+#if !MIN_VERSION_base(4,10,0)
 import GHC.Base (runRW#)
 #endif
 
@@ -329,9 +325,6 @@ emptyArray =
 runArray
   :: (forall s. ST s (MutableArray s a))
   -> Array a
-#if !MIN_VERSION_base(4,9,0)
-runArray m = runST $ m >>= unsafeFreezeArray
-#else /* Below, runRW# is available. */
 runArray m = Array (runArray# m)
 
 runArray#
@@ -347,7 +340,6 @@ unST (GHCST.ST f) = f
 emptyArray# :: (# #) -> Array# a
 emptyArray# _ = case emptyArray of Array ar -> ar
 {-# NOINLINE emptyArray# #-}
-#endif
 
 -- | Create an array of the given size with a default value,
 -- apply the monadic function and freeze the result. If the
@@ -363,9 +355,6 @@ createArray
   -> a
   -> (forall s. MutableArray s a -> ST s ())
   -> Array a
-#if !MIN_VERSION_base(4,9,0)
-createArray 0 _ _ = emptyArray
-#else
 -- This low-level business is designed to work with GHC's worker-wrapper
 -- transformation. A lot of the time, we don't actually need an Array
 -- constructor. By putting it on the outside, and being careful about
@@ -374,7 +363,6 @@ createArray 0 _ _ = emptyArray
 -- their Array constructors, although they'll share their underlying
 -- Array#s.
 createArray 0 _ _ = Array (emptyArray# (# #))
-#endif
 createArray n x f = runArray $ do
   mary <- newArray n x
   f mary
@@ -396,11 +384,7 @@ instance Eq a => Eq (Array a) where
 
 -- | @since 0.6.4.0
 instance Eq1 Array where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = arrayLiftEq
-#else
-  eq1 = arrayLiftEq (==)
-#endif
 
 instance Eq (MutableArray s a) where
   ma1 == ma2 = isTrue# (sameMutableArray# (marray# ma1) (marray# ma2))
@@ -422,11 +406,7 @@ instance Ord a => Ord (Array a) where
 
 -- | @since 0.6.4.0
 instance Ord1 Array where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = arrayLiftCompare
-#else
-  compare1 = arrayLiftCompare compare
-#endif
 
 instance Foldable Array where
   -- Note: we perform the array lookups eagerly so we won't
@@ -763,7 +743,6 @@ instance MonadFix Array where
       sz = sizeofArray (f err)
       err = error "mfix for Data.Primitive.Array applied to strict function."
 
-#if MIN_VERSION_base(4,9,0)
 -- | @since 0.6.3.0
 instance Semigroup (Array a) where
   (<>) = (<|>)
@@ -779,7 +758,6 @@ instance Semigroup (Array a) where
             else return ()
       in go 0
     where n' = fromIntegral n :: Int
-#endif
 
 instance Monoid (Array a) where
   mempty = empty
@@ -807,11 +785,7 @@ instance Show a => Show (Array a) where
 
 -- | @since 0.6.4.0
 instance Show1 Array where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftShowsPrec = arrayLiftShowsPrec
-#else
-  showsPrec1 = arrayLiftShowsPrec showsPrec showList
-#endif
 
 instance Read a => Read (Array a) where
   readPrec = arrayLiftReadPrec readPrec readListPrec
@@ -820,10 +794,8 @@ instance Read a => Read (Array a) where
 instance Read1 Array where
 #if MIN_VERSION_base(4,10,0)
   liftReadPrec = arrayLiftReadPrec
-#elif MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
-  liftReadsPrec = arrayLiftReadsPrec
 #else
-  readsPrec1 = arrayLiftReadsPrec readsPrec readList
+  liftReadsPrec = arrayLiftReadsPrec
 #endif
 
 -- We're really forgiving here. We accept

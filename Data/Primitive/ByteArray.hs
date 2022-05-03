@@ -82,10 +82,8 @@ import Data.Data ( Data(..), mkNoRepType )
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
 
-#if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as SG
 import qualified Data.Foldable as F
-#endif
 
 import System.IO.Unsafe (unsafePerformIO, unsafeDupablePerformIO)
 
@@ -749,7 +747,6 @@ replicateByteArray n arr = runST $ do
   go 0
   unsafeFreezeByteArray marr
 
-#if MIN_VERSION_base(4,9,0)
 instance SG.Semigroup ByteArray where
   (<>) = appendByteArray
   sconcat = mconcat . F.toList
@@ -757,7 +754,6 @@ instance SG.Semigroup ByteArray where
     LT -> die "stimes" "negative multiplier"
     EQ -> emptyByteArray
     GT -> replicateByteArray (fromIntegral n) arr
-#endif
 
 instance Monoid ByteArray where
   mempty = emptyByteArray
