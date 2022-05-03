@@ -82,14 +82,10 @@ import Data.Functor.Identity
 #if !(MIN_VERSION_base(4,10,0))
 import Data.Monoid
 #endif
-#if MIN_VERSION_base(4,9,0)
 import qualified GHC.ST as GHCST
 import qualified Data.Semigroup as Sem
-#endif
 import Text.ParserCombinators.ReadP
-#if MIN_VERSION_base(4,10,0)
-import GHC.Exts (runRW#)
-#elif MIN_VERSION_base(4,9,0)
+#if !MIN_VERSION_base(4,10,0)
 import GHC.Base (runRW#)
 #endif
 
@@ -403,9 +399,6 @@ mapSmallArray' f sa = createSmallArray (length sa) (die "mapSmallArray'" "imposs
 runSmallArray
   :: (forall s. ST s (SmallMutableArray s a))
   -> SmallArray a
-#if !MIN_VERSION_base(4,9,0)
-runSmallArray m = runST $ m >>= unsafeFreezeSmallArray
-#else
 -- This low-level business is designed to work with GHC's worker-wrapper
 -- transformation. A lot of the time, we don't actually need an Array
 -- constructor. By putting it on the outside, and being careful about
@@ -424,7 +417,6 @@ runSmallArray# m = case runRW# $ \s ->
 
 unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
-#endif
 
 -- | Create an array of the given size with a default value,
 -- apply the monadic function and freeze the result. If the
@@ -482,11 +474,7 @@ smallArrayLiftEq p sa1 sa2 = length sa1 == length sa2 && loop (length sa1 - 1)
 
 -- | @since 0.6.4.0
 instance Eq1 SmallArray where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftEq = smallArrayLiftEq
-#else
-  eq1 = smallArrayLiftEq (==)
-#endif
 
 instance Eq a => Eq (SmallArray a) where
   sa1 == sa2 = smallArrayLiftEq (==) sa1 sa2
@@ -508,11 +496,7 @@ smallArrayLiftCompare elemCompare a1 a2 = loop 0
 
 -- | @since 0.6.4.0
 instance Ord1 SmallArray where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftCompare = smallArrayLiftCompare
-#else
-  compare1 = smallArrayLiftCompare compare
-#endif
 
 -- | Lexicographic ordering. Subject to change between major versions.
 instance Ord a => Ord (SmallArray a) where
@@ -794,7 +778,6 @@ instance MonadFix SmallArray where
       sz = sizeofSmallArray (f err)
       err = error "mfix for Data.Primitive.SmallArray applied to strict function."
 
-#if MIN_VERSION_base(4,9,0)
 -- | @since 0.6.3.0
 instance Sem.Semigroup (SmallArray a) where
   (<>) = (<|>)
@@ -810,7 +793,6 @@ instance Sem.Semigroup (SmallArray a) where
             else return ()
       in go 0
     where n' = fromIntegral n :: Int
-#endif
 
 instance Monoid (SmallArray a) where
   mempty = empty
@@ -844,11 +826,7 @@ instance Show a => Show (SmallArray a) where
 
 -- | @since 0.6.4.0
 instance Show1 SmallArray where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftShowsPrec = smallArrayLiftShowsPrec
-#else
-  showsPrec1 = smallArrayLiftShowsPrec showsPrec showList
-#endif
 
 smallArrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (SmallArray a)
 smallArrayLiftReadsPrec _ listReadsPrec p = readParen (p > 10) . readP_to_S $ do
@@ -864,11 +842,7 @@ instance Read a => Read (SmallArray a) where
 
 -- | @since 0.6.4.0
 instance Read1 SmallArray where
-#if MIN_VERSION_base(4,9,0) || MIN_VERSION_transformers(0,5,0)
   liftReadsPrec = smallArrayLiftReadsPrec
-#else
-  readsPrec1 = smallArrayLiftReadsPrec readsPrec readList
-#endif
 
 
 

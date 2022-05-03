@@ -1,10 +1,8 @@
 {-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE DeriveGeneric #-}
-#endif
 
 #include "HsBaseConfig.h"
 
@@ -52,9 +50,7 @@ import Control.Applicative (Const(..))
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
 import Data.Ord (Down(..))
-#if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Semigroup
-#endif
 
 -- | Class of types supporting primitive array operations. This includes
 -- interfacing with GC-managed memory (functions suffixed with @ByteArray#@)
@@ -444,7 +440,6 @@ deriving instance Prim a => Prim (Monoid.Dual a)
 deriving instance Prim a => Prim (Monoid.Sum a)
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Monoid.Product a)
-#if MIN_VERSION_base(4,9,0)
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Semigroup.First a)
 -- | @since 0.6.5.0
@@ -453,4 +448,3 @@ deriving instance Prim a => Prim (Semigroup.Last a)
 deriving instance Prim a => Prim (Semigroup.Min a)
 -- | @since 0.6.5.0
 deriving instance Prim a => Prim (Semigroup.Max a)
-#endif

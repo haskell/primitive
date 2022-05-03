@@ -120,10 +120,8 @@ import qualified Data.Primitive.Types as PT
 import qualified GHC.ST as GHCST
 import Language.Haskell.TH.Syntax (Lift (..))
 
-#if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (Semigroup)
 import qualified Data.Semigroup as SG
-#endif
 
 #if __GLASGOW_HASKELL__ >= 802
 import qualified GHC.Exts as Exts
@@ -253,13 +251,11 @@ primArrayToByteArray (PrimArray x) = PB.ByteArray x
 byteArrayToPrimArray :: ByteArray -> PrimArray a
 byteArrayToPrimArray (PB.ByteArray x) = PrimArray x
 
-#if MIN_VERSION_base(4,9,0)
 -- | @since 0.6.4.0
 instance Semigroup (PrimArray a) where
   x <> y = byteArrayToPrimArray (primArrayToByteArray x SG.<> primArrayToByteArray y)
   sconcat = byteArrayToPrimArray . SG.sconcat . fmap primArrayToByteArray
   stimes i arr = byteArrayToPrimArray (SG.stimes i (primArrayToByteArray arr))
-#endif
 
 -- | @since 0.6.4.0
 instance Monoid (PrimArray a) where

@@ -31,10 +31,8 @@ import PrimLaws (primLaws)
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
 import Data.Ord (Down(..))
-#if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (stimes, stimesMonoid)
 import qualified Data.Semigroup as Semigroup
-#endif
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Monoid ((<>))
 #endif
@@ -70,10 +68,8 @@ main = do
       , TQC.testProperty "mapArray'" (QCCL.mapProp int16 int32 mapArray')
       , TQC.testProperty "*>" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs *> ys) === (toList xs *> toList ys)
       , TQC.testProperty "<*" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs <* ys) === (toList xs <* toList ys)
-#if MIN_VERSION_base(4,9,0)
       , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy (Array Int)))
       , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: Array Int) -> stimes n xs == stimesMonoid n xs
-#endif
       ]
     , testGroup "SmallArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (SmallArray Int)))
@@ -89,10 +85,8 @@ main = do
       , TQC.testProperty "mapSmallArray'" (QCCL.mapProp int16 int32 mapSmallArray')
       , TQC.testProperty "*>" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs *> ys) === (toList xs *> toList ys)
       , TQC.testProperty "<*" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs <* ys) === (toList xs <* toList ys)
-#if MIN_VERSION_base(4,9,0)
       , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy (SmallArray Int)))
       , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: SmallArray Int) -> stimes n xs == stimesMonoid n xs
-#endif
       ]
     , testGroup "ByteArray"
       [ testGroup "Ordering"
@@ -121,10 +115,8 @@ main = do
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy ByteArray))
       , TQC.testProperty "foldrByteArray" (QCCL.foldrProp word8 foldrByteArray)
-#if MIN_VERSION_base(4,9,0)
       , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy ByteArray))
       , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: ByteArray) -> stimes n xs == stimesMonoid n xs
-#endif
       ]
     , testGroup "PrimArray"
       [ lawsToTest (QCC.eqLaws (Proxy :: Proxy (PrimArray Word16)))
@@ -154,10 +146,8 @@ main = do
       , TQC.testProperty "mapMaybePrimArray" (QCCL.mapMaybeProp int16 int32 mapMaybePrimArray)
       , TQC.testProperty "mapMaybePrimArrayA" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayA)
       , TQC.testProperty "mapMaybePrimArrayP" (QCCL.mapMaybeMProp int16 int32 mapMaybePrimArrayP)
-#if MIN_VERSION_base(4,9,0)
       , lawsToTest (QCC.semigroupLaws (Proxy :: Proxy (PrimArray Word16)))
       , TQC.testProperty "stimes" $ \(QC.NonNegative (n :: Int)) (xs :: PrimArray Word16) -> stimes n xs == stimesMonoid n xs
-#endif
       ]
     , testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
@@ -184,24 +174,20 @@ main = do
       , renameLawsToTest "Dual" (primLaws (Proxy :: Proxy (Monoid.Dual Int16)))
       , renameLawsToTest "Sum" (primLaws (Proxy :: Proxy (Monoid.Sum Int16)))
       , renameLawsToTest "Product" (primLaws (Proxy :: Proxy (Monoid.Product Int16)))
-#if MIN_VERSION_base(4,9,0)
       , renameLawsToTest "First" (primLaws (Proxy :: Proxy (Semigroup.First Int16)))
       , renameLawsToTest "Last" (primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
       , renameLawsToTest "Min" (primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
       , renameLawsToTest "Max" (primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
-#endif
       ]
     ]
 
 deriving instance Arbitrary a => Arbitrary (Down a)
 -- Const, Dual, Sum, Product: all have Arbitrary instances defined
 -- in QuickCheck itself
-#if MIN_VERSION_base(4,9,0)
 deriving instance Arbitrary a => Arbitrary (Semigroup.First a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Last a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Min a)
 deriving instance Arbitrary a => Arbitrary (Semigroup.Max a)
-#endif
 
 word8 :: Proxy Word8
 word8 = Proxy
@@ -371,10 +357,8 @@ testByteArray = do
         fail $ "ByteArray Monoid mappend not associative"
     unless (mconcat [arr1,arr2,arr3,arr4,arr5] == (arr1 <> arr2 <> arr3 <> arr4 <> arr5)) $
         fail $ "ByteArray Monoid mconcat incorrect"
-#if MIN_VERSION_base(4,9,0)
     unless (stimes (3 :: Int) arr4 == (arr4 <> arr4 <> arr4)) $
         fail $ "ByteArray Semigroup stimes incorrect"
-#endif
 
 mkByteArray :: Prim a => [a] -> ByteArray
 mkByteArray xs = runST $ do
