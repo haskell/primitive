@@ -1,3 +1,17 @@
+## Changes in version 0.7.4.0
+
+  * Add Lift instances (#332)
+
+  * Expose `copyPtrToMutablePrimArray`
+
+  * Improve definitions for stimes (#326)
+
+  * Support GHC 9.4. Note: GHC 9.4 is not released at the time of
+    primitive-0.7.4.0's release, so this support might be reverted by
+    a hackage metadata revision if things change.
+
+  * Drop support for GHC 7.10
+
 ## Changes in version 0.7.3.0
 
   * Correct implementations of `*>` for `Array` and `SmallArray`.
