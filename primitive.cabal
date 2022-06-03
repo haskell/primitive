@@ -44,6 +44,7 @@ Library
         Data.Primitive.Ptr
         Data.Primitive.MutVar
         Data.Primitive.MVar
+        Data.Primitive.PrimRef
 
   Other-Modules:
         Data.Primitive.Internal.Operations
