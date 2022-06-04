@@ -16,6 +16,8 @@ module Data.Primitive.PrimVar
   , writePrimVar
   , primVarContents
   , primVarToMutablePrimArray
+  -- * Atomic Operations
+  -- $atomic
   , casInt
   , fetchAddInt
   , fetchSubInt
