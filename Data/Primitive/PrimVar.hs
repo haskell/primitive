@@ -129,7 +129,7 @@ fetchAndInt (PrimVar (MutablePrimArray m)) (I# x) = primitive $ \s -> case fetch
   (# s', result #) -> (# s', I# result #)
 {-# INLINE fetchAndInt #-}
 
--- | Given a reference, and a value to bitwise nand, atomically nand the value with the element. Returns the value of the element before the operation. Implies a full memory barrier.
+-- | Given a reference, and a value to bitwise nand, atomically nand the value with the element. Returns the value of the element before the operation.
 fetchNandInt :: PrimMonad m => PrimVar (PrimState m) Int -> Int -> m Int
 fetchNandInt (PrimVar (MutablePrimArray m)) (I# x) = primitive $ \s -> case fetchNandIntArray# m 0# x s of
   (# s', result #) -> (# s', I# result #)
