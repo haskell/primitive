@@ -4,7 +4,13 @@
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE Unsafe #-}
 
--- | Note: Edward Kmett wrote everything in this module. 
+-- | Variant of @MutVar@ that has one less indirection for primitive types.
+-- The difference is illustrated by comparing @MutVar Int@ and @PrimVar Int@:
+--
+-- * @MutVar Int@: @MutVar# --> I#@
+-- * @PrimVar Int@: @MutableByteArray#@
+--
+-- This module is adapted from a module in Edward Kmett\'s @prim-ref@ library.
 module Data.Primitive.PrimVar
   ( 
   -- * Primitive References
@@ -86,6 +92,7 @@ primVarContents :: PrimVar s a -> Ptr a
 primVarContents (PrimVar m) = castPtr $ mutablePrimArrayContents m
 {-# INLINE primVarContents #-}
 
+-- | Convert a 'PrimVar' to a one-elment 'MutablePrimArray'.
 primVarToMutablePrimArray :: PrimVar s a -> MutablePrimArray s a
 primVarToMutablePrimArray (PrimVar m) = m
 {-# INLINE primVarToMutablePrimArray #-}
