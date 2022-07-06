@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
+{-# LANGUAGE RoleAnnotations #-}
 
 -- |
 -- Module      : Data.Primitive.PrimArray
