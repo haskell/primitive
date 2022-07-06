@@ -134,6 +134,8 @@ import qualified GHC.Exts as Exts
 -- which is lazy in its elements.
 data PrimArray a = PrimArray ByteArray#
 
+type role PrimArray nominal
+
 instance Lift (PrimArray a) where
 #if MIN_VERSION_template_haskell(2,16,0)
   liftTyped ary = [|| byteArrayToPrimArray ba ||]
