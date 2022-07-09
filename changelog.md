@@ -1,3 +1,9 @@
+## Changes in version 0.7.5.0
+
+  * New module `Data.Primitive.PrimVar`
+
+  * `PrimArray`'s type argument has been given a nominal role instead of a phantom role
+
 ## Changes in version 0.7.4.0
 
   * Add Lift instances (#332)
