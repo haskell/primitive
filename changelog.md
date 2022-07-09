@@ -1,4 +1,4 @@
-## Changes in version 0.7.5.0
+## Changes in version 0.8.0.0
 
   * New module `Data.Primitive.PrimVar`
 
