@@ -29,6 +29,9 @@ module Data.Primitive.ByteArray (
 
   -- * Element access
   readByteArray, writeByteArray, indexByteArray,
+  -- * Char Element Access
+  -- $charElementAccess
+  readCharArray, writeCharArray, indexCharArray,
 
   -- * Constructing
   emptyByteArray,
@@ -822,3 +825,41 @@ unST (GHCST.ST f) = f
 #else /* In older GHCs, runRW# is not available. */
 runByteArray m = runST $ m >>= unsafeFreezeByteArray
 #endif
+
+{- $charElementAccess
+GHC provides two sets of element accessors for 'Char'. One set faithfully
+represents 'Char' as 32-bit words using UTF-32. The other set represents
+'Char' as 8-bit words using Latin-1 (ISO-8859-1), and the write operation
+has undefined behavior for codepoints outside of the ASCII and Latin-1
+blocks. The 'Prim' instance for 'Char' uses the UTF-32 set of operators.
+-}
+
+-- | Read an 8-bit element from the byte array, interpreting it as a
+-- Latin-1-encoded character. The offset is given in bytes.
+--
+-- /Note:/ this function does not do bounds checking.
+readCharArray :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> m Char
+{-# INLINE readCharArray #-}
+readCharArray (MutableByteArray arr#) (I# i#) = primitive
+  (\s0 -> case readCharArray# arr# i# s0 of
+    (# s1, c #) -> (# s1, C# c #)
+  )
+
+-- | Write a character to the byte array, encoding it with Latin-1 as
+-- a single byte. Behavior is undefined for codepoints outside of the
+-- ASCII and Latin-1 blocks. The offset is given in bytes.
+--
+-- /Note:/ this function does not do bounds checking.
+writeCharArray
+  :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> Char -> m ()
+{-# INLINE writeCharArray #-}
+writeCharArray (MutableByteArray arr#) (I# i#) (C# c)
+  = primitive_ (writeCharArray# arr# i# c)
+
+-- | Read an 8-bit element from the byte array, interpreting it as a
+-- Latin-1-encoded character. The offset is given in bytes.
+--
+-- /Note:/ this function does not do bounds checking.
+indexCharArray :: ByteArray -> Int -> Char
+{-# INLINE indexCharArray #-}
+indexCharArray (ByteArray arr#) (I# i#) = C# (indexCharArray# arr# i#)
