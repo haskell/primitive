@@ -26,6 +26,12 @@ Tested-With:
   GHC == 8.8.4,
   GHC == 8.10.7
 
+Flag checked
+  manual: True
+  description: Add bounds-checking to array operations
+  default: False
+
+
 Library
   Default-Language: Haskell2010
   Other-Extensions:
@@ -48,6 +54,8 @@ Library
 
   Other-Modules:
         Data.Primitive.Internal.Operations
+        Data.Primitive.ByteArray.Operations
+        Data.Primitive.ByteArray.Internal
 
   Build-Depends: base >= 4.9 && < 4.18
                , deepseq >= 1.1 && < 1.5
@@ -60,6 +68,11 @@ Library
   Install-Includes: primitive-memops.h
   includes: primitive-memops.h
   c-sources: cbits/primitive-memops.c
+  hs-source-dirs: .
+  if flag(checked)
+    hs-source-dirs: src-checked
+  else
+    hs-source-dirs: src-unchecked
   if !os(solaris)
       cc-options: -ftree-vectorize
   if arch(i386) || arch(x86_64)

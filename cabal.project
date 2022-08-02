@@ -3,3 +3,4 @@ packages: primitive.cabal
 
 package primitive
   ghc-options: -Wall
+  flags: +checked
