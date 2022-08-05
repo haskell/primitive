@@ -4,6 +4,9 @@
 
   * `PrimArray`'s type argument has been given a nominal role instead of a phantom role
 
+  * Add `readCharArray`, `writeCharArray`, `indexCharArray` for operating on
+    8-bit characters in a byte array.
+
 ## Changes in version 0.7.4.0
 
   * Add Lift instances (#332)
