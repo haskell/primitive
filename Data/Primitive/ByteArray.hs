@@ -69,6 +69,8 @@ module Data.Primitive.ByteArray (
 import Data.Primitive.ByteArray.Internal hiding
   ( readByteArray, writeByteArray, indexByteArray
   , readCharArray, writeCharArray, indexCharArray
+  , copyByteArray, copyMutableByteArray
+  , newByteArray
   )
 import Data.Primitive.ByteArray.Operations
 

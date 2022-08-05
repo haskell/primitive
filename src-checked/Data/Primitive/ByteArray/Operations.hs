@@ -9,11 +9,14 @@
 module Data.Primitive.ByteArray.Operations (
   readByteArray, writeByteArray, indexByteArray,
   readCharArray, writeCharArray, indexCharArray,
+  copyByteArray, copyMutableByteArray,
+  newByteArray
 ) where
 
 import Data.Primitive.ByteArray.Internal hiding
   ( readByteArray, writeByteArray, indexByteArray
   , readCharArray, writeCharArray, indexCharArray
+  , copyByteArray, copyMutableByteArray, newByteArray
   )
 import Control.Monad.Primitive
 import Control.Monad.ST
@@ -36,11 +39,8 @@ import qualified Language.Haskell.TH.Lib as TH
 
 import qualified Data.Semigroup as SG
 import qualified Data.Foldable as F
+import qualified Data.Primitive.ByteArray.Internal as Internal
 
--- | Read a primitive value from the byte array. The offset is given in
--- elements of type @a@ rather than in bytes.
---
--- /Note:/ this function does not do bounds checking.
 indexByteArray :: Prim a => ByteArray -> Int -> a
 {-# NOINLINE indexByteArray #-}
 indexByteArray = worker where
@@ -54,10 +54,6 @@ indexByteArray = worker where
     elemSz = sizeOf (undefined :: b)
     trueSz = quot sz elemSz
 
--- | Read a primitive value from the byte array. The offset is given in
--- elements of type @a@ rather than in bytes.
---
--- /Note:/ this function does not do bounds checking.
 readByteArray
   :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -> Int -> m a
 {-# NOINLINE readByteArray #-}
@@ -74,13 +70,9 @@ readByteArray = worker
     )
     where elemSz = sizeOf# (undefined :: b)
 
--- | Write a primitive value to the byte array. The offset is given in
--- elements of type @a@ rather than in bytes.
---
--- /Note:/ this function does not do bounds checking.
 writeByteArray
   :: (Prim a, PrimMonad m) => MutableByteArray (PrimState m) -> Int -> a -> m ()
-{-# NOLINE writeByteArray #-}
+{-# noinline writeByteArray #-}
 writeByteArray (MutableByteArray arr) (I# i) x = primitive_
   (\st -> case i <# 0# of
     1# -> error ("writeByteArray: negative index " ++ show (I# i))
@@ -92,10 +84,6 @@ writeByteArray (MutableByteArray arr) (I# i) x = primitive_
   where
   elemSz = sizeOf# x
 
--- | Read an 8-bit element from the byte array, interpreting it as a
--- Latin-1-encoded character. The offset is given in bytes.
---
--- /Note:/ this function does not do bounds checking.
 readCharArray :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> m Char
 {-# noinline readCharArray #-}
 readCharArray (MutableByteArray arr) (I# i) = primitive
@@ -108,11 +96,6 @@ readCharArray (MutableByteArray arr) (I# i) = primitive
           (# st'', c #) -> (# st'', C# c #)
   )
 
--- | Write a character to the byte array, encoding it with Latin-1 as
--- a single byte. Behavior is undefined for codepoints outside of the
--- ASCII and Latin-1 blocks. The offset is given in bytes.
---
--- /Note:/ this function does not do bounds checking.
 writeCharArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> Int -> Char -> m ()
 {-# noinline writeCharArray #-}
@@ -125,10 +108,6 @@ writeCharArray (MutableByteArray arr) (I# i) (C# v) = primitive_
         _ -> Exts.writeCharArray# arr i v st'
   )
 
--- | Read an 8-bit element from the byte array, interpreting it as a
--- Latin-1-encoded character. The offset is given in bytes.
---
--- /Note:/ this function does not do bounds checking.
 indexCharArray :: ByteArray -> Int -> Char
 {-# noinline indexCharArray #-}
 indexCharArray arr@(ByteArray arr#) i@(I# i#)
@@ -137,3 +116,38 @@ indexCharArray arr@(ByteArray arr#) i@(I# i#)
   | otherwise = C# (indexCharArray# arr# i#)
   where
   sz = sizeofByteArray arr
+
+copyByteArray :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ destination array
+  -> Int -- ^ offset into destination array
+  -> ByteArray -- ^ source array
+  -> Int -- ^ offset into source array
+  -> Int -- ^ number of elements to copy
+  -> m ()
+{-# noinline copyByteArray #-}
+copyByteArray marr s1 arr s2 l = do
+  siz <- Internal.getSizeofMutableByteArray marr
+  if (s1 >= 0 && s2 >= 0 && l >= 0 && s1 + l <= siz && s2 + l <= Internal.sizeofByteArray arr)
+    then Internal.copyByteArray marr s1 arr s2 l
+    else error "copyByteArray: index range of out bounds"
+
+copyMutableByteArray :: PrimMonad m
+  => MutableByteArray (PrimState m) -- ^ destination array
+  -> Int -- ^ offset into destination array
+  -> MutableByteArray (PrimState m) -- ^ source array
+  -> Int -- ^ offset into source array
+  -> Int -- ^ number of elements to copy
+  -> m ()
+{-# noinline copyMutableByteArray #-}
+copyMutableByteArray marr1 s1 marr2 s2 l = do
+  siz1 <- Internal.getSizeofMutableByteArray marr1
+  siz2 <- Internal.getSizeofMutableByteArray marr2
+  if (s1 >= 0 && s2 >= 0 && l >= 0 && s1 + l <= siz1 && s2 + l <= siz2)
+    then Internal.copyMutableByteArray marr1 s1 marr2 s2 l
+    else error "copyMutableByteArray: index range of out bounds"
+
+newByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
+newByteArray sz
+  | sz < 0 = error "newByteArray: negative size"
+  | sz > 549755813888 = error "newByteArray: size greater than 512GiB"
+  | otherwise = Internal.newByteArray sz
