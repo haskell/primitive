@@ -65,26 +65,30 @@ module Data.Primitive.ByteArray (
 
 import Control.Monad.Primitive
 import Control.Monad.ST
-import Control.DeepSeq
 import Data.Primitive.Types
 
 import qualified GHC.ST as GHCST
 
 import Foreign.C.Types
 import Data.Word ( Word8 )
-import Data.Bits ( (.&.), unsafeShiftR )
-import GHC.Show ( intToDigit )
 import qualified GHC.Exts as Exts
 import GHC.Exts hiding (setByteArray#)
 
+#if MIN_VERSION_base(4,17,0)
+
+import Data.Array.Byte (ByteArray(..), MutableByteArray(..))
+
+#else
+
+import Control.DeepSeq
+import Data.Bits ( (.&.), unsafeShiftR )
+import GHC.Show ( intToDigit )
 import Data.Typeable ( Typeable )
 import Data.Data ( Data(..), mkNoRepType )
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH.Lib as TH
-
 import qualified Data.Semigroup as SG
 import qualified Data.Foldable as F
-
 import System.IO.Unsafe (unsafePerformIO, unsafeDupablePerformIO)
 
 -- | Byte arrays.
@@ -153,6 +157,8 @@ instance NFData ByteArray where
 
 instance NFData (MutableByteArray s) where
   rnf (MutableByteArray _) = ()
+
+#endif
 
 -- | Create a new mutable byte array of the specified size in bytes.
 --
@@ -590,6 +596,8 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
               -> MutableByteArray# s -> CPtrdiff
               -> CSize -> IO ()
 
+#if !MIN_VERSION_base(4,17,0)
+
 instance Eq (MutableByteArray s) where
   (==) = sameMutableByteArray
 
@@ -627,7 +635,6 @@ instance Show ByteArray where
           comma | i == 0    = id
                 | otherwise = showString ", "
 
-
 -- Only used internally
 compareByteArraysFromBeginning :: ByteArray -> ByteArray -> Int -> Ordering
 {-# INLINE compareByteArraysFromBeginning #-}
@@ -644,6 +651,8 @@ compareByteArraysFromBeginning (ByteArray ba1#) (ByteArray ba2#) (I# n#)
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp"
   memcmp_ba :: ByteArray# -> ByteArray# -> CSize -> IO CInt
+#endif
+
 #endif
 
 -- | Lexicographic comparison of equal-length slices into two byte arrays.
@@ -671,6 +680,7 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp_offset"
   memcmp_ba_offs :: ByteArray# -> Int# -> ByteArray# -> Int# -> CSize -> IO CInt
 #endif
 
+#if !MIN_VERSION_base(4,17,0)
 
 sameByteArray :: ByteArray# -> ByteArray# -> Bool
 sameByteArray ba1 ba2 =
@@ -731,10 +741,14 @@ calcLength :: [ByteArray] -> Int -> Int
 calcLength [] !n = n
 calcLength (x : xs) !n = calcLength xs (sizeofByteArray x + n)
 
+#endif
+
 -- | The empty 'ByteArray'.
 emptyByteArray :: ByteArray
 {-# NOINLINE emptyByteArray #-}
 emptyByteArray = runST (newByteArray 0 >>= unsafeFreezeByteArray)
+
+#if !MIN_VERSION_base(4,17,0)
 
 replicateByteArray :: Int -> ByteArray -> ByteArray
 replicateByteArray n arr = runST $ do
@@ -769,6 +783,8 @@ instance Exts.IsList ByteArray where
   toList = foldrByteArray (:) []
   fromList xs = byteArrayFromListN (length xs) xs
   fromListN = byteArrayFromListN
+
+#endif
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.ByteArray." ++ fun ++ ": " ++ problem
