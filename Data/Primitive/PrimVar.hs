@@ -12,7 +12,7 @@
 --
 -- This module is adapted from a module in Edward Kmett\'s @prim-ref@ library.
 module Data.Primitive.PrimVar
-  ( 
+  (
   -- * Primitive References
     PrimVar(..)
   , newPrimVar
@@ -20,6 +20,7 @@ module Data.Primitive.PrimVar
   , newAlignedPinnedPrimVar
   , readPrimVar
   , writePrimVar
+  , modifyPrimVar
   , primVarContents
   , primVarToMutablePrimArray
   -- * Atomic Operations
@@ -82,6 +83,13 @@ readPrimVar (PrimVar m) = readPrimArray m 0
 writePrimVar :: (PrimMonad m, Prim a) => PrimVar (PrimState m) a -> a -> m ()
 writePrimVar (PrimVar m) a = writePrimArray m 0 a
 {-# INLINE writePrimVar #-}
+
+-- | Mutate the contents of a 'PrimVar'.
+modifyPrimVar :: (PrimMonad m, Prim a) => PrimVar (PrimState m) a -> (a -> a) -> m ()
+modifyPrimVar pv f = do
+    x <- readPrimVar pv
+    writePrimVar pv (f x)
+{-# INLINE modifyPrimVar #-}
 
 instance Eq (PrimVar s a) where
   PrimVar m == PrimVar n = sameMutablePrimArray m n
