@@ -461,7 +461,7 @@ copyByteArrayToPtr
   -> m ()
 {-# INLINE copyByteArrayToPtr #-}
 copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
-  = primitive_ (copyByteArrayToAddr# src# (unI# soff *# siz# ) dst# (unI# sz))
+  = primitive_ (copyByteArrayToAddr# src# (unI# soff *# siz#) dst# (unI# sz *# siz#))
   where
   siz# = sizeOf# (undefined :: a)
 
@@ -498,7 +498,7 @@ copyMutableByteArrayToPtr
   -> m ()
 {-# INLINE copyMutableByteArrayToPtr #-}
 copyMutableByteArrayToPtr (Ptr dst#) (MutableByteArray src#) soff sz
-  = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff *# siz# ) dst# (unI# sz))
+  = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff *# siz#) dst# (unI# sz *# siz#))
   where
   siz# = sizeOf# (undefined :: a)
 
