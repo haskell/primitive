@@ -7,6 +7,11 @@
   * Add `readCharArray`, `writeCharArray`, `indexCharArray` for operating on
     8-bit characters in a byte array.
 
+  * When building with `base-4.17` and newer, re-export the `ByteArray` and
+    `MutableByteArray` types from `base` instead of defining them in this
+    library. This does not change the user-facing interface of
+    `Data.Primitive.ByteArray`.
+
 ## Changes in version 0.7.4.0
 
   * Add Lift instances (#332)
