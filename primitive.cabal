@@ -56,6 +56,9 @@ Library
                , transformers >= 0.5 && < 0.7
                , template-haskell >= 2.11
 
+  if impl(ghc < 9.4)
+    build-depends: data-array-byte >= 0.1 && < 0.1.1
+
   Ghc-Options: -O2
 
   Include-Dirs: cbits
