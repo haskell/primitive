@@ -22,7 +22,7 @@
 -- However, the type constructors 'PrimArray' and 'MutablePrimArray' take one additional
 -- argument compared to their respective counterparts 'ByteArray' and 'Data.Primitive.ByteArray.MutableByteArray'.
 -- This argument is used to designate the type of element in the array.
--- Consequently, all functions in this module accept length and incides in
+-- Consequently, all functions in this module accept length and indices in
 -- terms of elements, not bytes.
 --
 -- @since 0.6.4.0
