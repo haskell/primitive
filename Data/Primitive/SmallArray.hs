@@ -57,6 +57,7 @@ module Data.Primitive.SmallArray
   , sizeofSmallMutableArray
 #if MIN_VERSION_base(4,14,0)
   , shrinkSmallMutableArray
+  , resizeSmallMutableArray
 #endif
   , emptySmallArray
   , smallArrayFromList
@@ -898,4 +899,26 @@ shrinkSmallMutableArray (SmallMutableArray x) (I# n) = primitive
   (\s0 -> case GHC.Exts.shrinkSmallMutableArray# x n s0 of
     s1 -> (# s1, () #)
   )
+
+-- | Resize a mutable array to new specified size. The returned
+-- 'SmallMutableArray' is either the original 'SmallMutableArray'
+-- resized in-place or, if not possible, a newly allocated
+-- 'SmallMutableArray' with the original content copied over.
+--
+-- To avoid undefined behaviour, the original 'SmallMutableArray'
+-- shall not be accessed anymore after a 'resizeSmallMutableArray' has
+-- been performed. Moreover, no reference to the old one should be
+-- kept in order to allow garbage collection of the original
+-- 'SmallMutableArray' in case a new 'SmallMutableArray' had to be
+-- allocated.
+resizeSmallMutableArray :: PrimMonad m
+  => SmallMutableArray (PrimState m) a
+  -> Int -- ^ New size
+  -> a   -- ^ Newly created slots initialized to this element. Only used when array is grown.
+  -> m (SmallMutableArray (PrimState m) a)
+resizeSmallMutableArray (SmallMutableArray arr) (I# n) x = primitive
+  (\s0 -> case GHC.Exts.resizeSmallMutableArray# arr n x s0 of
+    (# s1, arr' #) -> (# s1, SmallMutableArray arr' #)
+  )
+{-# INLINE resizeSmallMutableArray #-}
 #endif
