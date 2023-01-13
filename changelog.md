@@ -12,6 +12,9 @@
     library. This does not change the user-facing interface of
     `Data.Primitive.ByteArray`.
 
+  * Add `keepAlive` that wraps `keepAlive#` for GHC 9.2 and newer. It
+    falls back to using `touch` for older GHCs.
+
 ## Changes in version 0.7.4.0
 
   * Add Lift instances (#332)
