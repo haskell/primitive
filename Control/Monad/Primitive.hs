@@ -22,10 +22,13 @@ module Control.Monad.Primitive (
   liftPrim, primToPrim, primToIO, primToST, ioToPrim, stToPrim,
   unsafePrimToPrim, unsafePrimToIO, unsafePrimToST, unsafeIOToPrim,
   unsafeSTToPrim, unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
-  touch, evalPrim, unsafeInterleave, unsafeDupableInterleave, noDuplicate
+  touch, keepAlive, evalPrim, unsafeInterleave, unsafeDupableInterleave, noDuplicate
 ) where
 
 import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch#
+#if defined(HAVE_KEEPALIVE)
+                  , keepAlive#
+#endif
                   , unsafeCoerce#, realWorld#, seq# )
 import GHC.IO     ( IO(..) )
 import GHC.ST     ( ST(..) )
@@ -334,6 +337,14 @@ touch :: PrimMonad m => a -> m ()
 {-# INLINE touch #-}
 touch x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
+
+keepAlive :: PrimBase m => a -> (a -> m r) -> m r
+{-# INLINE keepAlive #-}
+#if defined(HAVE_KEEPALIVE)
+keepAlive x k = unsafeIOToPrim $ primitive $ \s0 -> keepAlive# x s0 $ internal $ unsafePrimToIO $ k x
+#else
+keepAlive x k = k x <* touch x
+#endif
 
 -- | Create an action to force a value; generalizes 'Control.Exception.evaluate'
 --
