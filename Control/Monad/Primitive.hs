@@ -339,10 +339,11 @@ touch x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
 keepAlive :: PrimBase m => a -> (a -> m r) -> m r
-{-# INLINE keepAlive #-}
 #if defined(HAVE_KEEPALIVE)
+{-# INLINE keepAlive #-}
 keepAlive x k = unsafeIOToPrim $ primitive $ \s0 -> keepAlive# x s0 $ internal $ unsafePrimToIO $ k x
 #else
+{-# NOINLINE keepAlive #-}
 keepAlive x k = k x <* touch x
 #endif
 
