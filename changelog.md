@@ -1,8 +1,14 @@
 ## Changes in version 0.8.0.0
 
-  * New module `Data.Primitive.PrimVar`
+  * Add `resizeSmallMutableArray` that wraps `resizeSmallMutableArray#` from
+    `GHC.Exts`.
 
-  * `PrimArray`'s type argument has been given a nominal role instead of a phantom role
+  * New module `Data.Primitive.PrimVar`. This is essentially `PrimArray` with
+    element length 1. For types with `Prim` instances, this is a drop-in
+    replacement for `MutVar` with fewer indirections.
+
+  * `PrimArray`'s type argument has been given a nominal role instead of a phantom role.
+    This is a breaking change.
 
   * Add `readCharArray`, `writeCharArray`, `indexCharArray` for operating on
     8-bit characters in a byte array.
