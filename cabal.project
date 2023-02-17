@@ -2,4 +2,4 @@ packages: primitive.cabal
 
 
 package primitive
-  ghc-options: -Wall
+  ghc-options: -Wall -Wcompat

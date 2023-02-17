@@ -70,11 +70,15 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.Primitive.Types
 
+#if MIN_VERSION_base(4,10,0)
 import qualified GHC.ST as GHCST
+#endif
 
 import Foreign.C.Types
 import Data.Word ( Word8 )
+#if __GLASGOW_HASKELL__ >= 802
 import qualified GHC.Exts as Exts
+#endif
 import GHC.Exts hiding (setByteArray#)
 
 #if __GLASGOW_HASKELL__ < 804

@@ -762,7 +762,7 @@ instance Semigroup (Array a) where
 instance Monoid (Array a) where
   mempty = empty
 #if !(MIN_VERSION_base(4,11,0))
-  mappend = (<|>)
+  mappend = (<>)
 #endif
   mconcat l = createArray sz (die "mconcat" "impossible") $ \ma ->
     let go !_  [    ] = return ()
