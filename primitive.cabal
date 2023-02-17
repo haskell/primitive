@@ -31,6 +31,8 @@ Tested-With:
 
 Library
   Default-Language: Haskell2010
+  Default-Extensions:
+        TypeOperators
   Other-Extensions:
         BangPatterns, CPP, DeriveDataTypeable,
         MagicHash, TypeFamilies, UnboxedTuples, UnliftedFFITypes

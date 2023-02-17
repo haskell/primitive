@@ -33,7 +33,9 @@ import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch#
 import GHC.IO     ( IO(..) )
 import GHC.ST     ( ST(..) )
 
+#if __GLASGOW_HASKELL__ >= 802
 import qualified Control.Monad.ST.Lazy as L
+#endif
 
 import Control.Monad.Trans.Class (lift)
 

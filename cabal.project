@@ -2,6 +2,6 @@ packages: primitive.cabal
 
 
 package primitive
-  ghc-options: -Wall
+  ghc-options: -Wall -Wcompat
 
 allow-newer: tagged-0.8.6.1:template-haskell
