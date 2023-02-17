@@ -13,26 +13,31 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        ghc: ['8.0', '8.2', '8.4', '8.6', '8.8', '8.10', '9.0', '9.2', '9.4.1']
+        ghc: ['8.0', '8.2', '8.4', '8.6', '8.8', '8.10', '9.0', '9.2', '9.4']
         include:
         - os: windows-latest
           ghc: 'latest'
         - os: macOS-latest
           ghc: 'latest'
         - os: ubuntu-latest
-          ghc: 'latest'
+          ghc: '9.6.0.20230128'
+          ghcup-release-channel: https://raw.githubusercontent.com/haskell/ghcup-metadata/master/ghcup-prereleases-0.0.7.yaml
+        ## Already covered by '9.4'
+        # - os: ubuntu-latest
+        #   ghc: 'latest'
     steps:
     - uses: actions/checkout@v3
     - uses: haskell/actions/setup@v2
       id: setup-haskell-cabal
       with:
         ghc-version: ${{ matrix.ghc }}
+        ghcup-release-channel: ${{ matrix.ghcup-release-channel }}
     - name: Update cabal package database
       run: cabal update
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       name: Cache cabal stuff
       with:
         path: |
@@ -40,9 +45,9 @@ jobs:
           dist-newstyle
         key: ${{ runner.os }}-${{ matrix.ghc }}
     - name: Build
-      run: cabal build
+      run: cabal build all --enable-tests
     - name: Test
-      run: cabal test
+      run: cabal test all --enable-tests
     - name: Bench
       run: cabal bench --benchmark-option=-l
     - name: Haddock
