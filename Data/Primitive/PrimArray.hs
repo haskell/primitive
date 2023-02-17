@@ -110,7 +110,9 @@ module Data.Primitive.PrimArray
 import GHC.Exts
 import Data.Primitive.Types
 import Data.Primitive.ByteArray (ByteArray(..))
+#if !MIN_VERSION_base(4,11,0)
 import Data.Monoid ((<>))
+#endif
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Primitive
@@ -118,10 +120,14 @@ import Control.Monad.ST
 import qualified Data.List as L
 import qualified Data.Primitive.ByteArray as PB
 import qualified Data.Primitive.Types as PT
+#if MIN_VERSION_base(4,10,0)
 import qualified GHC.ST as GHCST
+#endif
 import Language.Haskell.TH.Syntax (Lift (..))
 
+#if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup)
+#endif
 import qualified Data.Semigroup as SG
 
 #if __GLASGOW_HASKELL__ >= 802

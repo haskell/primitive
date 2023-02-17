@@ -80,9 +80,6 @@ import Control.Monad.Zip
 import Data.Data
 import Data.Foldable as Foldable
 import Data.Functor.Identity
-#if !(MIN_VERSION_base(4,10,0))
-import Data.Monoid
-#endif
 import qualified GHC.ST as GHCST
 import qualified Data.Semigroup as Sem
 import Text.ParserCombinators.ReadP
@@ -798,7 +795,7 @@ instance Sem.Semigroup (SmallArray a) where
 instance Monoid (SmallArray a) where
   mempty = empty
 #if !(MIN_VERSION_base(4,11,0))
-  mappend = (<|>)
+  mappend = (Sem.<>)
 #endif
   mconcat l = createSmallArray n (die "mconcat" "impossible") $ \ma ->
     let go !_  [    ] = return ()
