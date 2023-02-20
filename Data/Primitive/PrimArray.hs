@@ -113,7 +113,9 @@ import Data.Primitive.ByteArray (ByteArray(..))
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid ((<>))
 #endif
-import Control.Applicative
+#if !MIN_VERSION_base(4,18,0)
+import Control.Applicative (liftA2)
+#endif
 import Control.DeepSeq
 import Control.Monad.Primitive
 import Control.Monad.ST
