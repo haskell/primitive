@@ -1,8 +1,17 @@
-{-# LANGUAGE CPP, UnboxedTuples, MagicHash, DeriveDataTypeable #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
+
+#if __GLASGOW_HASKELL__ < 906
+{-# LANGUAGE TypeInType #-}
+#endif
 
 #include "HsBaseConfig.h"
 
@@ -49,8 +58,11 @@ import qualified GHC.Exts
 import Control.Applicative (Const(..))
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
-import Data.Ord (Down(..))
 import qualified Data.Semigroup as Semigroup
+
+#if !MIN_VERSION_base(4,13,0)
+import Data.Ord (Down(..))
+#endif
 
 -- | Class of types supporting primitive array operations. This includes
 -- interfacing with GC-managed memory (functions suffixed with @ByteArray#@)
