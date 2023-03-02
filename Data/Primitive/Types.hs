@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE MagicHash #-}
@@ -8,6 +9,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeApplications #-}
 
 #if __GLASGOW_HASKELL__ < 906
 {-# LANGUAGE TypeInType #-}
@@ -59,6 +61,7 @@ import Control.Applicative (Const(..))
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
 import qualified Data.Semigroup as Semigroup
+import Data.Proxy
 
 #if !MIN_VERSION_base(4,13,0)
 import Data.Ord (Down(..))
@@ -69,11 +72,31 @@ import Data.Ord (Down(..))
 -- and interfacing with unmanaged memory (functions suffixed with @Addr#@).
 -- Endianness is platform-dependent.
 class Prim a where
-  -- | Size of values of type @a@. The argument is not used.
-  sizeOf# :: a -> Int#
+  -- We use `Proxy` instead of `Proxy#`, since the latter doesn't work with GND for GHC <= 8.8.
 
-  -- | Alignment of values of type @a@. The argument is not used.
+  -- | The size of values of type @a@. This has to be used with TypeApplications: @sizeOfType \@a@.
+  --
+  -- @since TODO
+  sizeOfType# :: Proxy a -> Int#
+  sizeOfType# _ = sizeOf# (dummy :: a)
+
+  -- | The size of values of type @a@. The argument is not used.
+  --
+  -- It is recommended to use 'sizeOfType#' instead.
+  sizeOf# :: a -> Int#
+  sizeOf# _ = sizeOfType# (Proxy :: Proxy a)
+
+  -- | The alignment of values of type @a@. This has to be used with TypeApplications: @alignmentOfType \@a@.
+  --
+  -- @since TODO
+  alignmentOfType# :: Proxy a -> Int#
+  alignmentOfType# _ = alignment# (dummy :: a)
+
+  -- | The alignment of values of type @a@. The argument is not used.
+  --
+  -- It is recommended to use 'alignmentOfType#' instead.
   alignment# :: a -> Int#
+  alignment# _ = alignmentOfType# (Proxy :: Proxy a)
 
   -- | Read a value from the array. The offset is in elements of type
   -- @a@ rather than in bytes.
@@ -120,14 +143,38 @@ class Prim a where
     -> State# s
     -> State# s
 
--- | Size of values of type @a@. The argument is not used.
+  {-# MINIMAL (sizeOfType# | sizeOf#), (alignmentOfType# | alignment#), indexByteArray#, readByteArray#, writeByteArray#, setByteArray#,
+    indexOffAddr#, readOffAddr#, writeOffAddr#, setOffAddr# #-}
+
+-- | A dummy value of type @a@.
+dummy :: a
+dummy = errorWithoutStackTrace "dummy"
+{-# NOINLINE dummy #-}
+
+-- | The size of values of type @a@. This has to be used with TypeApplications: @sizeOfType \@a@.
+--
+-- @since TODO
+sizeOfType :: forall a. Prim a => Int
+sizeOfType = I# (sizeOfType# (Proxy :: Proxy a))
+
+-- | The size of values of type @a@. The argument is not used.
+--
+-- It is recommended to use 'sizeOfType' instead.
 --
 -- This function has existed since 0.1, but was moved from 'Data.Primitive'
 -- to 'Data.Primitive.Types' in version 0.6.3.0.
 sizeOf :: Prim a => a -> Int
 sizeOf x = I# (sizeOf# x)
 
--- | Alignment of values of type @a@. The argument is not used.
+-- | The alignment of values of type @a@. This has to be used with TypeApplications: @alignmentOfType \@a@.
+--
+-- @since TODO
+alignmentOfType :: forall a. Prim a => Int
+alignmentOfType = I# (alignmentOfType# (Proxy :: Proxy a))
+
+-- | The alignment of values of type @a@. The argument is not used.
+--
+-- It is recommended to use 'alignmentOfType' instead.
 --
 -- This function has existed since 0.1, but was moved from 'Data.Primitive'
 -- to 'Data.Primitive.Types' in version 0.6.3.0.
@@ -143,8 +190,8 @@ alignment x = I# (alignment# x)
 -- > data Trip = Trip Int Int Int
 -- >
 -- > instance Prim Trip
--- >   sizeOf# _ = 3# *# sizeOf# (undefined :: Int)
--- >   alignment# _ = alignment# (undefined :: Int)
+-- >   sizeOfType# _ = 3# *# sizeOfType# (proxy# :: Proxy# Int)
+-- >   alignmentOfType# _ = alignmentOfType# (proxy# :: Proxy# Int)
 -- >   indexByteArray# arr# i# = ...
 -- >   readByteArray# arr# i# = ...
 -- >   writeByteArray# arr# i# (Trip a b c) =
@@ -194,8 +241,8 @@ defaultSetOffAddr# addr# i# len# ident = go 0#
 newtype PrimStorable a = PrimStorable { getPrimStorable :: a }
 
 instance Prim a => Storable (PrimStorable a) where
-  sizeOf _ = sizeOf (undefined :: a)
-  alignment _ = alignment (undefined :: a)
+  sizeOf _ = sizeOfType @a
+  alignment _ = alignmentOfType @a
   peekElemOff (Ptr addr#) (I# i#) =
     primitive $ \s0# -> case readOffAddr# addr# i# s0# of
       (# s1, x #) -> (# s1, PrimStorable x #)
@@ -204,8 +251,8 @@ instance Prim a => Storable (PrimStorable a) where
 
 #define derivePrim(ty, ctr, sz, align, idx_arr, rd_arr, wr_arr, set_arr, idx_addr, rd_addr, wr_addr, set_addr) \
 instance Prim (ty) where {                                        \
-  sizeOf# _ = unI# sz                                             \
-; alignment# _ = unI# align                                       \
+  sizeOfType# _ = unI# sz                                         \
+; alignmentOfType# _ = unI# align                                 \
 ; indexByteArray# arr# i# = ctr (idx_arr arr# i#)                 \
 ; readByteArray#  arr# i# s# = case rd_arr arr# i# s# of          \
                         { (# s1#, x# #) -> (# s1#, ctr x# #) }    \
@@ -227,8 +274,8 @@ instance Prim (ty) where {                                        \
           } in                                                    \
       case unsafeCoerce# (internal (set_addr addr# i n x#)) s# of \
         { (# s1#, _ #) -> s1# }                                   \
-; {-# INLINE sizeOf# #-}                                          \
-; {-# INLINE alignment# #-}                                       \
+; {-# INLINE sizeOfType# #-}                                      \
+; {-# INLINE alignmentOfType# #-}                                 \
 ; {-# INLINE indexByteArray# #-}                                  \
 ; {-# INLINE readByteArray# #-}                                   \
 ; {-# INLINE writeByteArray# #-}                                  \
@@ -412,8 +459,8 @@ deriving instance Prim Fd
 
 -- | @since 0.7.1.0
 instance Prim WordPtr where
-  sizeOf# _ = sizeOf# (undefined :: Ptr ())
-  alignment# _ = alignment# (undefined :: Ptr ())
+  sizeOfType# _ = sizeOfType# (Proxy :: Proxy (Ptr ()))
+  alignmentOfType# _ = alignmentOfType# (Proxy :: Proxy (Ptr ()))
   indexByteArray# a i = ptrToWordPtr (indexByteArray# a i)
   readByteArray# a i s0 = case readByteArray# a i s0 of
     (# s1, p #) -> (# s1, ptrToWordPtr p #)
@@ -427,8 +474,8 @@ instance Prim WordPtr where
 
 -- | @since 0.7.1.0
 instance Prim IntPtr where
-  sizeOf# _ = sizeOf# (undefined :: Ptr ())
-  alignment# _ = alignment# (undefined :: Ptr ())
+  sizeOfType# _ = sizeOfType# (Proxy :: Proxy (Ptr ()))
+  alignmentOfType# _ = alignmentOfType# (Proxy :: Proxy (Ptr ()))
   indexByteArray# a i = ptrToIntPtr (indexByteArray# a i)
   readByteArray# a i s0 = case readByteArray# a i s0 of
     (# s1, p #) -> (# s1, ptrToIntPtr p #)
