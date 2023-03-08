@@ -1,3 +1,8 @@
+## Changes in version ?????
+
+  * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
+    from `GHC.Exts`.
+
 ## Changes in version 0.8.0.0
 
   * Add `resizeSmallMutableArray` that wraps `resizeSmallMutableArray#` from

@@ -54,6 +54,7 @@ module Data.Primitive.SmallArray
   , runSmallArray
   , createSmallArray
   , sizeofSmallArray
+  , getSizeofSmallMutableArray
   , sizeofSmallMutableArray
 #if MIN_VERSION_base(4,14,0)
   , shrinkSmallMutableArray
@@ -348,7 +349,47 @@ sizeofSmallArray :: SmallArray a -> Int
 sizeofSmallArray (SmallArray sa#) = I# (sizeofSmallArray# sa#)
 {-# INLINE sizeofSmallArray #-}
 
--- | The number of elements in a mutable array.
+-- | Get the number of elements in a mutable array. Unlike
+-- 'sizeofSmallMutableArray', this function will be sure to produce the correct
+-- result if 'SmallMutableArray' has been shrunk in place. Consider the following:
+--
+-- @
+-- do
+--   sa <- 'newSmallArray' 10 x
+--   print $ 'sizeofSmallMutableArray' sa
+--   'shrinkSmallMutableArray' sa 5
+--   print $ sizeofSmallMutableArray sa
+-- @
+--
+-- The compiler is well within its rights to eliminate the second size check
+-- and print @10@ twice. However, 'getSizeofSmallMutableArray' will check
+-- the size each time it's /executed/ (not /evaluated/), so it won't have this
+-- problem:
+--
+-- @
+-- do
+--   sa <- 'newSmallArray' 10 x
+--   print =<< getSizeofSmallMutableArray sa
+--   'shrinkSmallMutableArray' sa 5
+--   print =<< getSizeofSmallMutableArray sa
+-- @
+--
+-- will certainly print @10@ and then @5@.
+getSizeofSmallMutableArray
+  :: PrimMonad m
+  => SmallMutableArray (PrimState m) a
+  -> m Int
+#if MIN_VERSION_base(4,14,0)
+getSizeofSmallMutableArray (SmallMutableArray sa#) = primitive $ \s ->
+  case getSizeofSmallMutableArray# sa# s of
+    (# s', sz# #) -> (# s', I# sz# #)
+#else
+getSizeofSmallMutableArray sa = pure $! sizeofSmallMutableArray sa
+#endif
+{-# INLINE getSizeofSmallMutableArray #-}
+
+-- | The number of elements in a mutable array. This should only be used
+-- for arrays that are not shrunk in place.
 sizeofSmallMutableArray :: SmallMutableArray s a -> Int
 sizeofSmallMutableArray (SmallMutableArray sa#) =
   I# (sizeofSmallMutableArray# sa#)
