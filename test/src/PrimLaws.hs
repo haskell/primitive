@@ -3,6 +3,7 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 {-# OPTIONS_GHC -Wall #-}
@@ -54,7 +55,7 @@ primLaws p = Laws "Prim"
 primListAddr :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
 primListAddr _ = property $ \(as :: [a]) -> unsafePerformIO $ do
   let len = L.length as
-  ptr :: Ptr a <- mallocBytes (len * P.sizeOf (undefined :: a))
+  ptr :: Ptr a <- mallocBytes (len * P.sizeOfType @a)
   let go :: Int -> [a] -> IO ()
       go !ix xs = case xs of
         [] -> return ()
@@ -113,7 +114,7 @@ primPutGetAddr :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Pr
 primPutGetAddr _ = property $ \(a :: a) len -> (len > 0) ==> do
   ix <- choose (0,len - 1)
   return $ unsafePerformIO $ do
-    ptr :: Ptr a <- mallocBytes (len * P.sizeOf (undefined :: a))
+    ptr :: Ptr a <- mallocBytes (len * P.sizeOfType @a)
     writeOffPtr ptr ix a
     a' <- readOffPtr ptr ix
     free ptr

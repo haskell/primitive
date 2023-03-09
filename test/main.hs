@@ -6,6 +6,7 @@
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -226,8 +227,8 @@ byteArrayShrinkProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative
       small = min n m
       xs = intsLessThan large
       ys = byteArrayFromList xs
-      largeBytes = large * sizeOf (undefined :: Int)
-      smallBytes = small * sizeOf (undefined :: Int)
+      largeBytes = large * sizeOfType @Int
+      smallBytes = small * sizeOfType @Int
       expected = byteArrayFromList (L.take small xs)
       actual = runST $ do
         mzs0 <- newByteArray largeBytes
@@ -248,14 +249,14 @@ byteArrayGrowProp = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (
       xs2 = intsLessThan (large - small)
       ys1 = byteArrayFromList xs1
       ys2 = byteArrayFromList xs2
-      largeBytes = large * sizeOf (undefined :: Int)
-      smallBytes = small * sizeOf (undefined :: Int)
+      largeBytes = large * sizeOfType @Int
+      smallBytes = small * sizeOfType @Int
       expected = byteArrayFromList (xs1 ++ xs2)
       actual = runST $ do
         mzs0 <- newByteArray smallBytes
         copyByteArray mzs0 0 ys1 0 smallBytes
         mzs1 <- resizeMutableByteArray mzs0 largeBytes
-        copyByteArray mzs1 smallBytes ys2 0 ((large - small) * sizeOf (undefined :: Int))
+        copyByteArray mzs1 smallBytes ys2 0 ((large - small) * sizeOfType @Int)
         unsafeFreezeByteArray mzs1
    in expected === actual
 
@@ -360,9 +361,9 @@ testByteArray = do
     unless (stimes (3 :: Int) arr4 == (arr4 <> arr4 <> arr4)) $
         fail $ "ByteArray Semigroup stimes incorrect"
 
-mkByteArray :: Prim a => [a] -> ByteArray
+mkByteArray :: forall a. Prim a => [a] -> ByteArray
 mkByteArray xs = runST $ do
-    marr <- newByteArray (length xs * sizeOf (head xs))
+    marr <- newByteArray (length xs * sizeOfType @a)
     sequence_ $ zipWith (writeByteArray marr) [0..] xs
     unsafeFreezeByteArray marr
 
@@ -413,8 +414,8 @@ newtype DefaultSetMethod = DefaultSetMethod Int16
   deriving (Eq,Show,Arbitrary)
 
 instance Prim DefaultSetMethod where
-  sizeOf# _ = sizeOf# (undefined :: Int16)
-  alignment# _ = alignment# (undefined :: Int16)
+  sizeOfType# _ = sizeOfType# (Proxy :: Proxy Int16)
+  alignmentOfType# _ = alignmentOfType# (Proxy :: Proxy Int16)
   indexByteArray# arr ix = DefaultSetMethod (indexByteArray# arr ix)
   readByteArray# arr ix s0 = case readByteArray# arr ix s0 of
     (# s1, n #) -> (# s1, DefaultSetMethod n #)

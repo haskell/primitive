@@ -29,7 +29,7 @@
 
 module Data.Primitive.Types
   ( Prim(..)
-  , sizeOf, alignment, defaultSetByteArray#, defaultSetOffAddr#
+  , sizeOf, sizeOfType, alignment, alignmentOfType, defaultSetByteArray#, defaultSetOffAddr#
   , PrimStorable(..)
   , Ptr(..)
   ) where

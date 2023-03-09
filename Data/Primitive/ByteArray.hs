@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples, UnliftedFFITypes, DeriveDataTypeable #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
 
@@ -69,6 +70,7 @@ module Data.Primitive.ByteArray (
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.Primitive.Types
+import Data.Proxy
 
 #if MIN_VERSION_base(4,10,0)
 import qualified GHC.ST as GHCST
@@ -320,7 +322,7 @@ foldrByteArray f z arr = go 0
     go i
       | i < maxI  = f (indexByteArray arr i) (go (i + 1))
       | otherwise = z
-    maxI = sizeofByteArray arr `quot` sizeOf (undefined :: a)
+    maxI = sizeofByteArray arr `quot` sizeOfType @a
 
 -- | Create a 'ByteArray' from a list.
 --
@@ -330,9 +332,9 @@ byteArrayFromList xs = byteArrayFromListN (length xs) xs
 
 -- | Create a 'ByteArray' from a list of a known length. If the length
 -- of the list does not match the given length, this throws an exception.
-byteArrayFromListN :: Prim a => Int -> [a] -> ByteArray
+byteArrayFromListN :: forall a. Prim a => Int -> [a] -> ByteArray
 byteArrayFromListN n ys = runST $ do
-    marr <- newByteArray (n * sizeOf (head ys))
+    marr <- newByteArray (n * sizeOfType @a)
     let go !ix [] = if ix == n
           then return ()
           else die "byteArrayFromListN" "list length less than specified size"
@@ -396,7 +398,7 @@ copyByteArrayToPtr
 copyByteArrayToPtr (Ptr dst#) (ByteArray src#) soff sz
   = primitive_ (copyByteArrayToAddr# src# (unI# soff *# siz#) dst# (unI# sz *# siz#))
   where
-  siz# = sizeOf# (undefined :: a)
+  siz# = sizeOfType# (Proxy :: Proxy a)
 
 -- | Copy from an unmanaged pointer address to a byte array. These must not
 -- overlap. The offset and length are given in elements, not in bytes.
@@ -412,7 +414,7 @@ copyPtrToMutableByteArray :: forall m a. (PrimMonad m, Prim a)
 copyPtrToMutableByteArray (MutableByteArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
   primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
   where
-  siz# = sizeOf# (undefined :: a)
+  siz# = sizeOfType# (Proxy :: Proxy a)
 
 
 -- | Copy a slice of a mutable byte array to an unmanaged pointer address.
@@ -433,7 +435,7 @@ copyMutableByteArrayToPtr
 copyMutableByteArrayToPtr (Ptr dst#) (MutableByteArray src#) soff sz
   = primitive_ (copyMutableByteArrayToAddr# src# (unI# soff *# siz#) dst# (unI# sz *# siz#))
   where
-  siz# = sizeOf# (undefined :: a)
+  siz# = sizeOfType# (Proxy :: Proxy a)
 
 ------
 --- These latter two should be DEPRECATED
