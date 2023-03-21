@@ -340,13 +340,14 @@ touch :: PrimMonad m => a -> m ()
 touch x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
-keepAlive :: PrimBase m => a -> (a -> m r) -> m r
+keepAlive :: PrimBase m => a -> m r -> m r
 #if defined(HAVE_KEEPALIVE)
 {-# INLINE keepAlive #-}
-keepAlive x k = unsafeIOToPrim $ primitive $ \s0 -> keepAlive# x s0 $ internal $ unsafePrimToIO $ k x
+keepAlive x k =
+  unsafeIOToPrim $ primitive $ \s0 -> keepAlive# x s0 $ internal $ unsafePrimToIO k
 #else
 {-# NOINLINE keepAlive #-}
-keepAlive x k = k x <* touch x
+keepAlive x k = k <* touch x
 #endif
 
 -- | Create an action to force a value; generalizes 'Control.Exception.evaluate'

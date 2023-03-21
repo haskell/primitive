@@ -1,4 +1,6 @@
-## Changes in version ?????
+## Changes in version 0.9.0.0
+  
+  * Fix signature of `keepAlive`.
 
   * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
     from `GHC.Exts`.
