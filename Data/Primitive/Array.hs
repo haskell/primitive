@@ -23,7 +23,6 @@ module Data.Primitive.Array (
   cloneArray, cloneMutableArray,
   sizeofArray, sizeofMutableArray,
   emptyArray,
-  fromListN, fromList,
   arrayFromListN, arrayFromList,
   mapArray',
   traverseArrayP
