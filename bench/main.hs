@@ -66,4 +66,4 @@ cheap :: Int -> StateT Int (ST s) Int
 cheap i = modify (\x -> x + i) >> return (i * i)
 
 numbers :: Array Int
-numbers = fromList (enumFromTo 0 10000)
+numbers = arrayFromList (enumFromTo 0 10000)
