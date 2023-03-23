@@ -132,8 +132,12 @@ byteArrayContents (ByteArray arr#) = Ptr (byteArrayContents# arr#)
 -- 'newAlignedPinnedByteArray'.
 mutableByteArrayContents :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContents #-}
-mutableByteArrayContents (MutableByteArray arr#)
-  = Ptr (byteArrayContents# (unsafeCoerce# arr#))
+mutableByteArrayContents (MutableByteArray arr#) = Ptr
+#if __GLASGOW_HASKELL__ >= 902
+  (mutableByteArrayContents# arr#)
+#else
+  (byteArrayContents# (unsafeCoerce# arr#))
+#endif
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool

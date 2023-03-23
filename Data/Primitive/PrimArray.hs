@@ -1122,8 +1122,12 @@ primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 -- @since 0.7.1.0
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
-mutablePrimArrayContents (MutablePrimArray arr#)
-  = Ptr (byteArrayContents# (unsafeCoerce# arr#))
+mutablePrimArrayContents (MutablePrimArray arr#) = Ptr
+#if __GLASGOW_HASKELL__ >= 902
+  (mutableByteArrayContents# arr#)
+#else
+  (byteArrayContents# (unsafeCoerce# arr#))
+#endif
 
 -- | Return a newly allocated array with the specified subrange of the
 -- provided array. The provided array should contain the full subrange
