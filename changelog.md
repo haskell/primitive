@@ -2,6 +2,8 @@
   
   * Fix signature of `keepAlive`.
 
+  * Remove re-export of `fromList` and `fromListN` from `Data.Primitive.Array`.
+
   * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
     from `GHC.Exts`.
 
