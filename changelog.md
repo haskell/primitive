@@ -2,6 +2,8 @@
   
   * Fix signature of `keepAlive`.
 
+  * Use `mutableByteArrayContents#` in GHC 9.2+
+
   * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
     from `GHC.Exts`.
 
