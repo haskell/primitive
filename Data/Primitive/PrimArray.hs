@@ -4,6 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE RoleAnnotations #-}
@@ -110,6 +111,7 @@ module Data.Primitive.PrimArray
 import GHC.Exts
 import Data.Primitive.Types
 import Data.Primitive.ByteArray (ByteArray(..))
+import Data.Proxy
 #if !MIN_VERSION_base(4,11,0)
 import Data.Monoid ((<>))
 #endif
@@ -182,7 +184,7 @@ instance (Eq a, Prim a) => Eq (PrimArray a) where
   a1@(PrimArray ba1#) == a2@(PrimArray ba2#)
     | sameByteArray ba1# ba2# = True
     | sz1 /= sz2 = False
-    | otherwise = loop (quot sz1 (sizeOf (undefined :: a)) - 1)
+    | otherwise = loop (quot sz1 (sizeOfType @a) - 1)
     where
     -- Here, we take the size in bytes, not in elements. We do this
     -- since it allows us to defer performing the division to
@@ -204,7 +206,7 @@ instance (Ord a, Prim a) => Ord (PrimArray a) where
     where
     sz1 = PB.sizeofByteArray (ByteArray ba1#)
     sz2 = PB.sizeofByteArray (ByteArray ba2#)
-    sz = quot (min sz1 sz2) (sizeOf (undefined :: a))
+    sz = quot (min sz1 sz2) (sizeOfType @a)
     loop !i
       | i < sz = compare (indexPrimArray a1 i) (indexPrimArray a2 i) <> loop (i + 1)
       | otherwise = compare sz1 sz2
@@ -291,7 +293,7 @@ newPrimArray :: forall m a. (PrimMonad m, Prim a) => Int -> m (MutablePrimArray 
 {-# INLINE newPrimArray #-}
 newPrimArray (I# n#)
   = primitive (\s# ->
-      case newByteArray# (n# *# sizeOf# (undefined :: a)) s# of
+      case newByteArray# (n# *# sizeOfType# (Proxy :: Proxy a)) s# of
         (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #)
     )
 
@@ -311,7 +313,7 @@ resizeMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE resizeMutablePrimArray #-}
 resizeMutablePrimArray (MutablePrimArray arr#) (I# n#)
-  = primitive (\s# -> case resizeMutableByteArray# arr# (n# *# sizeOf# (undefined :: a)) s# of
+  = primitive (\s# -> case resizeMutableByteArray# arr# (n# *# sizeOfType# (Proxy :: Proxy a)) s# of
                         (# s'#, arr'# #) -> (# s'#, MutablePrimArray arr'# #))
 
 -- | Shrink a mutable primitive array. The new size is given in elements.
@@ -322,7 +324,7 @@ shrinkMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   -> m ()
 {-# INLINE shrinkMutablePrimArray #-}
 shrinkMutablePrimArray (MutablePrimArray arr#) (I# n#)
-  = primitive_ (shrinkMutableByteArray# arr# (n# *# sizeOf# (undefined :: a)))
+  = primitive_ (shrinkMutableByteArray# arr# (n# *# sizeOfType# (Proxy :: Proxy a)))
 
 -- | Read a value from the array at the given index.
 --
@@ -362,10 +364,10 @@ copyMutablePrimArray :: forall m a.
 copyMutablePrimArray (MutablePrimArray dst#) (I# doff#) (MutablePrimArray src#) (I# soff#) (I# n#)
   = primitive_ (copyMutableByteArray#
       src#
-      (soff# *# sizeOf# (undefined :: a))
+      (soff# *# sizeOfType# (Proxy :: Proxy a))
       dst#
-      (doff# *# sizeOf# (undefined :: a))
-      (n# *# sizeOf# (undefined :: a))
+      (doff# *# sizeOfType# (Proxy :: Proxy a))
+      (n# *# sizeOfType# (Proxy :: Proxy a))
     )
 
 -- | Copy part of an array into another mutable array.
@@ -383,10 +385,10 @@ copyPrimArray :: forall m a.
 copyPrimArray (MutablePrimArray dst#) (I# doff#) (PrimArray src#) (I# soff#) (I# n#)
   = primitive_ (copyByteArray#
       src#
-      (soff# *# sizeOf# (undefined :: a))
+      (soff# *# sizeOfType# (Proxy :: Proxy a))
       dst#
-      (doff# *# sizeOf# (undefined :: a))
-      (n# *# sizeOf# (undefined :: a))
+      (doff# *# sizeOfType# (Proxy :: Proxy a))
+      (n# *# sizeOfType# (Proxy :: Proxy a))
     )
 
 -- | Copy a slice of an immutable primitive array to a pointer.
@@ -406,7 +408,7 @@ copyPrimArrayToPtr (Ptr addr#) (PrimArray ba#) (I# soff#) (I# n#) =
     primitive (\ s# ->
         let s'# = copyByteArrayToAddr# ba# (soff# *# siz#) addr# (n# *# siz#) s#
         in (# s'#, () #))
-  where siz# = sizeOf# (undefined :: a)
+  where siz# = sizeOfType# (Proxy :: Proxy a)
 
 -- | Copy a slice of a mutable primitive array to a pointer.
 -- The offset and length are given in elements of type @a@.
@@ -425,7 +427,7 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
     primitive (\ s# ->
         let s'# = copyMutableByteArrayToAddr# mba# (soff# *# siz#) addr# (n# *# siz#) s#
         in (# s'#, () #))
-  where siz# = sizeOf# (undefined :: a)
+  where siz# = sizeOfType# (Proxy :: Proxy a)
 
 -- | Copy from a pointer to a mutable primitive array.
 -- The offset and length are given in elements of type @a@.
@@ -443,7 +445,7 @@ copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
 copyPtrToMutablePrimArray (MutablePrimArray ba#) (I# doff#) (Ptr addr#) (I# n#) =
   primitive_ (copyAddrToByteArray# addr# ba# (doff# *# siz#) (n# *# siz#))
   where
-  siz# = sizeOf# (undefined :: a)
+  siz# = sizeOfType# (Proxy :: Proxy a)
 
 -- | Fill a slice of a mutable primitive array with a value.
 --
@@ -469,7 +471,7 @@ getSizeofMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
 getSizeofMutablePrimArray (MutablePrimArray arr#)
   = primitive (\s# ->
       case getSizeofMutableByteArray# arr# s# of
-        (# s'#, sz# #) -> (# s'#, I# (quotInt# sz# (sizeOf# (undefined :: a))) #)
+        (# s'#, sz# #) -> (# s'#, I# (quotInt# sz# (sizeOfType# (Proxy :: Proxy a))) #)
     )
 #else
 -- On older GHCs, it is not possible to resize a byte array, so
@@ -485,7 +487,7 @@ getSizeofMutablePrimArray arr
 sizeofMutablePrimArray :: forall s a. Prim a => MutablePrimArray s a -> Int
 {-# INLINE sizeofMutablePrimArray #-}
 sizeofMutablePrimArray (MutablePrimArray arr#) =
-  I# (quotInt# (sizeofMutableByteArray# arr#) (sizeOf# (undefined :: a)))
+  I# (quotInt# (sizeofMutableByteArray# arr#) (sizeOfType# (Proxy :: Proxy a)))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutablePrimArray :: MutablePrimArray s a -> MutablePrimArray s a -> Bool
@@ -562,7 +564,7 @@ indexPrimArray (PrimArray arr#) (I# i#) = indexByteArray# arr# i#
 -- | Get the size, in elements, of the primitive array.
 sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
-sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOf# (undefined :: a)))
+sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOfType# (Proxy :: Proxy a)))
 
 #if __GLASGOW_HASKELL__ >= 802
 -- | Check whether or not the primitive array is pinned. Pinned primitive arrays cannot
@@ -1091,7 +1093,7 @@ newPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
   => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newPinnedPrimArray #-}
 newPinnedPrimArray (I# n#)
-  = primitive (\s# -> case newPinnedByteArray# (n# *# sizeOf# (undefined :: a)) s# of
+  = primitive (\s# -> case newPinnedByteArray# (n# *# sizeOfType# (Proxy :: Proxy a)) s# of
                         (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #))
 
 -- | Create a /pinned/ primitive array of the specified size (in elements) and
@@ -1103,7 +1105,7 @@ newAlignedPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
   => Int -> m (MutablePrimArray (PrimState m) a)
 {-# INLINE newAlignedPinnedPrimArray #-}
 newAlignedPinnedPrimArray (I# n#)
-  = primitive (\s# -> case newAlignedPinnedByteArray# (n# *# sizeOf# (undefined :: a)) (alignment# (undefined :: a)) s# of
+  = primitive (\s# -> case newAlignedPinnedByteArray# (n# *# sizeOfType# (Proxy :: Proxy a)) (alignmentOfType# (Proxy :: Proxy a)) s# of
                         (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #))
 
 -- | Yield a pointer to the array's data. This operation is only safe on
