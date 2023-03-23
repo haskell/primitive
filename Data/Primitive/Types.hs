@@ -148,7 +148,7 @@ class Prim a where
 
 -- | A dummy value of type @a@.
 dummy :: a
-dummy = errorWithoutStackTrace "dummy"
+dummy = errorWithoutStackTrace "Data.Primitive.Types: implementation mistake in `Prim` instance"
 {-# NOINLINE dummy #-}
 
 -- | The size of values of type @a@. This has to be used with TypeApplications: @sizeOfType \@a@.
