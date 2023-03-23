@@ -4,6 +4,8 @@
 
   * Remove re-export of `fromList` and `fromListN` from `Data.Primitive.Array`.
 
+  * Use `mutableByteArrayContents#` in GHC 9.2+
+
   * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
     from `GHC.Exts`.
 
