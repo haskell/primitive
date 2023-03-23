@@ -184,7 +184,7 @@ alignmentOfType = I# (alignmentOfType# (Proxy :: Proxy a))
 alignment :: Prim a => a -> Int
 alignment x = I# (alignment# x)
 
--- | @since 0.6.5.0
+-- | @since 0.9.0.0
 instance Prim a => Prim (Complex a) where
   sizeOf# _ = 2# *# sizeOf# (undefined :: a)
   alignment# _ = alignment# (undefined :: a)
