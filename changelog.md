@@ -12,6 +12,9 @@
   * Add default definitions for the `setByteArray#` and `setOffAddr#` methods,
     so they don't need to be defined explicitly anymore.
 
+  * Add standalone `sizeOfType`/`alignmentOfType` (recommended over `sizeOf`/`alignment`)
+    and `Prim` class methods `sizeOfType#`/`alignmentOfType#` (recommended over `sizeOf#`/`alignment#`)
+
 ## Changes in version 0.8.0.0
 
   * Add `resizeSmallMutableArray` that wraps `resizeSmallMutableArray#` from
