@@ -1,5 +1,5 @@
 ## Changes in version 0.9.0.0
-  
+
   * Fix signature of `keepAlive`.
 
   * Remove re-export of `fromList` and `fromListN` from `Data.Primitive.Array`.
@@ -8,6 +8,9 @@
 
   * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
     from `GHC.Exts`.
+
+  * Add default definitions for the `setByteArray#` and `setOffAddr#` methods,
+    so they don't need to be defined explicitly anymore.
 
 ## Changes in version 0.8.0.0
 

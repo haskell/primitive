@@ -119,6 +119,7 @@ class Prim a where
     -> a
     -> State# s
     -> State# s
+  setByteArray# = defaultSetByteArray#
 
   -- | Read a value from a memory position given by an address and an offset.
   -- The memory block the address refers to must be immutable. The offset is in
@@ -142,9 +143,10 @@ class Prim a where
     -> a
     -> State# s
     -> State# s
+  setOffAddr# = defaultSetOffAddr#
 
-  {-# MINIMAL (sizeOfType# | sizeOf#), (alignmentOfType# | alignment#), indexByteArray#, readByteArray#, writeByteArray#, setByteArray#,
-    indexOffAddr#, readOffAddr#, writeOffAddr#, setOffAddr# #-}
+  {-# MINIMAL (sizeOfType# | sizeOf#), (alignmentOfType# | alignment#), indexByteArray#, readByteArray#, writeByteArray#,
+    indexOffAddr#, readOffAddr#, writeOffAddr# #-}
 
 -- | A dummy value of type @a@.
 dummy :: a
