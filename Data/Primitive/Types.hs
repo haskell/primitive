@@ -76,7 +76,7 @@ class Prim a where
 
   -- | The size of values of type @a@ in bytes. This has to be used with TypeApplications: @sizeOfType \@a@.
   --
-  -- @since TODO
+  -- @since 0.9.0.0
   sizeOfType# :: Proxy a -> Int#
   sizeOfType# _ = sizeOf# (dummy :: a)
 
@@ -88,7 +88,7 @@ class Prim a where
 
   -- | The alignment of values of type @a@ in bytes. This has to be used with TypeApplications: @alignmentOfType \@a@.
   --
-  -- @since TODO
+  -- @since 0.9.0.0
   alignmentOfType# :: Proxy a -> Int#
   alignmentOfType# _ = alignment# (dummy :: a)
 
@@ -158,7 +158,7 @@ dummy = errorWithoutStackTrace "Data.Primitive.Types: implementation mistake in 
 -- >>> sizeOfType @Int32
 -- 4
 --
--- @since TODO
+-- @since 0.9.0.0
 sizeOfType :: forall a. Prim a => Int
 sizeOfType = I# (sizeOfType# (Proxy :: Proxy a))
 
@@ -173,7 +173,7 @@ sizeOf x = I# (sizeOf# x)
 
 -- | The alignment of values of type @a@ in bytes. This has to be used with TypeApplications: @alignmentOfType \@a@.
 --
--- @since TODO
+-- @since 0.9.0.0
 alignmentOfType :: forall a. Prim a => Int
 alignmentOfType = I# (alignmentOfType# (Proxy :: Proxy a))
 
