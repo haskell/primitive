@@ -74,25 +74,25 @@ import Data.Ord (Down(..))
 class Prim a where
   -- We use `Proxy` instead of `Proxy#`, since the latter doesn't work with GND for GHC <= 8.8.
 
-  -- | The size of values of type @a@. This has to be used with TypeApplications: @sizeOfType \@a@.
+  -- | The size of values of type @a@ in bytes. This has to be used with TypeApplications: @sizeOfType \@a@.
   --
   -- @since TODO
   sizeOfType# :: Proxy a -> Int#
   sizeOfType# _ = sizeOf# (dummy :: a)
 
-  -- | The size of values of type @a@. The argument is not used.
+  -- | The size of values of type @a@ in bytes. The argument is not used.
   --
   -- It is recommended to use 'sizeOfType#' instead.
   sizeOf# :: a -> Int#
   sizeOf# _ = sizeOfType# (Proxy :: Proxy a)
 
-  -- | The alignment of values of type @a@. This has to be used with TypeApplications: @alignmentOfType \@a@.
+  -- | The alignment of values of type @a@ in bytes. This has to be used with TypeApplications: @alignmentOfType \@a@.
   --
   -- @since TODO
   alignmentOfType# :: Proxy a -> Int#
   alignmentOfType# _ = alignment# (dummy :: a)
 
-  -- | The alignment of values of type @a@. The argument is not used.
+  -- | The alignment of values of type @a@ in bytes. The argument is not used.
   --
   -- It is recommended to use 'alignmentOfType#' instead.
   alignment# :: a -> Int#
@@ -151,13 +151,18 @@ dummy :: a
 dummy = errorWithoutStackTrace "Data.Primitive.Types: implementation mistake in `Prim` instance"
 {-# NOINLINE dummy #-}
 
--- | The size of values of type @a@. This has to be used with TypeApplications: @sizeOfType \@a@.
+-- | The size of values of type @a@ in bytes. This has to be used with TypeApplications: @sizeOfType \@a@.
+--
+-- >>> :set -XTypeApplications
+-- >>> import Data.Int (Int32)
+-- >>> sizeOfType @Int32
+-- 4
 --
 -- @since TODO
 sizeOfType :: forall a. Prim a => Int
 sizeOfType = I# (sizeOfType# (Proxy :: Proxy a))
 
--- | The size of values of type @a@. The argument is not used.
+-- | The size of values of type @a@ in bytes. The argument is not used.
 --
 -- It is recommended to use 'sizeOfType' instead.
 --
@@ -166,13 +171,13 @@ sizeOfType = I# (sizeOfType# (Proxy :: Proxy a))
 sizeOf :: Prim a => a -> Int
 sizeOf x = I# (sizeOf# x)
 
--- | The alignment of values of type @a@. This has to be used with TypeApplications: @alignmentOfType \@a@.
+-- | The alignment of values of type @a@ in bytes. This has to be used with TypeApplications: @alignmentOfType \@a@.
 --
 -- @since TODO
 alignmentOfType :: forall a. Prim a => Int
 alignmentOfType = I# (alignmentOfType# (Proxy :: Proxy a))
 
--- | The alignment of values of type @a@. The argument is not used.
+-- | The alignment of values of type @a@ in bytes. The argument is not used.
 --
 -- It is recommended to use 'alignmentOfType' instead.
 --
