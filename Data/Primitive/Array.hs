@@ -750,11 +750,9 @@ instance Semigroup (Array a) where
     LT -> die "stimes" "negative multiplier"
     EQ -> empty
     GT -> createArray (n' * sizeofArray arr) (die "stimes" "impossible") $ \ma ->
-      let go i = if i < n'
-            then do
-              copyArray ma (i * sizeofArray arr) arr 0 (sizeofArray arr)
-              go (i + 1)
-            else return ()
+      let go i = when (i < n') $ do
+            copyArray ma (i * sizeofArray arr) arr 0 (sizeofArray arr)
+            go (i + 1)
       in go 0
     where n' = fromIntegral n :: Int
 
