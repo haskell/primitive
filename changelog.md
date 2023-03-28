@@ -9,6 +9,9 @@
   * Add `getSizeofSmallMutableArray` that wraps `getSizeofSmallMutableArray#`
     from `GHC.Exts`.
 
+  * Add default definitions for the `setByteArray#` and `setOffAddr#` methods,
+    so they don't need to be defined explicitly anymore.
+
   * Add standalone `sizeOfType`/`alignmentOfType` (recommended over `sizeOf`/`alignment`)
     and `Prim` class methods `sizeOfType#`/`alignmentOfType#` (recommended over `sizeOf#`/`alignment#`)
 
