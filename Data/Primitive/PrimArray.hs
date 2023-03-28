@@ -119,6 +119,7 @@ import Data.Monoid ((<>))
 import Control.Applicative (liftA2)
 #endif
 import Control.DeepSeq
+import Control.Monad (when)
 import Control.Monad.Primitive
 import Control.Monad.ST
 import qualified Data.List as L
@@ -671,12 +672,10 @@ traversePrimArrayP :: (PrimMonad m, Prim a, Prim b)
 traversePrimArrayP f arr = do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
-  let go !ix = if ix < sz
-        then do
-          b <- f (indexPrimArray arr ix)
-          writePrimArray marr ix b
-          go (ix + 1)
-        else return ()
+  let go !ix = when (ix < sz) $ do
+        b <- f (indexPrimArray arr ix)
+        writePrimArray marr ix b
+        go (ix + 1)
   go 0
   unsafeFreezePrimArray marr
 
@@ -737,12 +736,10 @@ generatePrimArrayP :: (PrimMonad m, Prim a)
   -> m (PrimArray a)
 generatePrimArrayP sz f = do
   marr <- newPrimArray sz
-  let go !ix = if ix < sz
-        then do
-          b <- f ix
-          writePrimArray marr ix b
-          go (ix + 1)
-        else return ()
+  let go !ix = when (ix < sz) $ do
+        b <- f ix
+        writePrimArray marr ix b
+        go (ix + 1)
   go 0
   unsafeFreezePrimArray marr
 
@@ -755,12 +752,10 @@ replicatePrimArrayP :: (PrimMonad m, Prim a)
   -> m (PrimArray a)
 replicatePrimArrayP sz f = do
   marr <- newPrimArray sz
-  let go !ix = if ix < sz
-        then do
-          b <- f
-          writePrimArray marr ix b
-          go (ix + 1)
-        else return ()
+  let go !ix = when (ix < sz) $ do
+        b <- f
+        writePrimArray marr ix b
+        go (ix + 1)
   go 0
   unsafeFreezePrimArray marr
 
@@ -773,12 +768,10 @@ mapPrimArray :: (Prim a, Prim b)
 mapPrimArray f arr = runST $ do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
-  let go !ix = if ix < sz
-        then do
-          let b = f (indexPrimArray arr ix)
-          writePrimArray marr ix b
-          go (ix + 1)
-        else return ()
+  let go !ix = when (ix < sz) $ do
+        let b = f (indexPrimArray arr ix)
+        writePrimArray marr ix b
+        go (ix + 1)
   go 0
   unsafeFreezePrimArray marr
 
@@ -791,12 +784,10 @@ imapPrimArray :: (Prim a, Prim b)
 imapPrimArray f arr = runST $ do
   let !sz = sizeofPrimArray arr
   marr <- newPrimArray sz
-  let go !ix = if ix < sz
-        then do
-          let b = f ix (indexPrimArray arr ix)
-          writePrimArray marr ix b
-          go (ix + 1)
-        else return ()
+  let go !ix = when (ix < sz) $ do
+        let b = f ix (indexPrimArray arr ix)
+        writePrimArray marr ix b
+        go (ix + 1)
   go 0
   unsafeFreezePrimArray marr
 
@@ -970,11 +961,9 @@ generatePrimArray :: Prim a
   -> PrimArray a
 generatePrimArray len f = runST $ do
   marr <- newPrimArray len
-  let go !ix = if ix < len
-        then do
-          writePrimArray marr ix (f ix)
-          go (ix + 1)
-        else return ()
+  let go !ix = when (ix < len) $ do
+        writePrimArray marr ix (f ix)
+        go (ix + 1)
   go 0
   unsafeFreezePrimArray marr
 
@@ -1040,9 +1029,8 @@ traversePrimArray_
   -> f ()
 traversePrimArray_ f a = go 0 where
   !sz = sizeofPrimArray a
-  go !ix = if ix < sz
-    then f (indexPrimArray a ix) *> go (ix + 1)
-    else pure ()
+  go !ix = when (ix < sz) $
+    f (indexPrimArray a ix) *> go (ix + 1)
 
 -- | Traverse the primitive array with the indices, discarding the results.
 -- There is no 'PrimMonad' variant of this function, since it would not
@@ -1054,9 +1042,8 @@ itraversePrimArray_
   -> f ()
 itraversePrimArray_ f a = go 0 where
   !sz = sizeofPrimArray a
-  go !ix = if ix < sz
-    then f ix (indexPrimArray a ix) *> go (ix + 1)
-    else pure ()
+  go !ix = when (ix < sz) $
+    f ix (indexPrimArray a ix) *> go (ix + 1)
 
 newtype IxSTA a = IxSTA {_runIxSTA :: forall s. Int -> MutableByteArray# s -> ST s Int}
 
