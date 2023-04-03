@@ -19,6 +19,7 @@
 
 import Control.Monad
 import Control.Monad.ST
+import Data.Complex
 import Data.Primitive
 import Data.Word
 import Data.Proxy (Proxy(..))
@@ -179,6 +180,7 @@ main = do
       , renameLawsToTest "Last" (primLaws (Proxy :: Proxy (Semigroup.Last Int16)))
       , renameLawsToTest "Min" (primLaws (Proxy :: Proxy (Semigroup.Min Int16)))
       , renameLawsToTest "Max" (primLaws (Proxy :: Proxy (Semigroup.Max Int16)))
+      , renameLawsToTest "Complex" (primLaws (Proxy :: Proxy (Complex Double)))
       ]
     ]
 
