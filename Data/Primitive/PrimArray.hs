@@ -489,7 +489,7 @@ getSizeofMutablePrimArray arr
 -- This function is deprecated and will be removed.
 sizeofMutablePrimArray :: forall s a. Prim a => MutablePrimArray s a -> Int
 {-# INLINE sizeofMutablePrimArray #-}
-{-# DEPRECATED "use getSizeofMutablePrimArray instead" sizeofMutablePrimArray #-}
+{-# DEPRECATED sizeofMutablePrimArray "use getSizeofMutablePrimArray instead" #-}
 sizeofMutablePrimArray (MutablePrimArray arr#) =
   I# (quotInt# (sizeofMutableByteArray# arr#) (sizeOfType# (Proxy :: Proxy a)))
 
