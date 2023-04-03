@@ -390,9 +390,13 @@ getSizeofSmallMutableArray sa = pure $! sizeofSmallMutableArray sa
 
 -- | The number of elements in a mutable array. This should only be used
 -- for arrays that are not shrunk in place.
+--
+-- This is deprecated and will be removed in a future release. Use
+-- 'getSizeofSmallMutableArray' instead. 
 sizeofSmallMutableArray :: SmallMutableArray s a -> Int
 sizeofSmallMutableArray (SmallMutableArray sa#) =
   I# (sizeofSmallMutableArray# sa#)
+{-# DEPRECATED sizeofSmallMutableArray "use getSizeofSmallMutableArray instead" #-}
 {-# INLINE sizeofSmallMutableArray #-}
 
 -- | This is the fastest, most straightforward way to traverse
