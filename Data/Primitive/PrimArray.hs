@@ -485,8 +485,11 @@ getSizeofMutablePrimArray arr
 -- | Size of the mutable primitive array in elements. This function shall not
 -- be used on primitive arrays that are an argument to or a result of
 -- 'resizeMutablePrimArray' or 'shrinkMutablePrimArray'.
+--
+-- This function is deprecated and will be removed.
 sizeofMutablePrimArray :: forall s a. Prim a => MutablePrimArray s a -> Int
 {-# INLINE sizeofMutablePrimArray #-}
+{-# DEPRECATED "use getSizeofMutablePrimArray instead" sizeofMutablePrimArray #-}
 sizeofMutablePrimArray (MutablePrimArray arr#) =
   I# (quotInt# (sizeofMutableByteArray# arr#) (sizeOfType# (Proxy :: Proxy a)))
 

@@ -244,13 +244,15 @@ sizeofByteArray :: ByteArray -> Int
 {-# INLINE sizeofByteArray #-}
 sizeofByteArray (ByteArray arr#) = I# (sizeofByteArray# arr#)
 
--- | Size of the mutable byte array in bytes. This function\'s behavior
+-- | Size of the mutable byte array in bytes.
+--
+-- This function is deprecated and will be removed. Its behavior
 -- is undefined if 'resizeMutableByteArray' is ever called on the mutable
--- byte array given as the argument. Consequently, use of this function
--- is discouraged. Prefer 'getSizeofMutableByteArray', which ensures correct
--- sequencing in the presence of resizing.
+-- byte array given as the argument. Prefer 'getSizeofMutableByteArray',
+-- which ensures correct sequencing in the presence of resizing.
 sizeofMutableByteArray :: MutableByteArray s -> Int
 {-# INLINE sizeofMutableByteArray #-}
+{-# DEPRECATED sizeofMutableByteArray "use getSizeofMutableByteArray instead" #-}
 sizeofMutableByteArray (MutableByteArray arr#) = I# (sizeofMutableByteArray# arr#)
 
 -- | Shrink a mutable byte array. The new size is given in bytes.
