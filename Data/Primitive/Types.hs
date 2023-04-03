@@ -200,7 +200,6 @@ instance Prim a => Prim (Complex a) where
     \s0 -> case writeByteArray# arr# (2# *# i#) a s0 of
        s1 -> case writeByteArray# arr# (2# *# i# +# 1#) b s1 of
          s2 -> s2
-  setByteArray# = defaultSetByteArray#
   indexOffAddr# addr# i# =
     let x = indexOffAddr# addr# (2# *# i#)
         y = indexOffAddr# addr# (2# *# i# +# 1#)
@@ -213,17 +212,14 @@ instance Prim a => Prim (Complex a) where
     \s0 -> case writeOffAddr# addr# (2# *# i#) a s0 of
        s1 -> case writeOffAddr# addr# (2# *# i# +# 1#) b s1 of
          s2 -> s2
-  setOffAddr# = defaultSetOffAddr#
   {-# INLINE sizeOf# #-}
   {-# INLINE alignment# #-}
   {-# INLINE indexByteArray# #-}
   {-# INLINE readByteArray# #-}
   {-# INLINE writeByteArray# #-}
-  {-# INLINE setByteArray# #-}
   {-# INLINE indexOffAddr# #-}
   {-# INLINE readOffAddr# #-}
   {-# INLINE writeOffAddr# #-}
-  {-# INLINE setOffAddr# #-}
 
 -- | An implementation of 'setByteArray#' that calls 'writeByteArray#'
 -- to set each element. This is helpful when writing a 'Prim' instance
