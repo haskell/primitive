@@ -16,15 +16,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        ghc: ['8.0', '8.2', '8.4', '8.6', '8.8', '8.10', '9.0', '9.2', '9.4']
+        ghc: ['8.0', '8.2', '8.4', '8.6', '8.8', '8.10', '9.0', '9.2', '9.4', '9.6']
         include:
         - os: windows-latest
           ghc: 'latest'
         - os: macOS-latest
           ghc: 'latest'
-        - os: ubuntu-latest
-          ghc: '9.6.0.20230128'
-          ghcup-release-channel: https://raw.githubusercontent.com/haskell/ghcup-metadata/master/ghcup-prereleases-0.0.7.yaml
         ## Already covered by '9.4'
         # - os: ubuntu-latest
         #   ghc: 'latest'
