@@ -222,9 +222,7 @@ instance Prim a => IsList (PrimArray a) where
 
 -- | @since 0.6.4.0
 instance (Show a, Prim a) => Show (PrimArray a) where
-  showsPrec p a = showParen (p > 10) $
-    showString "fromListN " . shows (sizeofPrimArray a) . showString " "
-      . shows (primArrayToList a)
+  showsPrec _ a = shows (primArrayToList a)
 
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.PrimArray." ++ fun ++ ": " ++ problem

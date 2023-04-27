@@ -30,6 +30,7 @@ module Data.Primitive.Array (
 
 import Control.DeepSeq
 import Control.Monad.Primitive
+import Data.Primitive.Internal.Read (Tag(..),lexTag)
 
 import GHC.Exts hiding (toList)
 import qualified GHC.Exts as Exts
@@ -769,9 +770,8 @@ instance Monoid (Array a) where
    where sz = sum . fmap sizeofArray $ l
 
 arrayLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> Array a -> ShowS
-arrayLiftShowsPrec elemShowsPrec elemListShowsPrec p a = showParen (p > 10) $
-  showString "fromListN " . shows (sizeofArray a) . showString " "
-    . listLiftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList a)
+arrayLiftShowsPrec elemShowsPrec elemListShowsPrec _ a =
+  listLiftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList a)
 
 -- this need to be included for older ghcs
 listLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> [a] -> ShowS
@@ -792,51 +792,31 @@ instance Read1 Array where
 #if MIN_VERSION_base(4,10,0)
   liftReadPrec = arrayLiftReadPrec
 #else
-  liftReadsPrec = arrayLiftReadsPrec
+  -- This is just the default implementation of liftReadsPrec, but
+  -- it is not present in older versions of base.
+  liftReadsPrec = liftReadsPrec rp rl = readPrec_to_S $
+    liftReadPrec (readS_to_Prec rp) (readS_to_Prec (const rl))
 #endif
 
+-- Note [Forgiving Array Read Instance]
 -- We're really forgiving here. We accept
 -- "[1,2,3]", "fromList [1,2,3]", and "fromListN 3 [1,2,3]".
 -- We consider fromListN with an invalid length to be an
 -- error, rather than a parse failure, because doing otherwise
 -- seems weird and likely to make debugging difficult.
 arrayLiftReadPrec :: ReadPrec a -> ReadPrec [a] -> ReadPrec (Array a)
-arrayLiftReadPrec _ read_list = parens $ prec app_prec $ RdPrc.lift skipSpaces >>
-    ((fromList <$> read_list) RdPrc.+++
-      do
-        tag <- RdPrc.lift lexTag
-        case tag of
-          FromListTag -> fromList <$> read_list
-          FromListNTag -> liftM2 fromListN readPrec read_list)
-   where
-     app_prec = 10
-
-data Tag = FromListTag | FromListNTag
-
--- Why don't we just use lexP? The general problem with lexP is that
--- it doesn't always fail as fast as we might like. It will
--- happily read to the end of an absurdly long lexeme (e.g., a 200MB string
--- literal) before returning, at which point we'll immediately discard
--- the result because it's not an identifier. Doing the job ourselves, we
--- can see very quickly when we've run into a problem. We should also get
--- a slight efficiency boost by going through the string just once.
-lexTag :: ReadP Tag
-lexTag = do
-  _ <- string "fromList"
-  s <- look
-  case s of
-    'N':c:_
-      | '0' <= c && c <= '9'
-      -> fail "" -- We have fromListN3 or similar
-      | otherwise -> FromListNTag <$ get -- Skip the 'N'
-    _ -> return FromListTag
-
-#if !MIN_VERSION_base(4,10,0)
-arrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (Array a)
-arrayLiftReadsPrec reads_prec list_reads_prec = RdPrc.readPrec_to_S $
-  arrayLiftReadPrec (RdPrc.readS_to_Prec reads_prec) (RdPrc.readS_to_Prec (const list_reads_prec))
-#endif
-
+arrayLiftReadPrec _ read_list =
+  ( RdPrc.lift skipSpaces >> fmap fromList read_list )
+  RdPrc.+++
+  ( parens $ prec app_prec $ do
+      RdPrc.lift skipSpaces
+      tag <- RdPrc.lift lexTag
+      case tag of
+        FromListTag -> fromList <$> read_list
+        FromListNTag -> liftM2 fromListN readPrec read_list
+  )
+  where
+  app_prec = 10
 
 arrayDataType :: DataType
 arrayDataType = mkDataType "Data.Primitive.Array.Array" [fromListConstr]
