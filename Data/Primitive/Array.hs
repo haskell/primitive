@@ -794,7 +794,7 @@ instance Read1 Array where
 #else
   -- This is just the default implementation of liftReadsPrec, but
   -- it is not present in older versions of base.
-  liftReadsPrec = liftReadsPrec rp rl = readPrec_to_S $
+  liftReadsPrec rp rl = readPrec_to_S $
     liftReadPrec (readS_to_Prec rp) (readS_to_Prec (const rl))
 #endif
 
