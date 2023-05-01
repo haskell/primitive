@@ -17,6 +17,16 @@
   * Add standalone `sizeOfType`/`alignmentOfType` (recommended over `sizeOf`/`alignment`)
     and `Prim` class methods `sizeOfType#`/`alignmentOfType#` (recommended over `sizeOf#`/`alignment#`)
 
+  * Change `Show` instances of `PrimArray`, `Array`, and `SmallArray`. These
+    previously used the `fromListN n [...]` form, but they now used the more
+    terse `[...]` form.
+
+  * Correct the `Read` instances of `Array` and `SmallArray`. These instances
+    are supposed to be able to handle all three of these forms: `fromList [...]`,
+    `fromListN n [...]`, and `[...]`. They had been rejected the last form, but
+    this mistake was discovered by the test suite when the Show instances were
+    changed.
+
 ## Changes in version 0.8.0.0
 
   * Add `resizeSmallMutableArray` that wraps `resizeSmallMutableArray#` from

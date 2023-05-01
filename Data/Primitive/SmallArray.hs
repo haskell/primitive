@@ -81,9 +81,13 @@ import Control.Monad.Zip
 import Data.Data
 import Data.Foldable as Foldable
 import Data.Functor.Identity
+import Data.Primitive.Internal.Read (Tag(..),lexTag)
+import Text.Read (Read (..), parens, prec)
 import qualified GHC.ST as GHCST
 import qualified Data.Semigroup as Sem
 import Text.ParserCombinators.ReadP
+import Text.ParserCombinators.ReadPrec (ReadPrec)
+import qualified Text.ParserCombinators.ReadPrec as RdPrc
 #if !MIN_VERSION_base(4,10,0)
 import GHC.Base (runRW#)
 #endif
@@ -856,9 +860,8 @@ instance IsList (SmallArray a) where
   toList = Foldable.toList
 
 smallArrayLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> SmallArray a -> ShowS
-smallArrayLiftShowsPrec elemShowsPrec elemListShowsPrec p sa = showParen (p > 10) $
-  showString "fromListN " . shows (length sa) . showString " "
-    . listLiftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList sa)
+smallArrayLiftShowsPrec elemShowsPrec elemListShowsPrec _ sa =
+  listLiftShowsPrec elemShowsPrec elemListShowsPrec 11 (toList sa)
 
 -- this need to be included for older ghcs
 listLiftShowsPrec :: (Int -> a -> ShowS) -> ([a] -> ShowS) -> Int -> [a] -> ShowS
@@ -871,23 +874,34 @@ instance Show a => Show (SmallArray a) where
 instance Show1 SmallArray where
   liftShowsPrec = smallArrayLiftShowsPrec
 
-smallArrayLiftReadsPrec :: (Int -> ReadS a) -> ReadS [a] -> Int -> ReadS (SmallArray a)
-smallArrayLiftReadsPrec _ listReadsPrec p = readParen (p > 10) . readP_to_S $ do
-  () <$ string "fromListN"
-  skipSpaces
-  n <- readS_to_P reads
-  skipSpaces
-  l <- readS_to_P listReadsPrec
-  return $ smallArrayFromListN n l
+-- See Note [Forgiving Array Read Instance]
+smallArrayLiftReadPrec :: ReadPrec a -> ReadPrec [a] -> ReadPrec (SmallArray a)
+smallArrayLiftReadPrec _ read_list =
+  ( RdPrc.lift skipSpaces >> fmap fromList read_list )
+  RdPrc.+++
+  ( parens $ prec app_prec $ do
+      RdPrc.lift skipSpaces
+      tag <- RdPrc.lift lexTag
+      case tag of
+        FromListTag -> fromList <$> read_list
+        FromListNTag -> liftM2 fromListN readPrec read_list
+  )
+  where
+  app_prec = 10
 
 instance Read a => Read (SmallArray a) where
-  readsPrec = smallArrayLiftReadsPrec readsPrec readList
+  readPrec = smallArrayLiftReadPrec readPrec readListPrec
 
 -- | @since 0.6.4.0
 instance Read1 SmallArray where
-  liftReadsPrec = smallArrayLiftReadsPrec
-
-
+#if MIN_VERSION_base(4,10,0)
+  liftReadPrec = smallArrayLiftReadPrec
+#else
+  -- This is just the default implementation of liftReadsPrec, but
+  -- it is not present in older versions of base.
+  liftReadsPrec rp rl = RdPrc.readPrec_to_S $
+    smallArrayLiftReadPrec (RdPrc.readS_to_Prec rp) (RdPrc.readS_to_Prec (const rl))
+#endif
 
 smallArrayDataType :: DataType
 smallArrayDataType =

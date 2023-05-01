@@ -53,6 +53,7 @@ Library
 
   Other-Modules:
         Data.Primitive.Internal.Operations
+        Data.Primitive.Internal.Read
 
   Build-Depends: base >= 4.9 && < 4.19
                , deepseq >= 1.1 && < 1.5
