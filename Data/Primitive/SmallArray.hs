@@ -84,7 +84,7 @@ import Data.Functor.Identity
 import Data.Primitive.Internal.Read (Tag(..),lexTag)
 import Text.Read (Read (..), parens, prec)
 import qualified GHC.ST as GHCST
-import qualified Data.Semigroup as Sem
+import Data.Semigroup
 import Text.ParserCombinators.ReadP
 import Text.ParserCombinators.ReadPrec (ReadPrec)
 import qualified Text.ParserCombinators.ReadPrec as RdPrc
@@ -396,7 +396,7 @@ getSizeofSmallMutableArray sa = pure $! sizeofSmallMutableArray sa
 -- for arrays that are not shrunk in place.
 --
 -- This is deprecated and will be removed in a future release. Use
--- 'getSizeofSmallMutableArray' instead. 
+-- 'getSizeofSmallMutableArray' instead.
 sizeofSmallMutableArray :: SmallMutableArray s a -> Int
 sizeofSmallMutableArray (SmallMutableArray sa#) =
   I# (sizeofSmallMutableArray# sa#)
@@ -826,25 +826,23 @@ instance MonadFix SmallArray where
       err = error "mfix for Data.Primitive.SmallArray applied to strict function."
 
 -- | @since 0.6.3.0
-instance Sem.Semigroup (SmallArray a) where
+instance Semigroup (SmallArray a) where
   (<>) = (<|>)
   sconcat = mconcat . toList
   stimes n arr = case compare n 0 of
     LT -> die "stimes" "negative multiplier"
     EQ -> empty
     GT -> createSmallArray (n' * sizeofSmallArray arr) (die "stimes" "impossible") $ \sma ->
-      let go i = if i < n'
-            then do
-              copySmallArray sma (i * sizeofSmallArray arr) arr 0 (sizeofSmallArray arr)
-              go (i + 1)
-            else return ()
+      let go i = when (i < n') $ do
+            copySmallArray sma (i * sizeofSmallArray arr) arr 0 (sizeofSmallArray arr)
+            go (i + 1)
       in go 0
     where n' = fromIntegral n :: Int
 
 instance Monoid (SmallArray a) where
   mempty = empty
 #if !(MIN_VERSION_base(4,11,0))
-  mappend = (Sem.<>)
+  mappend = (<>)
 #endif
   mconcat l = createSmallArray n (die "mconcat" "impossible") $ \ma ->
     let go !_  [    ] = return ()

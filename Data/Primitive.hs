@@ -1,4 +1,3 @@
-{-# LANGUAGE MagicHash #-}
 {-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
 
 -- |
