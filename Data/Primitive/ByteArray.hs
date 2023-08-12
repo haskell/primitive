@@ -89,6 +89,7 @@ import System.IO.Unsafe (unsafeDupablePerformIO)
 import Data.Array.Byte (ByteArray(..), MutableByteArray(..))
 
 -- | Create a new mutable byte array of the specified size in bytes.
+-- The underlying memory is left uninitialized.
 --
 -- /Note:/ this function does not check if the input is non-negative.
 newByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
@@ -98,7 +99,7 @@ newByteArray (I# n#)
                         (# s'#, arr# #) -> (# s'#, MutableByteArray arr# #))
 
 -- | Create a /pinned/ byte array of the specified size in bytes. The garbage
--- collector is guaranteed not to move it.
+-- collector is guaranteed not to move it. The underlying memory is left uninitialized.
 --
 -- /Note:/ this function does not check if the input is non-negative.
 newPinnedByteArray :: PrimMonad m => Int -> m (MutableByteArray (PrimState m))
@@ -109,6 +110,7 @@ newPinnedByteArray (I# n#)
 
 -- | Create a /pinned/ byte array of the specified size in bytes and with the
 -- given alignment. The garbage collector is guaranteed not to move it.
+-- The underlying memory is left uninitialized.
 --
 -- /Note:/ this function does not check if the input is non-negative.
 newAlignedPinnedByteArray
