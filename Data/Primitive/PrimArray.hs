@@ -1074,7 +1074,7 @@ documentation of the @Data.Primitive@ module.
 -}
 
 -- | Create a /pinned/ primitive array of the specified size (in elements). The garbage
--- collector is guaranteed not to move it.
+-- collector is guaranteed not to move it. The underlying memory is left uninitialized.
 --
 -- @since 0.7.1.0
 newPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
@@ -1086,7 +1086,7 @@ newPinnedPrimArray (I# n#)
 
 -- | Create a /pinned/ primitive array of the specified size (in elements) and
 -- with the alignment given by its 'Prim' instance. The garbage collector is
--- guaranteed not to move it.
+-- guaranteed not to move it. The underlying memory is left uninitialized.
 --
 -- @since 0.7.0.0
 newAlignedPinnedPrimArray :: forall m a. (PrimMonad m, Prim a)
