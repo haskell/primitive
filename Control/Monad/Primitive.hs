@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds #-}
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 -- |
@@ -22,14 +23,19 @@ module Control.Monad.Primitive (
   liftPrim, primToPrim, primToIO, primToST, ioToPrim, stToPrim,
   unsafePrimToPrim, unsafePrimToIO, unsafePrimToST, unsafeIOToPrim,
   unsafeSTToPrim, unsafeInlinePrim, unsafeInlineIO, unsafeInlineST,
-  touch, keepAlive, evalPrim, unsafeInterleave, unsafeDupableInterleave, noDuplicate
+  touch, touchUnlifted,
+  keepAlive, keepAliveUnlifted,
+  evalPrim, unsafeInterleave, unsafeDupableInterleave, noDuplicate
 ) where
 
+import Data.Kind (Type)
+
 import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch#
-#if defined(HAVE_KEEPALIVE)
-                  , keepAlive#
-#endif
                   , unsafeCoerce#, realWorld#, seq# )
+import Data.Primitive.Internal.Operations (UnliftedType)
+#if defined(HAVE_KEEPALIVE)
+import Data.Primitive.Internal.Operations (keepAliveLiftedLifted#,keepAliveUnliftedLifted#)
+#endif
 import GHC.IO     ( IO(..) )
 import GHC.ST     ( ST(..) )
 
@@ -335,19 +341,50 @@ unsafeInlineST :: ST s a -> a
 {-# INLINE unsafeInlineST #-}
 unsafeInlineST = unsafeInlinePrim
 
+-- | Ensure that the value is considered live by the garbage collection.
+-- Warning: GHC has optimization passed that can erase @touch@ if it is
+-- certain that an exception is thrown afterward. Prefer 'keepAlive'.
 touch :: PrimMonad m => a -> m ()
 {-# INLINE touch #-}
 touch x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
-keepAlive :: PrimBase m => a -> m r -> m r
+-- | Variant of touch that keeps a value of an unlifted type
+-- (e.g. @MutableByteArray#@) live.
+touchUnlifted :: forall (m :: Type -> Type) (a :: UnliftedType). PrimMonad m => a -> m ()
+{-# INLINE touchUnlifted #-}
+touchUnlifted x = unsafePrimToPrim
+        $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
+
+-- | Keep value @x@ live until computation @k@ completes.
+-- Warning: This primop exists for completeness, but it is difficult to use
+-- correctly. Prefer 'keepAliveUnlifted' if the value to keep live is simply
+-- a wrapper around an unlifted type (e.g. @ByteArray@).
+keepAlive :: PrimBase m
+  => a -- ^ Value @x@ to keep live while computation @k@ runs.
+  -> m r -- ^ Computation @k@
+  -> m r
 #if defined(HAVE_KEEPALIVE)
 {-# INLINE keepAlive #-}
 keepAlive x k =
-  unsafeIOToPrim $ primitive $ \s0 -> keepAlive# x s0 $ internal $ unsafePrimToIO k
+  primitive $ \s0 -> keepAliveLiftedLifted# x s0 (internal k)
+
 #else
 {-# NOINLINE keepAlive #-}
 keepAlive x k = k <* touch x
+#endif
+
+-- | Variant of 'keepAlive' in which the value kept live is of an unlifted
+-- boxed type.
+keepAliveUnlifted :: forall (m :: Type -> Type) (a :: UnliftedType) (r :: Type). PrimBase m => a -> m r -> m r
+#if defined(HAVE_KEEPALIVE)
+{-# INLINE keepAliveUnlifted #-}
+keepAliveUnlifted x k =
+  primitive $ \s0 -> keepAliveUnliftedLifted# x s0 (internal k)
+
+#else
+{-# NOINLINE keepAliveUnlifted #-}
+keepAliveUnlifted x k = k <* touchUnlifted x
 #endif
 
 -- | Create an action to force a value; generalizes 'Control.Exception.evaluate'
