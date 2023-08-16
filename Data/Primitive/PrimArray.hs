@@ -112,9 +112,6 @@ import GHC.Exts
 import Data.Primitive.Types
 import Data.Primitive.ByteArray (ByteArray(..))
 import Data.Proxy
-#if !MIN_VERSION_base(4,11,0)
-import Data.Monoid ((<>))
-#endif
 #if !MIN_VERSION_base(4,18,0)
 import Control.Applicative (liftA2)
 #endif
@@ -130,10 +127,7 @@ import qualified GHC.ST as GHCST
 #endif
 import Language.Haskell.TH.Syntax (Lift (..))
 
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup (Semigroup)
-#endif
-import qualified Data.Semigroup as SG
+import Data.Semigroup
 
 #if __GLASGOW_HASKELL__ >= 802
 import qualified GHC.Exts as Exts
@@ -265,15 +259,15 @@ byteArrayToPrimArray (PB.ByteArray x) = PrimArray x
 
 -- | @since 0.6.4.0
 instance Semigroup (PrimArray a) where
-  x <> y = byteArrayToPrimArray (primArrayToByteArray x SG.<> primArrayToByteArray y)
-  sconcat = byteArrayToPrimArray . SG.sconcat . fmap primArrayToByteArray
-  stimes i arr = byteArrayToPrimArray (SG.stimes i (primArrayToByteArray arr))
+  x <> y = byteArrayToPrimArray (primArrayToByteArray x <> primArrayToByteArray y)
+  sconcat = byteArrayToPrimArray . sconcat . fmap primArrayToByteArray
+  stimes i arr = byteArrayToPrimArray (stimes i (primArrayToByteArray arr))
 
 -- | @since 0.6.4.0
 instance Monoid (PrimArray a) where
   mempty = emptyPrimArray
 #if !(MIN_VERSION_base(4,11,0))
-  mappend x y = byteArrayToPrimArray (mappend (primArrayToByteArray x) (primArrayToByteArray y))
+  mappend = (<>)
 #endif
   mconcat = byteArrayToPrimArray . mconcat . map primArrayToByteArray
 

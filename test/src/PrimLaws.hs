@@ -4,7 +4,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UnboxedTuples #-}
 
 {-# OPTIONS_GHC -Wall #-}
 
@@ -18,7 +17,6 @@ module PrimLaws
   ( primLaws
   ) where
 
-import Control.Applicative
 import Control.Monad.Primitive (primitive_)
 import Control.Monad.ST
 import Data.Proxy (Proxy)
@@ -27,9 +25,7 @@ import Data.Primitive.ByteArray
 import Data.Primitive.Types
 import Data.Primitive.Ptr
 import Foreign.Marshal.Alloc
-import GHC.Exts (State#,Int#,Int(I#),(+#),(<#))
-
-import GHC.Exts (IsList(fromList,toList))
+import GHC.Exts (State#, Int#, Int(I#), (+#), (<#), IsList(fromList,toList))
 
 import System.IO.Unsafe
 import Test.QuickCheck hiding ((.&.))
