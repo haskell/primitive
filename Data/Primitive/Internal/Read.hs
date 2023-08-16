@@ -3,6 +3,7 @@ module Data.Primitive.Internal.Read
   , lexTag
   ) where
 
+import Data.Char (isDigit)
 import Text.ParserCombinators.ReadP
 
 data Tag = FromListTag | FromListNTag
@@ -20,7 +21,7 @@ lexTag = do
   s <- look
   case s of
     'N':c:_
-      | '0' <= c && c <= '9'
+      | isDigit c
       -> fail "" -- We have fromListN3 or similar
       | otherwise -> FromListNTag <$ get -- Skip the 'N'
     _ -> return FromListTag

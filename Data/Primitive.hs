@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
-
 -- |
 -- Module      : Data.Primitive
 -- Copyright   : (c) Roman Leshchinskiy 2009-2012
