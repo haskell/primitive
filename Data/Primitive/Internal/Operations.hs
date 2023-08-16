@@ -187,6 +187,8 @@ keepAliveUnliftedLifted# x s0 f =
     )
 #endif
 
-#if __GLASGOW_HASKELL__ < 900
+#if __GLASGOW_HASKELL__ < 802
+type UnliftedType = TYPE 'PtrRepUnlifted
+#elif __GLASGOW_HASKELL__ < 902
 type UnliftedType = TYPE 'UnliftedRep
 #endif
