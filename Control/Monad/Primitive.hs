@@ -359,7 +359,7 @@ touchUnlifted :: forall (m :: Type -> Type) (a :: UnliftedType). PrimMonad m => 
 touchUnlifted x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
--- | Keep value @x@ live until computation @k@ completes.
+-- | Keep value @x@ alive until computation @k@ completes.
 -- Warning: This primop exists for completeness, but it is difficult to use
 -- correctly. Prefer 'keepAliveUnlifted' if the value to keep alive is simply
 -- a wrapper around an unlifted type (e.g. @ByteArray@).
