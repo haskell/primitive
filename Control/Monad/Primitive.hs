@@ -377,7 +377,7 @@ keepAlive x k =
 keepAlive x k = k <* touch x
 #endif
 
--- | Variant of 'keepAlive' in which the value kept live is of an unlifted
+-- | Variant of 'keepAlive' in which the value kept alive is of an unlifted
 -- boxed type.
 keepAliveUnlifted :: forall (m :: Type -> Type) (a :: UnliftedType) (r :: Type). PrimBase m => a -> m r -> m r
 #if defined(HAVE_KEEPALIVE)
