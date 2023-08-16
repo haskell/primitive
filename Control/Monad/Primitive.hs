@@ -352,7 +352,7 @@ touch :: PrimMonad m => a -> m ()
 touch x = unsafePrimToPrim
         $ (primitive (\s -> case touch# x s of { s' -> (# s', () #) }) :: IO ())
 
--- | Variant of touch that keeps a value of an unlifted type
+-- | Variant of 'touch' that keeps a value of an unlifted type
 -- (e.g. @MutableByteArray#@) live.
 touchUnlifted :: forall (m :: Type -> Type) (a :: UnliftedType). PrimMonad m => a -> m ()
 {-# INLINE touchUnlifted #-}
