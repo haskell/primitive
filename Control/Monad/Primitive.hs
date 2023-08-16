@@ -344,7 +344,7 @@ unsafeInlineST :: ST s a -> a
 {-# INLINE unsafeInlineST #-}
 unsafeInlineST = unsafeInlinePrim
 
--- | Ensure that the value is considered live by the garbage collection.
+-- | Ensure that the value is considered alive by the garbage collection.
 -- Warning: GHC has optimization passes that can erase @touch@ if it is
 -- certain that an exception is thrown afterward. Prefer 'keepAlive'.
 touch :: PrimMonad m => a -> m ()
