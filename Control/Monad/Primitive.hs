@@ -361,10 +361,10 @@ touchUnlifted x = unsafePrimToPrim
 
 -- | Keep value @x@ live until computation @k@ completes.
 -- Warning: This primop exists for completeness, but it is difficult to use
--- correctly. Prefer 'keepAliveUnlifted' if the value to keep live is simply
+-- correctly. Prefer 'keepAliveUnlifted' if the value to keep alive is simply
 -- a wrapper around an unlifted type (e.g. @ByteArray@).
 keepAlive :: PrimBase m
-  => a -- ^ Value @x@ to keep live while computation @k@ runs.
+  => a -- ^ Value @x@ to keep alive while computation @k@ runs.
   -> m r -- ^ Computation @k@
   -> m r
 #if defined(HAVE_KEEPALIVE)
