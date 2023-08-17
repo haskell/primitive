@@ -62,7 +62,10 @@ module Data.Primitive.ByteArray (
 #if __GLASGOW_HASKELL__ >= 802
   isByteArrayPinned, isMutableByteArrayPinned,
 #endif
-  byteArrayContents, mutableByteArrayContents
+  byteArrayContents,
+  withByteArrayContents,
+  mutableByteArrayContents,
+  withMutableByteArrayContents
 
 ) where
 
@@ -126,13 +129,26 @@ newAlignedPinnedByteArray (I# n#) (I# k#)
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
+--
+-- Prefer 'withByteArrayContents', which ensures that the array is not
+-- garbage collected while the pointer is being used.
 byteArrayContents :: ByteArray -> Ptr Word8
 {-# INLINE byteArrayContents #-}
 byteArrayContents (ByteArray arr#) = Ptr (byteArrayContents# arr#)
 
+-- | A composition of 'byteArrayContents' and 'keepAliveUnlifted'.
+-- The callback function must not return the pointer.
+withByteArrayContents :: PrimBase m => ByteArray -> (Ptr Word8 -> m a) -> m a
+{-# INLINE withByteArrayContents #-}
+withByteArrayContents (ByteArray arr#) f =
+  keepAliveUnlifted arr# (f (Ptr (byteArrayContents# arr#)))
+
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
 -- 'newAlignedPinnedByteArray'.
+--
+-- Prefer 'withByteArrayContents', which ensures that the array is not
+-- garbage collected while the pointer is being used.
 mutableByteArrayContents :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContents #-}
 mutableByteArrayContents (MutableByteArray arr#) = Ptr
@@ -141,6 +157,16 @@ mutableByteArrayContents (MutableByteArray arr#) = Ptr
 #else
   (byteArrayContents# (unsafeCoerce# arr#))
 #endif
+
+-- | A composition of 'mutableByteArrayContents' and 'keepAliveUnlifted'.
+-- The callback function must not return the pointer.
+--
+-- Note: The state token does not need to agree with the primitive monadic
+-- context. That is, any @s@ can be used, not just @PrimState m@.
+withMutableByteArrayContents :: PrimBase m => MutableByteArray s -> (Ptr Word8 -> m a) -> m a
+{-# INLINE withMutableByteArrayContents #-}
+withMutableByteArrayContents (MutableByteArray arr#) f =
+  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContents# arr#)))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
