@@ -1,4 +1,9 @@
-{-# LANGUAGE CPP, MagicHash, UnliftedFFITypes #-}
+{-# LANGUAGE CPP, MagicHash, UnliftedFFITypes, UnboxedTuples #-}
+{-# LANGUAGE RankNTypes, KindSignatures, ScopedTypeVariables #-} 
+{-# LANGUAGE DataKinds #-}
+#if __GLASGOW_HASKELL__ < 806
+{-# LANGUAGE TypeInType #-}
+#endif
 
 -- |
 -- Module      : Data.Primitive.Internal.Operations
@@ -24,11 +29,22 @@ module Data.Primitive.Internal.Operations (
   setInt64OffAddr#, setIntOffAddr#,
   setAddrOffAddr#, setFloatOffAddr#, setDoubleOffAddr#, setWideCharOffAddr#,
   setStablePtrOffAddr#
+
+
+#if defined(HAVE_KEEPALIVE)
+  , keepAliveLiftedLifted#
+  , keepAliveUnliftedLifted#
+#endif
+  , UnliftedType
 ) where
 
 import Data.Primitive.MachDeps (Word64_#, Int64_#)
 import Foreign.C.Types
 import GHC.Exts
+
+#if defined(HAVE_KEEPALIVE)
+import Data.Kind (Type)
+#endif
 
 
 #if __GLASGOW_HASKELL__ >= 902
@@ -136,3 +152,43 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Double"
   setDoubleOffAddr# :: Addr# -> CPtrdiff -> CSize -> Double# -> IO ()
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Char"
   setWideCharOffAddr# :: Addr# -> CPtrdiff -> CSize -> Char# -> IO ()
+
+#if defined(HAVE_KEEPALIVE)
+keepAliveLiftedLifted# :: forall (s :: Type) (a :: Type) (b :: Type).
+     a
+  -> State# s
+  -> (State# s -> (# State# s, b #))
+  -> (# State# s, b #)
+{-# inline keepAliveLiftedLifted# #-}
+keepAliveLiftedLifted# x s0 f =
+  (unsafeCoerce# :: (# State# RealWorld, b #) -> (# State# s, b #))
+    ( keepAlive# x
+      ((unsafeCoerce# :: State# s -> State# RealWorld) s0)
+      ((unsafeCoerce# ::
+         (State# s -> (# State# s, b #)) ->
+         (State# RealWorld -> (# State# RealWorld, b #))
+       ) f)
+    )
+
+keepAliveUnliftedLifted# :: forall (s :: Type) (a :: UnliftedType) (b :: Type).
+     a
+  -> State# s
+  -> (State# s -> (# State# s, b #))
+  -> (# State# s, b #)
+{-# inline keepAliveUnliftedLifted# #-}
+keepAliveUnliftedLifted# x s0 f =
+  (unsafeCoerce# :: (# State# RealWorld, b #) -> (# State# s, b #))
+    ( keepAlive# x
+      ((unsafeCoerce# :: State# s -> State# RealWorld) s0)
+      ((unsafeCoerce# ::
+         (State# s -> (# State# s, b #)) ->
+         (State# RealWorld -> (# State# RealWorld, b #))
+       ) f)
+    )
+#endif
+
+#if __GLASGOW_HASKELL__ < 802
+type UnliftedType = TYPE 'PtrRepUnlifted
+#elif __GLASGOW_HASKELL__ < 902
+type UnliftedType = TYPE 'UnliftedRep
+#endif
