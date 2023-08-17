@@ -151,11 +151,15 @@ withByteArrayContents (ByteArray arr#) f =
 -- garbage collected while the pointer is being used.
 mutableByteArrayContents :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContents #-}
-mutableByteArrayContents (MutableByteArray arr#) = Ptr
+mutableByteArrayContents (MutableByteArray arr#) = Ptr (mutableByteArrayContentsShim arr#)
+
+mutableByteArrayContentsShim :: MutableByteArray# s -> Addr#
+{-# INLINE mutableByteArrayContentsShim #-}
+mutableByteArrayContentsShim x =
 #if __GLASGOW_HASKELL__ >= 902
-  (mutableByteArrayContents# arr#)
+  mutableByteArrayContents# x
 #else
-  (byteArrayContents# (unsafeCoerce# arr#))
+  byteArrayContents# (unsafeCoerce# x)
 #endif
 
 -- | A composition of 'mutableByteArrayContents' and 'keepAliveUnlifted'.
