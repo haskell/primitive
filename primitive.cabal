@@ -81,7 +81,7 @@ test-suite test-qc
   Default-Language: Haskell2010
   hs-source-dirs: test
                   test/src
-  main-is: main.hs
+  main-is: Main.hs
   Other-Modules: PrimLaws
   type: exitcode-stdio-1.0
   build-depends: base
