@@ -164,7 +164,7 @@ indexArray## :: Array a -> Int -> (# a #)
 indexArray## arr (I# i) = indexArray# (array# arr) i
 {-# INLINE indexArray## #-}
 
--- | Monadically read a value from the immutable array at the given index.
+-- | Read a value from the immutable array at the given index using an applicative.
 -- This allows us to be strict in the array while remaining lazy in the read
 -- element which is very useful for collective operations. Suppose we want to
 -- copy an array. We could do something like this:
@@ -188,10 +188,10 @@ indexArray## arr (I# i) = indexArray# (array# arr) i
 -- still not evaluated.
 --
 -- /Note:/ this function does not do bounds checking.
-indexArrayM :: Monad m => Array a -> Int -> m a
+indexArrayM :: Applicative m => Array a -> Int -> m a
 {-# INLINE indexArrayM #-}
 indexArrayM arr (I# i#)
-  = case indexArray# (array# arr) i# of (# x #) -> return x
+  = case indexArray# (array# arr) i# of (# x #) -> pure x
 
 -- | Create an immutable copy of a slice of an array.
 --
