@@ -179,7 +179,7 @@ writeSmallArray (SmallMutableArray sma#) (I# i#) x =
 
 -- | Look up an element in an immutable array.
 --
--- The purpose of returning a result using a monad is to allow the caller to
+-- The purpose of returning a result using an applicative is to allow the caller to
 -- avoid retaining references to the array. Evaluating the return value will
 -- cause the array lookup to be performed, even though it may not require the
 -- element of the array to be evaluated (which could throw an exception). For
@@ -203,7 +203,7 @@ writeSmallArray (SmallMutableArray sma#) (I# i#) x =
 --
 -- /Note:/ this function does not do bounds checking.
 indexSmallArrayM
-  :: Monad m
+  :: Applicative m
   => SmallArray a -- ^ array
   -> Int          -- ^ index
   -> m a
