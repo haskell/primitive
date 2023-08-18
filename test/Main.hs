@@ -61,11 +61,14 @@ main = do
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (Array Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
-      , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 Array))
-      , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 Array))
-      , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 Array))
-      , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 Array))
-      , lawsToTest (QCC.traversableLaws (Proxy1 :: Proxy1 Array))
+      , lawsToTest (QCC.functorLaws (Proxy :: Proxy Array))
+      , lawsToTest (QCC.applicativeLaws (Proxy :: Proxy Array))
+      , lawsToTest (QCC.alternativeLaws (Proxy :: Proxy Array))
+      , lawsToTest (QCC.monadLaws (Proxy :: Proxy Array))
+      , lawsToTest (QCC.monadZipLaws (Proxy :: Proxy Array))
+      , lawsToTest (QCC.monadPlusLaws (Proxy :: Proxy Array))
+      , lawsToTest (QCC.foldableLaws (Proxy :: Proxy Array))
+      , lawsToTest (QCC.traversableLaws (Proxy :: Proxy Array))
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (Array Int)))
       , TQC.testProperty "mapArray'" (QCCL.mapProp int16 int32 mapArray')
       , TQC.testProperty "*>" $ \(xs :: Array Int) (ys :: Array Int) -> toList (xs *> ys) === (toList xs *> toList ys)
@@ -78,11 +81,14 @@ main = do
       , lawsToTest (QCC.ordLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.monoidLaws (Proxy :: Proxy (SmallArray Int)))
       , lawsToTest (QCC.showReadLaws (Proxy :: Proxy (Array Int)))
-      , lawsToTest (QCC.functorLaws (Proxy1 :: Proxy1 SmallArray))
-      , lawsToTest (QCC.applicativeLaws (Proxy1 :: Proxy1 SmallArray))
-      , lawsToTest (QCC.monadLaws (Proxy1 :: Proxy1 SmallArray))
-      , lawsToTest (QCC.foldableLaws (Proxy1 :: Proxy1 SmallArray))
-      , lawsToTest (QCC.traversableLaws (Proxy1 :: Proxy1 SmallArray))
+      , lawsToTest (QCC.functorLaws (Proxy :: Proxy SmallArray))
+      , lawsToTest (QCC.applicativeLaws (Proxy :: Proxy SmallArray))
+      , lawsToTest (QCC.alternativeLaws (Proxy :: Proxy SmallArray))
+      , lawsToTest (QCC.monadLaws (Proxy :: Proxy SmallArray))
+      , lawsToTest (QCC.monadZipLaws (Proxy :: Proxy SmallArray))
+      , lawsToTest (QCC.monadPlusLaws (Proxy :: Proxy SmallArray))
+      , lawsToTest (QCC.foldableLaws (Proxy :: Proxy SmallArray))
+      , lawsToTest (QCC.traversableLaws (Proxy :: Proxy SmallArray))
       , lawsToTest (QCC.isListLaws (Proxy :: Proxy (SmallArray Int)))
       , TQC.testProperty "mapSmallArray'" (QCCL.mapProp int16 int32 mapSmallArray')
       , TQC.testProperty "*>" $ \(xs :: SmallArray Int) (ys :: SmallArray Int) -> toList (xs *> ys) === (toList xs *> toList ys)
@@ -307,9 +313,6 @@ byteArrayEqProp = QC.property $ \(xs :: [Word8]) (ys :: [Word8]) ->
 
 compareLengthFirst :: [Word8] -> [Word8] -> Ordering
 compareLengthFirst xs ys = (compare `on` length) xs ys <> compare xs ys
-
--- on GHC 7.4, Proxy is not polykinded, so we need this instead.
-data Proxy1 (f :: * -> *) = Proxy1
 
 lawsToTest :: QCC.Laws -> TestTree
 lawsToTest (QCC.Laws name pairs) = testGroup name (map (uncurry TQC.testProperty) pairs)
