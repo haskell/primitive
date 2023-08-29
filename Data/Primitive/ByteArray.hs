@@ -170,7 +170,7 @@ mutableByteArrayContentsShim x =
 withMutableByteArrayContents :: PrimBase m => MutableByteArray s -> (Ptr Word8 -> m a) -> m a
 {-# INLINE withMutableByteArrayContents #-}
 withMutableByteArrayContents (MutableByteArray arr#) f =
-  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContents# arr#)))
+  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContentsShim arr#)))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
