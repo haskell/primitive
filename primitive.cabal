@@ -55,8 +55,8 @@ Library
         Data.Primitive.Internal.Operations
         Data.Primitive.Internal.Read
 
-  Build-Depends: base >= 4.9 && < 4.19
-               , deepseq >= 1.1 && < 1.5
+  Build-Depends: base >= 4.9 && < 4.20
+               , deepseq >= 1.1 && < 1.6
                , transformers >= 0.5 && < 0.7
                , template-haskell >= 2.11
 
