@@ -127,8 +127,10 @@ newAlignedPinnedByteArray (I# n#) (I# k#)
                         (# s'#, arr# #) -> (# s'#, MutableByteArray arr# #))
 
 -- | Yield a pointer to the array's data. This operation is only safe on
--- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
--- 'newAlignedPinnedByteArray'.
+-- /pinned/ byte arrays. Byte arrays allocated by 'newPinnedByteArray' and
+-- 'newAlignedPinnedByteArray' are guaranteed to be pinned. Byte arrays
+-- allocated by 'newByteArray' may or may not be pinned (use
+-- 'isByteArrayPinned' to figure out).
 --
 -- Prefer 'withByteArrayContents', which ensures that the array is not
 -- garbage collected while the pointer is being used.
@@ -137,15 +139,17 @@ byteArrayContents :: ByteArray -> Ptr Word8
 byteArrayContents (ByteArray arr#) = Ptr (byteArrayContents# arr#)
 
 -- | A composition of 'byteArrayContents' and 'keepAliveUnlifted'.
--- The callback function must not return the pointer.
+-- The callback function must not return the pointer. The argument byte
+-- array must be /pinned/. See 'byteArrayContents' for an explanation
+-- of which byte arrays are pinned.
 withByteArrayContents :: PrimBase m => ByteArray -> (Ptr Word8 -> m a) -> m a
 {-# INLINE withByteArrayContents #-}
 withByteArrayContents (ByteArray arr#) f =
   keepAliveUnlifted arr# (f (Ptr (byteArrayContents# arr#)))
 
 -- | Yield a pointer to the array's data. This operation is only safe on
--- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
--- 'newAlignedPinnedByteArray'.
+-- /pinned/ byte arrays. See 'byteArrayContents' for an explanation
+-- of which byte arrays are pinned.
 --
 -- Prefer 'withByteArrayContents', which ensures that the array is not
 -- garbage collected while the pointer is being used.
@@ -163,11 +167,10 @@ mutableByteArrayContentsShim x =
 #endif
 
 -- | A composition of 'mutableByteArrayContents' and 'keepAliveUnlifted'.
--- The callback function must not return the pointer.
---
--- Note: The state token does not need to agree with the primitive monadic
--- context. That is, any @s@ can be used, not just @PrimState m@.
-withMutableByteArrayContents :: PrimBase m => MutableByteArray s -> (Ptr Word8 -> m a) -> m a
+-- The callback function must not return the pointer. The argument byte
+-- array must be /pinned/. See 'byteArrayContents' for an explanation
+-- of which byte arrays are pinned.
+withMutableByteArrayContents :: PrimBase m => MutableByteArray (PrimState m) -> (Ptr Word8 -> m a) -> m a
 {-# INLINE withMutableByteArrayContents #-}
 withMutableByteArrayContents (MutableByteArray arr#) f =
   keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContentsShim arr#)))
