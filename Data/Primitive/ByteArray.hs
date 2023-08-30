@@ -142,6 +142,10 @@ byteArrayContents (ByteArray arr#) = Ptr (byteArrayContents# arr#)
 -- The callback function must not return the pointer. The argument byte
 -- array must be /pinned/. See 'byteArrayContents' for an explanation
 -- of which byte arrays are pinned.
+--
+-- Note: This could be implemented with 'keepAlive' instead of
+-- 'keepAliveUnlifted', but 'keepAlive' here would cause GHC to materialize
+-- the wrapper data constructor on the heap.
 withByteArrayContents :: PrimBase m => ByteArray -> (Ptr Word8 -> m a) -> m a
 {-# INLINE withByteArrayContents #-}
 withByteArrayContents (ByteArray arr#) f =
