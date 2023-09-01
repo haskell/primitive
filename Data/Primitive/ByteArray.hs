@@ -62,7 +62,10 @@ module Data.Primitive.ByteArray (
 #if __GLASGOW_HASKELL__ >= 802
   isByteArrayPinned, isMutableByteArrayPinned,
 #endif
-  byteArrayContents, mutableByteArrayContents
+  byteArrayContents,
+  withByteArrayContents,
+  mutableByteArrayContents,
+  withMutableByteArrayContents
 
 ) where
 
@@ -124,23 +127,57 @@ newAlignedPinnedByteArray (I# n#) (I# k#)
                         (# s'#, arr# #) -> (# s'#, MutableByteArray arr# #))
 
 -- | Yield a pointer to the array's data. This operation is only safe on
--- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
--- 'newAlignedPinnedByteArray'.
+-- /pinned/ byte arrays. Byte arrays allocated by 'newPinnedByteArray' and
+-- 'newAlignedPinnedByteArray' are guaranteed to be pinned. Byte arrays
+-- allocated by 'newByteArray' may or may not be pinned (use
+-- 'isByteArrayPinned' to figure out).
+--
+-- Prefer 'withByteArrayContents', which ensures that the array is not
+-- garbage collected while the pointer is being used.
 byteArrayContents :: ByteArray -> Ptr Word8
 {-# INLINE byteArrayContents #-}
 byteArrayContents (ByteArray arr#) = Ptr (byteArrayContents# arr#)
 
+-- | A composition of 'byteArrayContents' and 'keepAliveUnlifted'.
+-- The callback function must not return the pointer. The argument byte
+-- array must be /pinned/. See 'byteArrayContents' for an explanation
+-- of which byte arrays are pinned.
+--
+-- Note: This could be implemented with 'keepAlive' instead of
+-- 'keepAliveUnlifted', but 'keepAlive' here would cause GHC to materialize
+-- the wrapper data constructor on the heap.
+withByteArrayContents :: PrimBase m => ByteArray -> (Ptr Word8 -> m a) -> m a
+{-# INLINE withByteArrayContents #-}
+withByteArrayContents (ByteArray arr#) f =
+  keepAliveUnlifted arr# (f (Ptr (byteArrayContents# arr#)))
+
 -- | Yield a pointer to the array's data. This operation is only safe on
--- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
--- 'newAlignedPinnedByteArray'.
+-- /pinned/ byte arrays. See 'byteArrayContents' for an explanation
+-- of which byte arrays are pinned.
+--
+-- Prefer 'withByteArrayContents', which ensures that the array is not
+-- garbage collected while the pointer is being used.
 mutableByteArrayContents :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContents #-}
-mutableByteArrayContents (MutableByteArray arr#) = Ptr
+mutableByteArrayContents (MutableByteArray arr#) = Ptr (mutableByteArrayContentsShim arr#)
+
+mutableByteArrayContentsShim :: MutableByteArray# s -> Addr#
+{-# INLINE mutableByteArrayContentsShim #-}
+mutableByteArrayContentsShim x =
 #if __GLASGOW_HASKELL__ >= 902
-  (mutableByteArrayContents# arr#)
+  mutableByteArrayContents# x
 #else
-  (byteArrayContents# (unsafeCoerce# arr#))
+  byteArrayContents# (unsafeCoerce# x)
 #endif
+
+-- | A composition of 'mutableByteArrayContents' and 'keepAliveUnlifted'.
+-- The callback function must not return the pointer. The argument byte
+-- array must be /pinned/. See 'byteArrayContents' for an explanation
+-- of which byte arrays are pinned.
+withMutableByteArrayContents :: PrimBase m => MutableByteArray (PrimState m) -> (Ptr Word8 -> m a) -> m a
+{-# INLINE withMutableByteArrayContents #-}
+withMutableByteArrayContents (MutableByteArray arr#) f =
+  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContentsShim arr#)))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool
