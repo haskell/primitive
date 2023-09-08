@@ -35,6 +35,7 @@ module Data.Primitive.Internal.Operations (
   , keepAliveLiftedLifted#
   , keepAliveUnliftedLifted#
 #endif
+  , mutableByteArrayContentsShim
   , UnliftedType
 ) where
 
@@ -192,3 +193,13 @@ type UnliftedType = TYPE 'PtrRepUnlifted
 #elif __GLASGOW_HASKELL__ < 902
 type UnliftedType = TYPE 'UnliftedRep
 #endif
+
+mutableByteArrayContentsShim :: MutableByteArray# s -> Addr#
+{-# INLINE mutableByteArrayContentsShim #-}
+mutableByteArrayContentsShim x =
+#if __GLASGOW_HASKELL__ >= 902
+  mutableByteArrayContents# x
+#else
+  byteArrayContents# (unsafeCoerce# x)
+#endif
+
