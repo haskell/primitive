@@ -1164,9 +1164,9 @@ runPrimArray m = runST $ m >>= unsafeFreezePrimArray
 #endif
 
 -- | A composition of 'primArrayContents' and 'keepAliveUnlifted'.
--- The callback function must not return the pointer. The argument byte
--- array must be /pinned/. See 'byteArrayContents' for an explanation
--- of which byte arrays are pinned.
+-- The callback function must not return the pointer. The argument
+-- array must be /pinned/. See 'primArrayContents' for an explanation
+-- of which primitive arrays are pinned.
 --
 -- Note: This could be implemented with 'keepAlive' instead of
 -- 'keepAliveUnlifted', but 'keepAlive' here would cause GHC to materialize
