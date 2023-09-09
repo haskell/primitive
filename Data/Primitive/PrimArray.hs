@@ -1177,9 +1177,9 @@ withPrimArrayContents (PrimArray arr#) f =
   keepAliveUnlifted arr# (f (Ptr (byteArrayContents# arr#)))
 
 -- | A composition of 'mutablePrimArrayContents' and 'keepAliveUnlifted'.
--- The callback function must not return the pointer. The argument byte
--- array must be /pinned/. See 'byteArrayContents' for an explanation
--- of which byte arrays are pinned.
+-- The callback function must not return the pointer. The argument
+-- array must be /pinned/. See 'primArrayContents' for an explanation
+-- of which primitive arrays are pinned.
 withMutablePrimArrayContents :: PrimBase m => MutablePrimArray (PrimState m) a -> (Ptr a -> m a) -> m a
 {-# INLINE withMutablePrimArrayContents #-}
 withMutablePrimArrayContents (MutablePrimArray arr#) f =
