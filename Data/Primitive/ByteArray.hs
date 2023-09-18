@@ -91,6 +91,8 @@ import System.IO.Unsafe (unsafeDupablePerformIO)
 
 import Data.Array.Byte (ByteArray(..), MutableByteArray(..))
 
+import Data.Primitive.Internal.Operations (mutableByteArrayContentsShim)
+
 -- | Create a new mutable byte array of the specified size in bytes.
 -- The underlying memory is left uninitialized.
 --
@@ -160,15 +162,6 @@ withByteArrayContents (ByteArray arr#) f =
 mutableByteArrayContents :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContents #-}
 mutableByteArrayContents (MutableByteArray arr#) = Ptr (mutableByteArrayContentsShim arr#)
-
-mutableByteArrayContentsShim :: MutableByteArray# s -> Addr#
-{-# INLINE mutableByteArrayContentsShim #-}
-mutableByteArrayContentsShim x =
-#if __GLASGOW_HASKELL__ >= 902
-  mutableByteArrayContents# x
-#else
-  byteArrayContents# (unsafeCoerce# x)
-#endif
 
 -- | A composition of 'mutableByteArrayContents' and 'keepAliveUnlifted'.
 -- The callback function must not return the pointer. The argument byte

@@ -63,7 +63,9 @@ module Data.Primitive.PrimArray
   , sizeofMutablePrimArray
   , sizeofPrimArray
   , primArrayContents
+  , withPrimArrayContents
   , mutablePrimArrayContents
+  , withMutablePrimArrayContents
 #if __GLASGOW_HASKELL__ >= 802
   , isPrimArrayPinned
   , isMutablePrimArrayPinned
@@ -132,6 +134,8 @@ import Data.Semigroup
 #if __GLASGOW_HASKELL__ >= 802
 import qualified GHC.Exts as Exts
 #endif
+
+import Data.Primitive.Internal.Operations (mutableByteArrayContentsShim)
 
 -- | Arrays of unboxed elements. This accepts types like 'Double', 'Char',
 -- 'Int' and 'Word', as well as their fixed-length variants ('Word8',
@@ -1106,12 +1110,8 @@ primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 -- @since 0.7.1.0
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
-mutablePrimArrayContents (MutablePrimArray arr#) = Ptr
-#if __GLASGOW_HASKELL__ >= 902
-  (mutableByteArrayContents# arr#)
-#else
-  (byteArrayContents# (unsafeCoerce# arr#))
-#endif
+mutablePrimArrayContents (MutablePrimArray arr#) =
+  Ptr (mutableByteArrayContentsShim arr#)
 
 -- | Return a newly allocated array with the specified subrange of the
 -- provided array. The provided array should contain the full subrange
@@ -1162,3 +1162,25 @@ unST (GHCST.ST f) = f
 #else /* In older GHCs, runRW# is not available. */
 runPrimArray m = runST $ m >>= unsafeFreezePrimArray
 #endif
+
+-- | A composition of 'primArrayContents' and 'keepAliveUnlifted'.
+-- The callback function must not return the pointer. The argument
+-- array must be /pinned/. See 'primArrayContents' for an explanation
+-- of which primitive arrays are pinned.
+--
+-- Note: This could be implemented with 'keepAlive' instead of
+-- 'keepAliveUnlifted', but 'keepAlive' here would cause GHC to materialize
+-- the wrapper data constructor on the heap.
+withPrimArrayContents :: PrimBase m => PrimArray a -> (Ptr a -> m a) -> m a
+{-# INLINE withPrimArrayContents #-}
+withPrimArrayContents (PrimArray arr#) f =
+  keepAliveUnlifted arr# (f (Ptr (byteArrayContents# arr#)))
+
+-- | A composition of 'mutablePrimArrayContents' and 'keepAliveUnlifted'.
+-- The callback function must not return the pointer. The argument
+-- array must be /pinned/. See 'primArrayContents' for an explanation
+-- of which primitive arrays are pinned.
+withMutablePrimArrayContents :: PrimBase m => MutablePrimArray (PrimState m) a -> (Ptr a -> m a) -> m a
+{-# INLINE withMutablePrimArrayContents #-}
+withMutablePrimArrayContents (MutablePrimArray arr#) f =
+  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContentsShim arr#)))

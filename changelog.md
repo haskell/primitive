@@ -1,5 +1,8 @@
 ## Changes in version 0.9.0.0
 
+  * Add `withByteArrayContents`, `withMutableByteArrayContents`,
+    `withPrimArrayContents`, `withMutablePrimArrayContents`.
+
   * Fix signature of `keepAlive`.
 
   * Remove re-export of `fromList` and `fromListN` from `Data.Primitive.Array`.
