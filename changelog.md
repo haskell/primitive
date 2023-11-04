@@ -1,3 +1,6 @@
+## Changes in version 0.9.1.0
+  * Add `byteArrayAsForeignPtr`.
+
 ## Changes in version 0.9.0.0
 
   * Add `withByteArrayContents`, `withMutableByteArrayContents`,
