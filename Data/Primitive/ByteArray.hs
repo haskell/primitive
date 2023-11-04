@@ -62,6 +62,7 @@ module Data.Primitive.ByteArray (
 #if __GLASGOW_HASKELL__ >= 802
   isByteArrayPinned, isMutableByteArrayPinned,
 #endif
+  byteArrayAsForeignPtr,
   byteArrayContents,
   withByteArrayContents,
   mutableByteArrayContents,
@@ -84,6 +85,7 @@ import Data.Word ( Word8 )
 import qualified GHC.Exts as Exts
 #endif
 import GHC.Exts hiding (setByteArray#)
+import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(..))
 
 #if __GLASGOW_HASKELL__ < 804
 import System.IO.Unsafe (unsafeDupablePerformIO)
@@ -127,6 +129,13 @@ newAlignedPinnedByteArray
 newAlignedPinnedByteArray (I# n#) (I# k#)
   = primitive (\s# -> case newAlignedPinnedByteArray# n# k# s# of
                         (# s'#, arr# #) -> (# s'#, MutableByteArray arr# #))
+
+-- | Create a foreign pointer that points to the array's data. This operation
+-- is only safe on /pinned/ byte arrays.  The array's data is not garbage
+-- collected while references to the foreign pointer exist.
+byteArrayAsForeignPtr :: ByteArray -> ForeignPtr Word8
+{-# INLINE byteArrayAsForeignPtr #-}
+byteArrayAsForeignPtr (ByteArray arr#) = ForeignPtr (byteArrayContents# arr#) (PlainPtr (unsafeCoerce# arr#))
 
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays. Byte arrays allocated by 'newPinnedByteArray' and
