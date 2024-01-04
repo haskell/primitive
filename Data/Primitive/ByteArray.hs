@@ -425,7 +425,13 @@ copyMutableByteArray
 {-# INLINE copyMutableByteArray #-}
 copyMutableByteArray (MutableByteArray dst#) doff
                      (MutableByteArray src#) soff sz
-  = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
+  = primitive_ (op src# (unI# soff) dst# (unI# doff) (unI# sz))
+  where
+#if MIN_VERSION_base(4,19,0)
+    op = copyMutableByteArrayNonOverlapping#
+#else
+    op = copyMutableByteArray#
+#endif
 
 -- | Copy a slice of a byte array to an unmanaged pointer address. These must not
 -- overlap. The offset and length are given in elements, not in bytes.
