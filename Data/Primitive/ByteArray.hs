@@ -79,7 +79,6 @@ import Data.Proxy
 import qualified GHC.ST as GHCST
 #endif
 
-import Foreign.C.Types
 import Data.Word ( Word8 )
 #if __GLASGOW_HASKELL__ >= 802
 import qualified GHC.Exts as Exts
@@ -88,6 +87,7 @@ import GHC.Exts hiding (setByteArray#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(..))
 
 #if __GLASGOW_HASKELL__ < 804
+import Foreign.C.Types
 import System.IO.Unsafe (unsafeDupablePerformIO)
 #endif
 
@@ -534,9 +534,7 @@ moveByteArray
 {-# INLINE moveByteArray #-}
 moveByteArray (MutableByteArray dst#) doff
               (MutableByteArray src#) soff sz
-  = unsafePrimToPrim
-  $ memmove_mba dst# (fromIntegral doff) src# (fromIntegral soff)
-                     (fromIntegral sz)
+  = primitive_ (copyMutableByteArray# src# (unI# soff) dst# (unI# doff) (unI# sz))
 
 -- | Fill a slice of a mutable byte array with a value. The offset and length
 -- are given in elements of type @a@ rather than in bytes.
@@ -565,11 +563,6 @@ fillByteArray
   -> m ()
 {-# INLINE fillByteArray #-}
 fillByteArray = setByteArray
-
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memmove"
-  memmove_mba :: MutableByteArray# s -> CPtrdiff
-              -> MutableByteArray# s -> CPtrdiff
-              -> CSize -> IO ()
 
 -- | Lexicographic comparison of equal-length slices into two byte arrays.
 -- This wraps the @compareByteArrays#@ primop, which wraps @memcmp@.
