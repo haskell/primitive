@@ -1,4 +1,4 @@
-The `primitive` package [![Build Status](https://travis-ci.org/haskell/primitive.png?branch=master)](https://travis-ci.org/haskell/primitive)
+The `primitive` package ![Build Status](https://github.com/haskell/primitive/actions/workflows/ci.yml/badge.svg)
 =======================
 
 This package provides various primitive memory-related operations for Haskell.
