@@ -235,21 +235,16 @@ primArrayFromList vs = primArrayFromListN (L.length vs) vs
 -- | Create a 'PrimArray' from a list of a known length. If the length
 -- of the list does not match the given length, this throws an exception.
 primArrayFromListN :: forall a. Prim a => Int -> [a] -> PrimArray a
-primArrayFromListN len vs = runST run where
-  run :: forall s. ST s (PrimArray a)
-  run = do
-    arr <- newPrimArray len
-    let go :: [a] -> Int -> ST s ()
-        go [] !ix = if ix == len
-          then return ()
-          else die "fromListN" "list length less than specified size"
-        go (a : as) !ix = if ix < len
-          then do
-            writePrimArray arr ix a
-            go as (ix + 1)
-          else die "fromListN" "list length greater than specified size"
-    go vs 0
-    unsafeFreezePrimArray arr
+primArrayFromListN len vs = createPrimArray len $ \arr ->
+  let go [] !ix = if ix == len
+        then return ()
+        else die "fromListN" "list length less than specified size"
+      go (a : as) !ix = if ix < len
+        then do
+          writePrimArray arr ix a
+          go as (ix + 1)
+        else die "fromListN" "list length greater than specified size"
+  in go vs 0
 
 -- | Convert a 'PrimArray' to a list.
 {-# INLINE primArrayToList #-}
@@ -769,15 +764,14 @@ mapPrimArray :: (Prim a, Prim b)
   => (a -> b)
   -> PrimArray a
   -> PrimArray b
-mapPrimArray f arr = runST $ do
-  let !sz = sizeofPrimArray arr
-  marr <- newPrimArray sz
+mapPrimArray f arr = createPrimArray sz $ \marr ->
   let go !ix = when (ix < sz) $ do
         let b = f (indexPrimArray arr ix)
         writePrimArray marr ix b
         go (ix + 1)
-  go 0
-  unsafeFreezePrimArray marr
+  in go 0
+  where
+    !sz = sizeofPrimArray arr
 
 -- | Indexed map over the elements of a primitive array.
 {-# INLINE imapPrimArray #-}
@@ -785,15 +779,14 @@ imapPrimArray :: (Prim a, Prim b)
   => (Int -> a -> b)
   -> PrimArray a
   -> PrimArray b
-imapPrimArray f arr = runST $ do
-  let !sz = sizeofPrimArray arr
-  marr <- newPrimArray sz
+imapPrimArray f arr = createPrimArray sz $ \marr ->
   let go !ix = when (ix < sz) $ do
         let b = f ix (indexPrimArray arr ix)
         writePrimArray marr ix b
         go (ix + 1)
-  go 0
-  unsafeFreezePrimArray marr
+  in go 0
+  where
+    !sz = sizeofPrimArray arr
 
 -- | Filter elements of a primitive array according to a predicate.
 {-# INLINE filterPrimArray #-}
@@ -963,13 +956,11 @@ generatePrimArray :: Prim a
   => Int -- ^ length
   -> (Int -> a) -- ^ element from index
   -> PrimArray a
-generatePrimArray len f = runST $ do
-  marr <- newPrimArray len
+generatePrimArray len f = createPrimArray len $ \marr ->
   let go !ix = when (ix < len) $ do
         writePrimArray marr ix (f ix)
         go (ix + 1)
-  go 0
-  unsafeFreezePrimArray marr
+  in go 0
 
 -- | Create a primitive array by copying the element the given
 -- number of times.
@@ -978,10 +969,8 @@ replicatePrimArray :: Prim a
   => Int -- ^ length
   -> a -- ^ element
   -> PrimArray a
-replicatePrimArray len a = runST $ do
-  marr <- newPrimArray len
+replicatePrimArray len a = createPrimArray len $ \marr ->
   setPrimArray marr 0 len a
-  unsafeFreezePrimArray marr
 
 -- | Generate a primitive array by evaluating the applicative generator
 -- function at each index.
@@ -1129,10 +1118,8 @@ clonePrimArray :: Prim a
   -> Int     -- ^ number of elements to copy
   -> PrimArray a
 {-# INLINE clonePrimArray #-}
-clonePrimArray src off n = runPrimArray $ do
-  dst <- newPrimArray n
+clonePrimArray src off n = createPrimArray n $ \dst ->
   copyPrimArray dst 0 src off n
-  return dst
 
 -- | Return a newly allocated mutable array with the specified subrange of
 -- the provided mutable array. The provided mutable array should contain the
