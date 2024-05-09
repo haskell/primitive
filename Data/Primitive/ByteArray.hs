@@ -44,7 +44,7 @@ module Data.Primitive.ByteArray (
   compareByteArrays,
 
   -- * Freezing and thawing
-  freezeByteArray, thawByteArray, runByteArray,
+  freezeByteArray, thawByteArray, runByteArray, createByteArray,
   unsafeFreezeByteArray, unsafeThawByteArray,
 
   -- * Block operations
@@ -600,6 +600,10 @@ emptyByteArray :: ByteArray
 {-# NOINLINE emptyByteArray #-}
 emptyByteArray = runST (newByteArray 0 >>= unsafeFreezeByteArray)
 
+emptyByteArray# :: (# #) -> ByteArray#
+{-# NOINLINE emptyByteArray# #-}
+emptyByteArray# _ = case emptyByteArray of ByteArray arr# -> arr#
+
 die :: String -> String -> a
 die fun problem = error $ "Data.Primitive.ByteArray." ++ fun ++ ": " ++ problem
 
@@ -652,6 +656,20 @@ unST (GHCST.ST f) = f
 #else /* In older GHCs, runRW# is not available. */
 runByteArray m = runST $ m >>= unsafeFreezeByteArray
 #endif
+
+-- Create an uninitialized array of the given size in bytes, apply the function
+-- to it, and freeze the result.
+--
+-- /Note:/ this function does not check if the input is non-negative.
+--
+-- @since FIXME
+createByteArray :: Int -> (forall s. MutableByteArray s -> ST s ()) -> ByteArray
+{-# INLINE createByteArray #-}
+createByteArray 0 _ = ByteArray (emptyByteArray# (# #))
+createByteArray n f = runByteArray $ do
+  marr <- newByteArray n
+  f marr
+  pure marr
 
 {- $charElementAccess
 GHC provides two sets of element accessors for 'Char'. One set faithfully

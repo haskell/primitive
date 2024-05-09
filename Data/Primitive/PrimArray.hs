@@ -46,6 +46,7 @@ module Data.Primitive.PrimArray
   , freezePrimArray
   , thawPrimArray
   , runPrimArray
+  , createPrimArray
   , unsafeFreezePrimArray
   , unsafeThawPrimArray
     -- * Block Operations
@@ -281,6 +282,10 @@ emptyPrimArray :: PrimArray a
 emptyPrimArray = runST $ primitive $ \s0# -> case newByteArray# 0# s0# of
   (# s1#, arr# #) -> case unsafeFreezeByteArray# arr# s1# of
     (# s2#, arr'# #) -> (# s2#, PrimArray arr'# #)
+
+emptyPrimArray# :: (# #) -> ByteArray#
+{-# NOINLINE emptyPrimArray# #-}
+emptyPrimArray# _ = case emptyPrimArray of PrimArray arr# -> arr#
 
 -- | Create a new mutable primitive array of the given length. The
 -- underlying memory is left uninitialized.
@@ -1164,6 +1169,21 @@ unST (GHCST.ST f) = f
 #else /* In older GHCs, runRW# is not available. */
 runPrimArray m = runST $ m >>= unsafeFreezePrimArray
 #endif
+
+-- | Create an uninitialized array of the given length, apply the function to
+-- it, and freeze the result.
+--
+-- /Note:/ this function does not check if the input is non-negative.
+--
+-- @since FIXME
+createPrimArray
+  :: Prim a => Int -> (forall s. MutablePrimArray s a -> ST s ()) -> PrimArray a
+{-# INLINE createPrimArray #-}
+createPrimArray 0 _ = PrimArray (emptyPrimArray# (# #))
+createPrimArray n f = runPrimArray $ do
+  marr <- newPrimArray n
+  f marr
+  pure marr
 
 -- | A composition of 'primArrayContents' and 'keepAliveUnlifted'.
 -- The callback function must not return the pointer. The argument
