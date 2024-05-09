@@ -379,18 +379,16 @@ byteArrayFromList xs = byteArrayFromListN (length xs) xs
 -- | Create a 'ByteArray' from a list of a known length. If the length
 -- of the list does not match the given length, this throws an exception.
 byteArrayFromListN :: forall a. Prim a => Int -> [a] -> ByteArray
-byteArrayFromListN n ys = runST $ do
-    marr <- newByteArray (n * sizeOfType @a)
-    let go !ix [] = if ix == n
-          then return ()
-          else die "byteArrayFromListN" "list length less than specified size"
-        go !ix (x : xs) = if ix < n
-          then do
-            writeByteArray marr ix x
-            go (ix + 1) xs
-          else die "byteArrayFromListN" "list length greater than specified size"
-    go 0 ys
-    unsafeFreezeByteArray marr
+byteArrayFromListN n ys = createByteArray (n * sizeOfType @a) $ \marr ->
+  let go !ix [] = if ix == n
+        then return ()
+        else die "byteArrayFromListN" "list length less than specified size"
+      go !ix (x : xs) = if ix < n
+        then do
+          writeByteArray marr ix x
+          go (ix + 1) xs
+        else die "byteArrayFromListN" "list length greater than specified size"
+  in go 0 ys
 
 unI# :: Int -> Int#
 unI# (I# n#) = n#
@@ -616,10 +614,8 @@ cloneByteArray
   -> Int       -- ^ number of bytes to copy
   -> ByteArray
 {-# INLINE cloneByteArray #-}
-cloneByteArray src off n = runByteArray $ do
-  dst <- newByteArray n
+cloneByteArray src off n = createByteArray n $ \dst ->
   copyByteArray dst 0 src off n
-  return dst
 
 -- | Return a newly allocated mutable array with the specified subrange of
 -- the provided mutable array. The provided mutable array should contain the
