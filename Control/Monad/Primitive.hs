@@ -239,14 +239,14 @@ instance PrimBase (L.ST s) where
   {-# INLINE internal #-}
 #endif
 
--- | 'PrimMonad''s state token type can be annoying to handle
+-- | 'PrimMonad'\'s state token type can be annoying to handle
 --   in constraints. This typeclass lets users (visually) notice
 --   'PrimState' equality constraints less, by witnessing that
 --   @s ~ 'PrimState' m@.
 class (PrimMonad m, s ~ PrimState m) => MonadPrim s m
 instance (PrimMonad m, s ~ PrimState m) => MonadPrim s m
 
--- | 'PrimBase''s state token type can be annoying to handle
+-- | 'PrimBase'\'s state token type can be annoying to handle
 --   in constraints. This typeclass lets users (visually) notice
 --   'PrimState' equality constraints less, by witnessing that
 --   @s ~ 'PrimState' m@.

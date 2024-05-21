@@ -65,9 +65,11 @@ the behaviors of the 'Applicative' and 'Control.Monad.Primitive.PrimMonad'
 variants produce the same results and differ only in their strictness.
 Monads that are sufficiently affine include:
 
-* 'IO' and 'ST'
-* Any combination of 'MaybeT', 'ExceptT', 'StateT' and 'Writer' on top
-  of another sufficiently affine monad.
+* 'IO' and 'Control.Monad.ST'
+* Any combination of 'Control.Monad.Trans.Maybe.MaybeT',
+  'Control.Monad.Trans.Except.ExceptT', 'Control.Monad.Trans.State.Lazy.StateT'
+  and 'Control.Monad.Trans.Writer.Lazy.WriterT' on top of another sufficiently
+  affine monad.
 * Any Monad which does not include backtracking or other mechanisms where an effect can
   happen more than once is an affine Monad in the sense we care about. @ContT@, @LogicT@, @ListT@ are all
   examples of search/control monads which are NOT affine: they can run a sub computation more than once.
