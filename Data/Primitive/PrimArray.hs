@@ -138,10 +138,10 @@ import qualified GHC.Exts as Exts
 import Data.Primitive.Internal.Operations (mutableByteArrayContentsShim)
 
 -- | Arrays of unboxed elements. This accepts types like 'Double', 'Char',
--- 'Int' and 'Word', as well as their fixed-length variants ('Word8',
--- 'Word16', etc.). Since the elements are unboxed, a 'PrimArray' is strict
--- in its elements. This differs from the behavior of 'Data.Primitive.Array.Array',
--- which is lazy in its elements.
+-- 'Int' and 'Word', as well as their fixed-length variants ('Data.Word.Word8',
+-- 'Data.Word.Word16', etc.). Since the elements are unboxed, a 'PrimArray' is
+-- strict in its elements. This differs from the behavior of
+-- 'Data.Primitive.Array.Array', which is lazy in its elements.
 data PrimArray a = PrimArray ByteArray#
 
 type role PrimArray nominal
@@ -391,7 +391,7 @@ copyPrimArray (MutablePrimArray dst#) (I# doff#) (PrimArray src#) (I# soff#) (I#
 -- | Copy a slice of an immutable primitive array to a pointer.
 -- The offset and length are given in elements of type @a@.
 -- This function assumes that the 'Prim' instance of @a@
--- agrees with the 'Storable' instance.
+-- agrees with the 'Foreign.Storable.Storable' instance.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyPrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
@@ -410,7 +410,7 @@ copyPrimArrayToPtr (Ptr addr#) (PrimArray ba#) (I# soff#) (I# n#) =
 -- | Copy a slice of a mutable primitive array to a pointer.
 -- The offset and length are given in elements of type @a@.
 -- This function assumes that the 'Prim' instance of @a@
--- agrees with the 'Storable' instance.
+-- agrees with the 'Foreign.Storable.Storable' instance.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyMutablePrimArrayToPtr :: forall m a. (PrimMonad m, Prim a)
@@ -429,7 +429,7 @@ copyMutablePrimArrayToPtr (Ptr addr#) (MutablePrimArray mba#) (I# soff#) (I# n#)
 -- | Copy from a pointer to a mutable primitive array.
 -- The offset and length are given in elements of type @a@.
 -- This function assumes that the 'Prim' instance of @a@
--- agrees with the 'Storable' instance.
+-- agrees with the 'Foreign.Storable.Storable' instance.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
 copyPtrToMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
@@ -1095,8 +1095,9 @@ newAlignedPinnedPrimArray (I# n#)
                         (# s'#, arr# #) -> (# s'#, MutablePrimArray arr# #))
 
 -- | Yield a pointer to the array's data. This operation is only safe on
--- /pinned/ prim arrays allocated by 'newPinnedByteArray' or
--- 'newAlignedPinnedByteArray'.
+-- /pinned/ prim arrays allocated by
+-- 'Data.Primitive.ByteArray.newPinnedByteArray' or
+-- 'Data.Primitive.ByteArray.newAlignedPinnedByteArray'.
 --
 -- @since 0.7.1.0
 primArrayContents :: PrimArray a -> Ptr a
@@ -1104,8 +1105,9 @@ primArrayContents :: PrimArray a -> Ptr a
 primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 
 -- | Yield a pointer to the array's data. This operation is only safe on
--- /pinned/ byte arrays allocated by 'newPinnedByteArray' or
--- 'newAlignedPinnedByteArray'.
+-- /pinned/ byte arrays allocated by
+-- 'Data.Primitive.ByteArray.newPinnedByteArray' or
+-- 'Data.Primitive.ByteArray.newAlignedPinnedByteArray'.
 --
 -- @since 0.7.1.0
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a

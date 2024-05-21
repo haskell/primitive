@@ -191,12 +191,12 @@ writeSmallArray (SmallMutableArray sma#) (I# i#) x =
 -- > f sa = case indexSmallArrayM sa 0 of
 -- >   Box x -> ...
 --
--- 'x' is not a closure that references 'sa' as it would be if we instead
+-- @x@ is not a closure that references @sa@ as it would be if we instead
 -- wrote:
 --
 -- > let x = indexSmallArray sa 0
 --
--- It also does not prevent 'sa' from being garbage collected.
+-- It also does not prevent @sa@ from being garbage collected.
 --
 -- Note that 'Identity' is not adequate for this use, as it is a newtype, and
 -- cannot be evaluated without evaluating the element.
