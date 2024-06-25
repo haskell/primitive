@@ -72,7 +72,6 @@ Library
 
   Include-Dirs: cbits
   Install-Includes: primitive-memops.h
-  includes: primitive-memops.h
   c-sources: cbits/primitive-memops.c
   if !os(solaris)
       cc-options: -ftree-vectorize
