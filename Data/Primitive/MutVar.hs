@@ -19,16 +19,24 @@ module Data.Primitive.MutVar (
   readMutVar,
   writeMutVar,
 
+  -- * Modify
   atomicModifyMutVar,
   atomicModifyMutVar',
   modifyMutVar,
-  modifyMutVar'
+  modifyMutVar',
+  -- * Interop with STRef and IORef
+  mutVarFromIORef,
+  mutVarToIORef,
+  mutVarFromSTRef,
+  mutVarToSTRef
 ) where
 
 import Control.Monad.Primitive ( PrimMonad(..), primitive_ )
+import GHC.IORef (IORef(IORef))
+import GHC.STRef (STRef(STRef))
 import GHC.Exts ( MutVar#, sameMutVar#, newMutVar#
                 , readMutVar#, writeMutVar#, atomicModifyMutVar#
-                , isTrue# )
+                , isTrue#, RealWorld)
 import Data.Typeable ( Typeable )
 
 -- | A 'MutVar' behaves like a single-element mutable array associated
@@ -103,3 +111,23 @@ modifyMutVar' :: PrimMonad m => MutVar (PrimState m) a -> (a -> a) -> m ()
 modifyMutVar' (MutVar mv#) g = primitive_ $ \s# ->
   case readMutVar# mv# s# of
     (# s'#, a #) -> let a' = g a in a' `seq` writeMutVar# mv# a' s'#
+
+-- | Convert 'MutVar' to 'IORef'
+mutVarToIORef :: MutVar RealWorld a -> IORef a
+{-# INLINE mutVarToIORef #-}
+mutVarToIORef (MutVar mv#) = IORef (STRef mv#)
+
+-- | Convert 'MutVar' to 'IORef'
+mutVarFromIORef :: IORef a -> MutVar RealWorld a
+{-# INLINE mutVarFromIORef #-}
+mutVarFromIORef (IORef (STRef mv#)) = MutVar mv#
+
+-- | Convert 'MutVar' to 'STRef'
+mutVarToSTRef :: MutVar s a -> STRef s a
+{-# INLINE mutVarToSTRef #-}
+mutVarToSTRef (MutVar mv#) = STRef mv#
+
+-- | Convert 'MutVar' to 'STRef'
+mutVarFromSTRef :: STRef s a -> MutVar s a
+{-# INLINE mutVarFromSTRef #-}
+mutVarFromSTRef (STRef mv#) = MutVar mv#
