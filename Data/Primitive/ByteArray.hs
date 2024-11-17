@@ -378,17 +378,20 @@ byteArrayFromList xs = byteArrayFromListN (length xs) xs
 
 -- | Create a 'ByteArray' from a list of a known length. If the length
 -- of the list does not match the given length, this throws an exception.
+
+-- See Note [fromListN] in Data.Primitive.Array
 byteArrayFromListN :: forall a. Prim a => Int -> [a] -> ByteArray
+{-# INLINE byteArrayFromListN #-}
 byteArrayFromListN n ys = createByteArray (n * sizeOfType @a) $ \marr ->
-  let go !ix [] = if ix == n
+  let z ix# = if I# ix# == n
         then return ()
         else die "byteArrayFromListN" "list length less than specified size"
-      go !ix (x : xs) = if ix < n
+      f x k = GHC.Exts.oneShot $ \ix# -> if I# ix# < n
         then do
-          writeByteArray marr ix x
-          go (ix + 1) xs
+          writeByteArray marr (I# ix#) x
+          k (ix# +# 1#)
         else die "byteArrayFromListN" "list length greater than specified size"
-  in go 0 ys
+  in foldr f z ys 0#
 
 unI# :: Int -> Int#
 unI# (I# n#) = n#

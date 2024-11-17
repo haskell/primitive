@@ -234,17 +234,20 @@ primArrayFromList vs = primArrayFromListN (L.length vs) vs
 
 -- | Create a 'PrimArray' from a list of a known length. If the length
 -- of the list does not match the given length, this throws an exception.
+
+-- See Note [fromListN] in Data.Primitive.Array
 primArrayFromListN :: forall a. Prim a => Int -> [a] -> PrimArray a
+{-# INLINE primArrayFromListN #-}
 primArrayFromListN len vs = createPrimArray len $ \arr ->
-  let go [] !ix = if ix == len
+  let z ix# = if I# ix# == len
         then return ()
         else die "fromListN" "list length less than specified size"
-      go (a : as) !ix = if ix < len
+      f a k = GHC.Exts.oneShot $ \ix# -> if I# ix# < len
         then do
-          writePrimArray arr ix a
-          go as (ix + 1)
+          writePrimArray arr (I# ix#) a
+          k (ix# +# 1#)
         else die "fromListN" "list length greater than specified size"
-  in go vs 0
+  in foldr f z vs 0#
 
 -- | Convert a 'PrimArray' to a list.
 {-# INLINE primArrayToList #-}
