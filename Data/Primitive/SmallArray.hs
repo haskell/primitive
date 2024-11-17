@@ -924,18 +924,19 @@ instance (Typeable s, Typeable a) => Data (SmallMutableArray s a) where
 -- | Create a 'SmallArray' from a list of a known length. If the length
 -- of the list does not match the given length, this throws an exception.
 smallArrayFromListN :: Int -> [a] -> SmallArray a
+{-# INLINE smallArrayFromListN #-}
 smallArrayFromListN n l =
   createSmallArray n
       (die "smallArrayFromListN" "uninitialized element") $ \sma ->
-  let go !ix [] = if ix == n
+  let z ix# = if I# ix# == n
         then return ()
         else die "smallArrayFromListN" "list length less than specified size"
-      go !ix (x : xs) = if ix < n
+      f x k = GHC.Exts.oneShot $ \ix# -> if I# ix# < n
         then do
-          writeSmallArray sma ix x
-          go (ix + 1) xs
+          writeSmallArray sma (I# ix#) x
+          k (ix# +# 1#)
         else die "smallArrayFromListN" "list length greater than specified size"
-  in go 0 l
+  in foldr f z l 0#
 
 -- | Create a 'SmallArray' from a list.
 smallArrayFromList :: [a] -> SmallArray a

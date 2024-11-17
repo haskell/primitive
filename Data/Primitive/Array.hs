@@ -586,18 +586,28 @@ mapArray' f a =
 
 -- | Create an array from a list of a known length. If the length
 -- of the list does not match the given length, this throws an exception.
+
+-- Note [fromListN]
+-- ~~~~~~~~~~~~~~~~
+-- We want arrayFromListN to be a "good consumer" in list fusion, so we define
+-- the function using foldr and inline it to help fire fusion rules.
+-- If fusion occurs with a "good producer", it may reduce to a fold on some
+-- structure. In certain cases (such as for Data.Set) GHC is not be able to
+-- optimize the index to an unboxed Int# (see GHC #24628), so we explicitly use
+-- an Int# here.
 arrayFromListN :: Int -> [a] -> Array a
+{-# INLINE arrayFromListN #-}
 arrayFromListN n l =
   createArray n (die "fromListN" "uninitialized element") $ \sma ->
-    let go !ix [] = if ix == n
+    let z ix# = if I# ix# == n
           then return ()
           else die "fromListN" "list length less than specified size"
-        go !ix (x : xs) = if ix < n
+        f x k = GHC.Exts.oneShot $ \ix# -> if I# ix# < n
           then do
-            writeArray sma ix x
-            go (ix+1) xs
+            writeArray sma (I# ix#) x
+            k (ix# +# 1#)
           else die "fromListN" "list length greater than specified size"
-    in go 0 l
+    in foldr f z l 0#
 
 -- | Create an array from a list.
 arrayFromList :: [a] -> Array a
