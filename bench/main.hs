@@ -9,6 +9,7 @@ import Test.Tasty.Bench
 import Control.Monad.ST
 import Data.Primitive
 import Control.Monad.Trans.State.Strict
+import Data.Set (Set)
 
 -- These are fixed implementations of certain operations. In the event
 -- that primitive changes its implementation of a function, these
@@ -25,6 +26,8 @@ import qualified ByteArray.Compare
 import qualified PrimArray.Compare
 import qualified PrimArray.Traverse
 
+import qualified Data.Set as Set
+
 main :: IO ()
 main = defaultMain
   [ bgroup "Array"
@@ -33,6 +36,9 @@ main = defaultMain
         [ bench "closure" (nf (\x -> runST (runStateT (Array.Traverse.Closure.traversePoly cheap x) 0)) numbers)
         , bench "unsafe" (nf (\x -> runST (runStateT (Array.Traverse.Unsafe.traversePoly cheap x) 0)) numbers)
         ]
+      ]
+    , bgroup "arrayFromListN"
+      [ bench "set-to-list-to-array" (whnf arrayFromSet setOfIntegers1024)
       ]
     ]
   , bgroup "ByteArray"
@@ -61,6 +67,16 @@ main = defaultMain
       ]
     ]
   ]
+
+setOfIntegers1024 :: Set Integer
+{-# noinline setOfIntegers1024 #-}
+setOfIntegers1024 = Set.fromList [1..1024]
+
+-- The performance of this is used to confirm whether or not arrayFromListN is
+-- actining as a good consumer for list fusion.
+arrayFromSet :: Set Integer -> Array Integer
+{-# noinline arrayFromSet #-}
+arrayFromSet s = arrayFromListN (Set.size s) (Set.toList s)
 
 cheap :: Int -> StateT Int (ST s) Int
 cheap i = modify (\x -> x + i) >> return (i * i)

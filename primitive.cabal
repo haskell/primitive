@@ -115,6 +115,7 @@ benchmark bench
     PrimArray.Traverse
   build-depends:
       base
+    , containers
     , primitive
     , deepseq
     , tasty-bench
