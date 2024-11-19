@@ -88,9 +88,6 @@ import Data.Semigroup
 import Text.ParserCombinators.ReadP
 import Text.ParserCombinators.ReadPrec (ReadPrec)
 import qualified Text.ParserCombinators.ReadPrec as RdPrc
-#if !MIN_VERSION_base(4,10,0)
-import GHC.Base (runRW#)
-#endif
 
 import Data.Functor.Classes (Eq1(..), Ord1(..), Show1(..), Read1(..))
 import Language.Haskell.TH.Syntax (Lift(..))
@@ -892,14 +889,7 @@ instance Read a => Read (SmallArray a) where
 
 -- | @since 0.6.4.0
 instance Read1 SmallArray where
-#if MIN_VERSION_base(4,10,0)
   liftReadPrec = smallArrayLiftReadPrec
-#else
-  -- This is just the default implementation of liftReadsPrec, but
-  -- it is not present in older versions of base.
-  liftReadsPrec rp rl = RdPrc.readPrec_to_S $
-    smallArrayLiftReadPrec (RdPrc.readS_to_Prec rp) (RdPrc.readS_to_Prec (const rl))
-#endif
 
 smallArrayDataType :: DataType
 smallArrayDataType =

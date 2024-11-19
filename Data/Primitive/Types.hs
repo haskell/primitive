@@ -410,9 +410,7 @@ deriving instance Prim CWchar
 deriving instance Prim CSigAtomic
 deriving instance Prim CLLong
 deriving instance Prim CULLong
-#if MIN_VERSION_base(4,10,0)
 deriving instance Prim CBool
-#endif
 deriving instance Prim CIntPtr
 deriving instance Prim CUIntPtr
 deriving instance Prim CIntMax

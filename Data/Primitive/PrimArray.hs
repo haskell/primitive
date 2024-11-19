@@ -125,9 +125,7 @@ import Control.Monad.ST
 import qualified Data.List as L
 import qualified Data.Primitive.ByteArray as PB
 import qualified Data.Primitive.Types as PT
-#if MIN_VERSION_base(4,10,0)
 import qualified GHC.ST as GHCST
-#endif
 import Language.Haskell.TH.Syntax (Lift (..))
 
 import Data.Semigroup
@@ -1144,7 +1142,6 @@ cloneMutablePrimArray src off n = do
 runPrimArray
   :: (forall s. ST s (MutablePrimArray s a))
   -> PrimArray a
-#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
 runPrimArray m = PrimArray (runPrimArray# m)
 
 runPrimArray#
@@ -1156,9 +1153,6 @@ runPrimArray# m = case runRW# $ \s ->
 
 unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
-#else /* In older GHCs, runRW# is not available. */
-runPrimArray m = runST $ m >>= unsafeFreezePrimArray
-#endif
 
 -- | Create an uninitialized array of the given length, apply the function to
 -- it, and freeze the result.
