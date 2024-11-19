@@ -52,9 +52,6 @@ import qualified GHC.ST as GHCST
 import qualified Data.Foldable as F
 import Data.Semigroup
 import Data.Functor.Identity
-#if !MIN_VERSION_base(4,10,0)
-import GHC.Base (runRW#)
-#endif
 
 import Text.Read (Read (..), parens, prec)
 import Text.ParserCombinators.ReadPrec (ReadPrec)
@@ -799,14 +796,7 @@ instance Read a => Read (Array a) where
 
 -- | @since 0.6.4.0
 instance Read1 Array where
-#if MIN_VERSION_base(4,10,0)
   liftReadPrec = arrayLiftReadPrec
-#else
-  -- This is just the default implementation of liftReadsPrec, but
-  -- it is not present in older versions of base.
-  liftReadsPrec rp rl = RdPrc.readPrec_to_S $
-    arrayLiftReadPrec (RdPrc.readS_to_Prec rp) (RdPrc.readS_to_Prec (const rl))
-#endif
 
 -- Note [Forgiving Array Read Instance]
 -- We're really forgiving here. We accept

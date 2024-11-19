@@ -32,7 +32,6 @@ import PrimLaws (primLaws)
 
 import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
-import Data.Ord (Down(..))
 import Data.Semigroup (stimes, stimesMonoid)
 import qualified Data.Semigroup as Semigroup
 #if !(MIN_VERSION_base(4,11,0))

@@ -75,9 +75,7 @@ import Control.Monad.ST
 import Data.Primitive.Types
 import Data.Proxy
 
-#if MIN_VERSION_base(4,10,0)
 import qualified GHC.ST as GHCST
-#endif
 
 import Data.Word ( Word8 )
 #if __GLASGOW_HASKELL__ >= 802
@@ -640,7 +638,6 @@ cloneMutableByteArray src off n = do
 runByteArray
   :: (forall s. ST s (MutableByteArray s))
   -> ByteArray
-#if MIN_VERSION_base(4,10,0) /* In new GHCs, runRW# is available. */
 runByteArray m = ByteArray (runByteArray# m)
 
 runByteArray#
@@ -652,9 +649,6 @@ runByteArray# m = case runRW# $ \s ->
 
 unST :: ST s a -> State# s -> (# State# s, a #)
 unST (GHCST.ST f) = f
-#else /* In older GHCs, runRW# is not available. */
-runByteArray m = runST $ m >>= unsafeFreezeByteArray
-#endif
 
 -- Create an uninitialized array of the given size in bytes, apply the function
 -- to it, and freeze the result.
