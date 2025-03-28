@@ -144,7 +144,7 @@ byteArrayAsForeignPtr (ByteArray arr#) = ForeignPtr (byteArrayContents# arr#) (P
 -- the foreign pointer.
 mutableByteArrayAsForeignPtr :: MutableByteArray RealWorld -> ForeignPtr Word8
 {-# INLINE mutableByteArrayAsForeignPtr #-}
-mutableByteArrayAsForeignPtr (MutableByteArray arr#) = ForeignPtr (mutableByteArrayContents# arr#) (PlainPtr arr#)
+mutableByteArrayAsForeignPtr (MutableByteArray arr#) = ForeignPtr (mutableByteArrayContentsShim arr#) (PlainPtr arr#)
 
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays. Byte arrays allocated by 'newPinnedByteArray' and
