@@ -1,5 +1,21 @@
 ## Changes in version 0.9.1.0
-  * Add `byteArrayAsForeignPtr`.
+
+  * Make fromListN functions good consumers for list fusion.
+
+  * Add functions to improve `MutVar`'s interoperability with `IORef` and `STRef`.
+
+  * Add `createPrimArray` and `createByteArray`.
+
+  * Add `byteArrayAsForeignPtr` and `mutableByteArrayAsForeignPtr`.
+
+  * Use `copyMutableByteArrayNonOverlapping#` in the implementation of `copyMutableByteArray`
+    on sufficiently new GHCs. This does not change the contract for `copyMutableByteArray`.
+    This function has always been documented as having undefined behavior when the slices
+    overlap. However, overlaps previously were handled gracefully (with the semantics
+    of C's `memmove`). Going forward, users who do not uphold `copyMutableByteArray`'s
+    precondition will be met with unpredictable results.
+
+  * Drop support for GHC 8.0.
 
 ## Changes in version 0.9.0.0
 

@@ -63,6 +63,7 @@ module Data.Primitive.ByteArray (
   isByteArrayPinned, isMutableByteArrayPinned,
 #endif
   byteArrayAsForeignPtr,
+  mutableByteArrayAsForeignPtr,
   byteArrayContents,
   withByteArrayContents,
   mutableByteArrayContents,
@@ -130,10 +131,20 @@ newAlignedPinnedByteArray (I# n#) (I# k#)
 
 -- | Create a foreign pointer that points to the array's data. This operation
 -- is only safe on /pinned/ byte arrays.  The array's data is not garbage
--- collected while references to the foreign pointer exist.
+-- collected while references to the foreign pointer exist. Writing to the
+-- array through the foreign pointer results in undefined behavior.
 byteArrayAsForeignPtr :: ByteArray -> ForeignPtr Word8
 {-# INLINE byteArrayAsForeignPtr #-}
 byteArrayAsForeignPtr (ByteArray arr#) = ForeignPtr (byteArrayContents# arr#) (PlainPtr (unsafeCoerce# arr#))
+
+
+-- | Variant of 'byteArrayAsForeignPtr' for mutable byte arrays. Similarly, this
+-- is only safe on /pinned/ mutable byte arrays. This function differs from the
+-- variant for immutable arrays in that it is safe to write to the array though
+-- the foreign pointer.
+mutableByteArrayAsForeignPtr :: MutableByteArray RealWorld -> ForeignPtr Word8
+{-# INLINE mutableByteArrayAsForeignPtr #-}
+mutableByteArrayAsForeignPtr (MutableByteArray arr#) = ForeignPtr (mutableByteArrayContentsShim arr#) (PlainPtr arr#)
 
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays. Byte arrays allocated by 'newPinnedByteArray' and
