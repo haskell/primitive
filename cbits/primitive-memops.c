@@ -1,3 +1,4 @@
+#include <math.h>
 #include <string.h>
 #include "primitive-memops.h"
 
@@ -11,28 +12,32 @@ void hsprimitive_memmove( void *dst, ptrdiff_t doff, void *src, ptrdiff_t soff, 
   memmove( (char *)dst + doff, (char *)src + soff, len );
 }
 
-#define MEMSET(TYPE, ATYPE)                                                  \
+#define MEMSET(TYPE, ATYPE)                                                        \
 void hsprimitive_memset_ ## TYPE (Hs ## TYPE *p, ptrdiff_t off, size_t n, ATYPE x) \
-{                                                                            \
-  p += off;                                                                  \
-  if (x == 0)                                                                \
-    memset(p, 0, n * sizeof(Hs ## TYPE));                                    \
-  else if (sizeof(Hs ## TYPE) == sizeof(int)*2) {                            \
-    int *q = (int *)p;                                                       \
-    const int *r = (const int *)(void *)&x;                                  \
-    while (n>0) {                                                            \
-      q[0] = r[0];                                                           \
-      q[1] = r[1];                                                           \
-      q += 2;                                                                \
-      --n;                                                                   \
-    }                                                                        \
-  }                                                                          \
-  else {                                                                     \
-    while (n>0) {                                                            \
-      *p++ = x;                                                              \
-      --n;                                                                   \
-    }                                                                        \
-  }                                                                          \
+{                                                                                  \
+  p += off;                                                                        \
+  if (x == 0) {                                                                    \
+    memset(p, 0, n * sizeof(Hs ## TYPE));                                          \
+  } else {                                                                         \
+    while (n > 0) {                                                                \
+      *p++ = x;                                                                    \
+      --n;                                                                         \
+    }                                                                              \
+  }                                                                                \
+}
+
+#define MEMSET_FLOAT(TYPE, ATYPE)                                                  \
+void hsprimitive_memset_ ## TYPE (Hs ## TYPE *p, ptrdiff_t off, size_t n, ATYPE x) \
+{                                                                                  \
+  p += off;                                                                        \
+  if (x == 0.0 && !signbit(x))                                                     \
+    memset(p, 0, n * sizeof(Hs ## TYPE));                                          \
+  else {                                                                           \
+    while (n > 0) {                                                                \
+      *p++ = x;                                                                    \
+      --n;                                                                         \
+    }                                                                              \
+  }                                                                                \
 }
 
 int hsprimitive_memcmp( HsWord8 *s1, HsWord8 *s2, size_t n )
@@ -56,6 +61,6 @@ MEMSET(Word32, HsWord32)
 MEMSET(Word64, HsWord64)
 MEMSET(Word, HsWord)
 MEMSET(Ptr, HsPtr)
-MEMSET(Float, HsFloat)
-MEMSET(Double, HsDouble)
+MEMSET_FLOAT(Float, HsFloat)
+MEMSET_FLOAT(Double, HsDouble)
 MEMSET(Char, HsChar)
