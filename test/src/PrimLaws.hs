@@ -65,19 +65,19 @@ primListAddr _ = property $ \(as :: [a]) -> unsafePerformIO $ do
         else return []
   asNew <- rebuild 0
   free ptr
-  return (as == asNew)
+  return (as === asNew)
 
 primPutGetByteArray :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
-primPutGetByteArray _ = property $ \(a :: a) len -> (len > 0) ==> do
+primPutGetByteArray _ = property $ \(a :: a) (Positive len) -> do
   ix <- choose (0,len - 1)
   return $ runST $ do
     arr <- newPrimArray len
     writePrimArray arr ix a
     a' <- readPrimArray arr ix
-    return (a == a')
+    return (a === a')
 
 primGetPutByteArray :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
-primGetPutByteArray _ = property $ \(as :: [a]) -> (not (L.null as)) ==> do
+primGetPutByteArray _ = property $ \(NonEmpty (as :: [a])) -> do
   let arr1 = primArrayFromList as :: PrimArray a
       len = L.length as
   ix <- choose (0,len - 1)
@@ -87,10 +87,10 @@ primGetPutByteArray _ = property $ \(as :: [a]) -> (not (L.null as)) ==> do
     a <- readPrimArray marr ix
     writePrimArray marr ix a
     unsafeFreezePrimArray marr
-  return (arr1 == arr2)
+  return (arr1 === arr2)
 
 primPutPutByteArray :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
-primPutPutByteArray _ = property $ \(a :: a) (as :: [a]) -> (not (L.null as)) ==> do
+primPutPutByteArray _ = property $ \(a :: a) (NonEmpty (as :: [a])) -> do
   let arr1 = primArrayFromList as :: PrimArray a
       len = L.length as
   ix <- choose (0,len - 1)
@@ -104,17 +104,17 @@ primPutPutByteArray _ = property $ \(a :: a) (as :: [a]) -> (not (L.null as)) ==
     writePrimArray marr3 ix a
     arr3 <- unsafeFreezePrimArray marr3
     return (arr2,arr3)
-  return (arr2 == arr3)
+  return (arr2 === arr3)
 
 primPutGetAddr :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
-primPutGetAddr _ = property $ \(a :: a) len -> (len > 0) ==> do
+primPutGetAddr _ = property $ \(a :: a) (Positive len) -> do
   ix <- choose (0,len - 1)
   return $ unsafePerformIO $ do
     ptr :: Ptr a <- mallocBytes (len * P.sizeOfType @a)
     writeOffPtr ptr ix a
     a' <- readOffPtr ptr ix
     free ptr
-    return (a == a')
+    return (a === a')
 
 primSetByteArray :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
 primSetByteArray _ = property $ \(as :: [a]) (z :: a) -> do
@@ -133,11 +133,11 @@ primSetByteArray _ = property $ \(as :: [a]) (z :: a) -> do
     internalDefaultSetPrimArray marr3 lo (hi - lo) z
     arr2 <- unsafeFreezePrimArray marr2
     arr3 <- unsafeFreezePrimArray marr3
-    return (arr2 == arr3)
+    return (arr2 === arr3)
 
 primListByteArray :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> Property
 primListByteArray _ = property $ \(as :: [a]) ->
-  as == toList (fromList as :: PrimArray a)
+  as === toList (fromList as :: PrimArray a)
 
 internalDefaultSetPrimArray :: Prim a
   => MutablePrimArray s a -> Int -> Int -> a -> ST s ()
