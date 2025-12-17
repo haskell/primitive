@@ -7,6 +7,7 @@ module Array.Traverse.Closure
   ( traversePoly
   ) where
 
+import Control.Applicative
 import Control.Monad.ST
 import Data.Primitive.Array
 import GHC.Exts (MutableArray#)
