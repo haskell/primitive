@@ -10,7 +10,7 @@ module Array.Traverse.Closure
 import Control.Applicative
 import Control.Monad.ST
 import Data.Primitive.Array
-import GHC.Exts (Int(..),MutableArray#)
+import GHC.Exts (MutableArray#)
 
 {-# INLINE traversePoly #-}
 traversePoly

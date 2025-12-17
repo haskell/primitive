@@ -4,6 +4,8 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RankNTypes #-}
 
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 -- |
 -- Module      : Data.Primitive.ByteArray
 -- Copyright   : (c) Roman Leshchinskiy 2009-2012

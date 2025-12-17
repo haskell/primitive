@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module PrimArray.Compare
   ( benchmarkLt
@@ -11,9 +10,6 @@ module PrimArray.Compare
   ) where
 
 import Data.Primitive
-import Data.Word
-import Control.Monad
-import Control.Monad.ST (runST)
 import GHC.Exts (fromList)
 
 benchmarkLtDef :: PrimArray Int -> PrimArray Int -> Bool
