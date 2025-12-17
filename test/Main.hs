@@ -110,6 +110,10 @@ main = do
         , TQC.testProperty "Word32" (setByteArrayProp (Proxy :: Proxy Word32))
         , TQC.testProperty "Word64" (setByteArrayProp (Proxy :: Proxy Word64))
         , TQC.testProperty "Word" (setByteArrayProp (Proxy :: Proxy Word))
+        , TQC.testProperty "Float" (setByteArrayProp (Proxy :: Proxy Float))
+        , TQC.testProperty "Double" (setByteArrayProp (Proxy :: Proxy Double))
+        , TQC.testProperty "Float -0.0" (\n off len -> setByteArrayTest (Proxy :: Proxy Float) n off len 0.0 (-0.0))
+        , TQC.testProperty "Double -0.0" (\n off len -> setByteArrayTest (Proxy :: Proxy Double) n off len 0.0 (-0.0))
         ]
       ]
       , testGroup "Resize"
@@ -175,6 +179,8 @@ main = do
       , renameLawsToTest "Int16" (primLaws (Proxy :: Proxy Int16))
       , renameLawsToTest "Int32" (primLaws (Proxy :: Proxy Int32))
       , renameLawsToTest "Int64" (primLaws (Proxy :: Proxy Int64))
+      , renameLawsToTest "Float" (primLaws (Proxy :: Proxy Float))
+      , renameLawsToTest "Double" (primLaws (Proxy :: Proxy Double))
       , renameLawsToTest "Const" (primLaws (Proxy :: Proxy (Const Int16 Int16)))
       , renameLawsToTest "Down" (primLaws (Proxy :: Proxy (Down Int16)))
       , renameLawsToTest "Identity" (primLaws (Proxy :: Proxy (Identity Int16)))
@@ -207,22 +213,25 @@ int32 :: Proxy Int32
 int32 = Proxy
 
 
-setByteArrayProp :: forall a. (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> QC.Property
-setByteArrayProp _ = QC.property $ \(QC.NonNegative (n :: Int)) (QC.NonNegative (off :: Int)) (QC.NonNegative (len :: Int)) (x :: a) (y :: a) ->
+setByteArrayProp :: (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> QC.Property
+setByteArrayProp p = QC.property (setByteArrayTest p)
+
+setByteArrayTest :: (Prim a, Eq a, Arbitrary a, Show a) => Proxy a -> QC.NonNegative Int -> QC.NonNegative Int -> QC.NonNegative Int -> a -> a -> QC.Property
+setByteArrayTest _ (QC.NonNegative (n :: Int)) (QC.NonNegative (off :: Int)) (QC.NonNegative (len :: Int)) (x :: a) (y :: a) =
   (off < n && off + len <= n) ==>
   -- We use PrimArray in this test because it makes it easier to
   -- get the element-vs-byte distinction right.
-  let actual = runST $ do
+  let !(PrimArray actual) = runST $ do
         m <- newPrimArray n
         forM_ (enumFromTo 0 (n - 1)) $ \ix -> writePrimArray m ix x
         setPrimArray m off len y
         unsafeFreezePrimArray m
-      expected = runST $ do
+      !(PrimArray expected) = runST $ do
         m <- newPrimArray n
         forM_ (enumFromTo 0 (n - 1)) $ \ix -> writePrimArray m ix x
         forM_ (enumFromTo off (off + len - 1)) $ \ix -> writePrimArray m ix y
         unsafeFreezePrimArray m
-   in expected === actual
+   in ByteArray expected === ByteArray actual -- compare as ByteArray, so that actual bytes are compared
 
 
 -- Tests that using resizeByteArray to shrink a byte array produces
