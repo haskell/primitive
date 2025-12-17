@@ -9,6 +9,8 @@
 {-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE RoleAnnotations #-}
 
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 -- |
 -- Module      : Data.Primitive.PrimArray
 -- Copyright   : (c) Roman Leshchinskiy 2009-2012
