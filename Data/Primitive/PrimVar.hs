@@ -1,10 +1,9 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE Unsafe #-}
 
--- | Variant of @MutVar@ that has one less indirection for primitive types.
+-- | A variant of @MutVar@ that has one less indirection for primitive types.
 -- The difference is illustrated by comparing @MutVar Int@ and @PrimVar Int@:
 --
 -- * @MutVar Int@: @MutVar# --> I#@
@@ -95,7 +94,7 @@ instance Eq (PrimVar s a) where
   PrimVar m == PrimVar n = sameMutablePrimArray m n
   {-# INLINE (==) #-}
 
--- | Yield a pointer to the data of a 'PrimVar'. This operation is only safe on pinned byte arrays allocated by
+-- | Yield a pointer to the data of a 'PrimVar'. This operation is only safe on pinned 'PrimVar's allocated by
 -- 'newPinnedPrimVar' or 'newAlignedPinnedPrimVar'.
 primVarContents :: PrimVar s a -> Ptr a
 primVarContents (PrimVar m) = castPtr $ mutablePrimArrayContents m
@@ -112,6 +111,17 @@ primVarToMutablePrimArray (PrimVar m) = m
 
 -- $atomic
 -- Atomic operations on `PrimVar s Int`. All atomic operations imply a full memory barrier.
+--
+-- === __Examples__
+--
+-- An atomic counter:
+--
+-- @
+-- do
+--   counter <- newPrimVar 0
+--   let inc = fetchAddInt counter 1
+--   let load = atomicReadInt counter
+-- @
 
 -- | Given a primitive reference, the expected old value, and the new value, perform an atomic compare and swap i.e. write the new value if the current value matches the provided old value. Returns the value of the element before the operation.
 casInt :: PrimMonad m => PrimVar (PrimState m) Int -> Int -> Int -> m Int
