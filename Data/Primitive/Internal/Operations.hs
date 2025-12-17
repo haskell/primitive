@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP, MagicHash, UnliftedFFITypes, UnboxedTuples #-}
-{-# LANGUAGE RankNTypes, KindSignatures, ScopedTypeVariables #-} 
+{-# LANGUAGE RankNTypes, KindSignatures, ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 #if __GLASGOW_HASKELL__ < 806
 {-# LANGUAGE TypeInType #-}
