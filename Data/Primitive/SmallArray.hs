@@ -56,6 +56,8 @@ module Data.Primitive.SmallArray
   , sizeofSmallArray
   , getSizeofSmallMutableArray
   , sizeofSmallMutableArray
+  , sameSmallArray
+  , sameSmallMutableArray
 #if MIN_VERSION_base(4,14,0)
   , shrinkSmallMutableArray
   , resizeSmallMutableArray
@@ -311,6 +313,28 @@ unsafeThawSmallArray (SmallArray sa#) =
     (# s', sma# #) -> (# s', SmallMutableArray sma# #)
 {-# INLINE unsafeThawSmallArray #-}
 
+-- | Check whether the two arrays refer to the same memory block.
+sameSmallArray :: SmallArray a -> SmallArray a -> Bool
+{-# INLINE sameSmallArray #-}
+sameSmallArray (SmallArray sa1#) (SmallArray sa2#) =
+#if MIN_VERSION_base(4,17,0)
+  isTrue# (sameSmallArray# sa1# sa2#)
+#else
+  isTrue#
+    (reallyUnsafePtrEquality# (unsafeCoerce# sa1# :: ()) (unsafeCoerce# sa2# :: ()))
+#endif
+
+-- | Check whether the two arrays refer to the same memory block.
+sameSmallMutableArray :: SmallMutableArray s a -> SmallMutableArray s a -> Bool
+{-# INLINE sameSmallMutableArray #-}
+sameSmallMutableArray (SmallMutableArray sma1#) (SmallMutableArray sma2#) =
+#if MIN_VERSION_base(4,17,0)
+  isTrue# (sameSmallMutableArray# sma1# sma2#)
+#else
+  isTrue#
+    (reallyUnsafePtrEquality# (unsafeCoerce# sma1# :: ()) (unsafeCoerce# sma2# :: ()))
+#endif
+
 -- | Copy a slice of an immutable array into a mutable array.
 --
 -- /Note:/ this function does not do bounds or overlap checking.
@@ -525,7 +549,7 @@ instance Eq a => Eq (SmallArray a) where
 
 instance Eq (SmallMutableArray s a) where
   SmallMutableArray sma1# == SmallMutableArray sma2# =
-    isTrue# (sameSmallMutableArray# sma1# sma2#)
+    sameSmallMutableArray (SmallMutableArray sma1#) (SmallMutableArray sma2#)
 
 smallArrayLiftCompare :: (a -> b -> Ordering) -> SmallArray a -> SmallArray b -> Ordering
 smallArrayLiftCompare elemCompare a1 a2 = loop 0
