@@ -545,7 +545,7 @@ instance Eq1 SmallArray where
   liftEq = smallArrayLiftEq
 
 instance Eq a => Eq (SmallArray a) where
-  sa1 == sa2 = smallArrayLiftEq (==) sa1 sa2
+  sa1 == sa2 = sameSmallArray sa1 sa2 || smallArrayLiftEq (==) sa1 sa2
 
 instance Eq (SmallMutableArray s a) where
   SmallMutableArray sma1# == SmallMutableArray sma2# =
