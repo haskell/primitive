@@ -3,11 +3,11 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
-{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
+
+{-# OPTIONS_GHC -Wno-deprecations #-}
 
 -- |
 -- Module : Data.Primitive.SmallArray

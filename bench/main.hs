@@ -1,10 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MagicHash #-}
-{-# LANGUAGE UnboxedTuples #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 import Test.Tasty.Bench
 import Control.Monad.ST
 import Data.Primitive
