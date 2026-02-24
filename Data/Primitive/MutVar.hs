@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, DeriveDataTypeable, CPP #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, CPP #-}
 
 -- |
 -- Module      : Data.Primitive.MutVar
@@ -37,12 +37,10 @@ import GHC.STRef (STRef(STRef))
 import GHC.Exts ( MutVar#, sameMutVar#, newMutVar#
                 , readMutVar#, writeMutVar#, atomicModifyMutVar#
                 , isTrue#, RealWorld)
-import Data.Typeable ( Typeable )
 
 -- | A 'MutVar' behaves like a single-element mutable array associated
 -- with a primitive state token.
 data MutVar s a = MutVar (MutVar# s a)
-  deriving ( Typeable )
 
 instance Eq (MutVar s a) where
   MutVar mva# == MutVar mvb# = isTrue# (sameMutVar# mva# mvb#)

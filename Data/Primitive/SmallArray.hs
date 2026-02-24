@@ -3,7 +3,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
 
@@ -93,7 +92,6 @@ import Data.Functor.Classes (Eq1(..), Ord1(..), Show1(..), Read1(..))
 import Language.Haskell.TH.Syntax (Lift(..))
 
 data SmallArray a = SmallArray (SmallArray# a)
-  deriving Typeable
 
 #if MIN_VERSION_deepseq(1,4,3)
 instance NFData1 SmallArray where
@@ -104,7 +102,6 @@ instance NFData a => NFData (SmallArray a) where
   rnf = foldl' (\_ -> rnf) ()
 
 data SmallMutableArray s a = SmallMutableArray (SmallMutableArray# s a)
-  deriving Typeable
 
 instance Lift a => Lift (SmallArray a) where
 #if MIN_VERSION_template_haskell(2,16,0)
