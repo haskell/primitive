@@ -38,7 +38,7 @@ Library
   Default-Extensions:
         TypeOperators
   Other-Extensions:
-        BangPatterns, CPP, DeriveDataTypeable,
+        BangPatterns, CPP,
         MagicHash, TypeFamilies, UnboxedTuples, UnliftedFFITypes
 
   Exposed-Modules:

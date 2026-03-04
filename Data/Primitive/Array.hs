@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, DeriveDataTypeable, BangPatterns #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
@@ -64,7 +64,6 @@ import Language.Haskell.TH.Syntax (Lift (..))
 -- | Boxed arrays.
 data Array a = Array
   { array# :: Array# a }
-  deriving ( Typeable )
 
 instance Lift a => Lift (Array a) where
 #if MIN_VERSION_template_haskell(2,16,0)
@@ -107,7 +106,6 @@ instance NFData a => NFData (Array a) where
 -- | Mutable boxed arrays associated with a primitive state token.
 data MutableArray s a = MutableArray
   { marray# :: MutableArray# s a }
-  deriving ( Typeable )
 
 -- | The number of elements in an immutable array.
 sizeofArray :: Array a -> Int
