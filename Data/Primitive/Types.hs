@@ -70,7 +70,7 @@ import Data.Ord (Down(..))
 class Prim a where
   -- We use `Proxy` instead of `Proxy#`, since the latter doesn't work with GND for GHC <= 8.8.
 
-  -- | The size of values of type @a@ in bytes. This has to be used with TypeApplications: @sizeOfType \@a@.
+  -- | The size of values of type @a@ in bytes.
   --
   -- @since 0.9.0.0
   sizeOfType# :: Proxy a -> Int#
@@ -82,7 +82,7 @@ class Prim a where
   sizeOf# :: a -> Int#
   sizeOf# _ = sizeOfType# (Proxy :: Proxy a)
 
-  -- | The alignment of values of type @a@ in bytes. This has to be used with TypeApplications: @alignmentOfType \@a@.
+  -- | The alignment of values of type @a@ in bytes.
   --
   -- @since 0.9.0.0
   alignmentOfType# :: Proxy a -> Int#
