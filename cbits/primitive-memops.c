@@ -64,3 +64,14 @@ MEMSET(Ptr, HsPtr)
 MEMSET_FLOAT(Float, HsFloat)
 MEMSET_FLOAT(Double, HsDouble)
 MEMSET(Char, HsChar)
+
+#define MEMSET_COMPAT(TYPE)                                                      \
+void hsprimitive_memset_ ## TYPE ## _compat                                      \
+    (Hs ## TYPE *p, ptrdiff_t off, size_t n, HsWord x)                           \
+{                                                                                \
+  hsprimitive_memset_ ## TYPE(p, off, n, (Hs ## TYPE)x);                         \
+}
+
+MEMSET_COMPAT(Word8)
+MEMSET_COMPAT(Word16)
+MEMSET_COMPAT(Word32)

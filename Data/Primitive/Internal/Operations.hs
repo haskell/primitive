@@ -56,11 +56,13 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
   setWord32Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word32# -> IO ()
 #else
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
+-- Before GHC 9.2 these values use Word#, so the C entry points must take
+-- a full machine word and perform the narrowing themselves.
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8_compat"
   setWord8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16_compat"
   setWord16Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32_compat"
   setWord32Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()
 #endif
 
@@ -70,19 +72,32 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
   setWordArray# :: MutableByteArray# s -> CPtrdiff -> CSize -> Word# -> IO ()
 
 #if __GLASGOW_HASKELL__ >= 902
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
-  setInt8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int8# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
-  setInt16Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int16# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
-  setInt32Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int32# -> IO ()
+-- The C helpers take unsigned values. Some ABIs, such as RISC-V, require
+-- different extension of narrow signed and unsigned arguments. Convert to
+-- the C argument type before the FFI call to get the correct upper bits.
+setInt8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int8# -> IO ()
+{-# INLINE setInt8Array# #-}
+setInt8Array# arr off n x = setWord8Array# arr off n (int8ToWord8# x)
+
+setInt16Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int16# -> IO ()
+{-# INLINE setInt16Array# #-}
+setInt16Array# arr off n x = setWord16Array# arr off n (int16ToWord16# x)
+
+setInt32Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int32# -> IO ()
+{-# INLINE setInt32Array# #-}
+setInt32Array# arr off n x = setWord32Array# arr off n (int32ToWord32# x)
 #else
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
-  setInt8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
-  setInt16Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
-  setInt32Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
+setInt8Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
+{-# INLINE setInt8Array# #-}
+setInt8Array# arr off n x = setWord8Array# arr off n (int2Word# x)
+
+setInt16Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
+{-# INLINE setInt16Array# #-}
+setInt16Array# arr off n x = setWord16Array# arr off n (int2Word# x)
+
+setInt32Array# :: MutableByteArray# s -> CPtrdiff -> CSize -> Int# -> IO ()
+{-# INLINE setInt32Array# #-}
+setInt32Array# arr off n x = setWord32Array# arr off n (int2Word# x)
 #endif
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"
@@ -109,11 +124,11 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
   setWord32OffAddr# :: Addr# -> CPtrdiff -> CSize -> Word32# -> IO ()
 #else
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8_compat"
   setWord8OffAddr# :: Addr# -> CPtrdiff -> CSize -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16_compat"
   setWord16OffAddr# :: Addr# -> CPtrdiff -> CSize -> Word# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
+foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32_compat"
   setWord32OffAddr# :: Addr# -> CPtrdiff -> CSize -> Word# -> IO ()
 #endif
 
@@ -123,19 +138,29 @@ foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word"
   setWordOffAddr# :: Addr# -> CPtrdiff -> CSize -> Word# -> IO ()
 
 #if __GLASGOW_HASKELL__ >= 902
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
-  setInt8OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int8# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
-  setInt16OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int16# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
-  setInt32OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int32# -> IO ()
+setInt8OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int8# -> IO ()
+{-# INLINE setInt8OffAddr# #-}
+setInt8OffAddr# addr off n x = setWord8OffAddr# addr off n (int8ToWord8# x)
+
+setInt16OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int16# -> IO ()
+{-# INLINE setInt16OffAddr# #-}
+setInt16OffAddr# addr off n x = setWord16OffAddr# addr off n (int16ToWord16# x)
+
+setInt32OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int32# -> IO ()
+{-# INLINE setInt32OffAddr# #-}
+setInt32OffAddr# addr off n x = setWord32OffAddr# addr off n (int32ToWord32# x)
 #else
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word8"
-  setInt8OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word16"
-  setInt16OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int# -> IO ()
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word32"
-  setInt32OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int# -> IO ()
+setInt8OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int# -> IO ()
+{-# INLINE setInt8OffAddr# #-}
+setInt8OffAddr# addr off n x = setWord8OffAddr# addr off n (int2Word# x)
+
+setInt16OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int# -> IO ()
+{-# INLINE setInt16OffAddr# #-}
+setInt16OffAddr# addr off n x = setWord16OffAddr# addr off n (int2Word# x)
+
+setInt32OffAddr# :: Addr# -> CPtrdiff -> CSize -> Int# -> IO ()
+{-# INLINE setInt32OffAddr# #-}
+setInt32OffAddr# addr off n x = setWord32OffAddr# addr off n (int2Word# x)
 #endif
 
 foreign import ccall unsafe "primitive-memops.h hsprimitive_memset_Word64"

@@ -15,6 +15,10 @@ int  hsprimitive_memcmp_offset(HsWord8 *s1, HsInt off1, HsWord8 *s2, HsInt off2,
 void hsprimitive_memset_Word8(HsWord8 *, ptrdiff_t, size_t, HsWord8);
 void hsprimitive_memset_Word16(HsWord16 *, ptrdiff_t, size_t, HsWord16);
 void hsprimitive_memset_Word32(HsWord32 *, ptrdiff_t, size_t, HsWord32);
+/* GHC < 9.2 represents narrow integers as machine words. */
+void hsprimitive_memset_Word8_compat(HsWord8 *, ptrdiff_t, size_t, HsWord);
+void hsprimitive_memset_Word16_compat(HsWord16 *, ptrdiff_t, size_t, HsWord);
+void hsprimitive_memset_Word32_compat(HsWord32 *, ptrdiff_t, size_t, HsWord);
 void hsprimitive_memset_Word64(HsWord64 *, ptrdiff_t, size_t, HsWord64);
 void hsprimitive_memset_Word(HsWord *, ptrdiff_t, size_t, HsWord);
 void hsprimitive_memset_Ptr(HsPtr *, ptrdiff_t, size_t, HsPtr);
