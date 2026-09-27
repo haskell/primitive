@@ -11,7 +11,8 @@
 
 #if __GLASGOW_HASKELL__ >= 805
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE TypeInType #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 #endif
 
 import Control.Monad
