@@ -90,8 +90,8 @@ test-suite test-qc
   build-depends: base
                , base-orphans
                , primitive
-               , quickcheck-classes-base >= 0.6 && <0.7
-               , QuickCheck >= 2.13 && < 2.16
+               , quickcheck-classes-base >= 0.6 && < 0.7
+               , QuickCheck >= 2.13 && < 2.20
                , tasty >= 1.2 && < 1.6
                , tasty-quickcheck
                , tagged
