@@ -59,10 +59,6 @@ import qualified Data.Monoid as Monoid
 import qualified Data.Semigroup as Semigroup
 import Data.Proxy
 
-#if !MIN_VERSION_base(4,13,0)
-import Data.Ord (Down(..))
-#endif
-
 -- | Class of types supporting primitive array operations. This includes
 -- interfacing with GC-managed memory (functions suffixed with @ByteArray#@)
 -- and interfacing with unmanaged memory (functions suffixed with @Addr#@).
@@ -326,21 +322,12 @@ instance Prim (ty) where {                                        \
 ; {-# INLINE setOffAddr# #-}                                      \
 }
 
-#if __GLASGOW_HASKELL__ >= 902
 liberate# :: State# s -> State# r
 liberate# = unsafeCoerce#
 shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word8# -> IO ()
 shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.word2Int# (GHC.Exts.word8ToWord# w)) (liberate# s)), () #))
 shimmedSetInt8Array# :: MutableByteArray# s -> Int -> Int -> Int8# -> IO ()
 shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.int8ToInt# i) (liberate# s)), () #))
-#else
-liberate# :: State# s -> State# r
-liberate# = unsafeCoerce#
-shimmedSetWord8Array# :: MutableByteArray# s -> Int -> Int -> Word# -> IO ()
-shimmedSetWord8Array# m (I# off) (I# len) w = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len (GHC.Exts.word2Int# w) (liberate# s)), () #))
-shimmedSetInt8Array# :: MutableByteArray# s -> Int -> Int -> Int# -> IO ()
-shimmedSetInt8Array# m (I# off) (I# len) i = IO (\s -> (# liberate# (GHC.Exts.setByteArray# m off len i (liberate# s)), () #))
-#endif
 
 unI# :: Int -> Int#
 unI# (I# n#) = n#

@@ -55,10 +55,8 @@ module Data.Primitive.SmallArray
   , sizeofSmallArray
   , getSizeofSmallMutableArray
   , sizeofSmallMutableArray
-#if MIN_VERSION_base(4,14,0)
   , shrinkSmallMutableArray
   , resizeSmallMutableArray
-#endif
   , emptySmallArray
   , smallArrayFromList
   , smallArrayFromListN
@@ -93,10 +91,8 @@ import Language.Haskell.TH.Syntax (Lift(..))
 
 data SmallArray a = SmallArray (SmallArray# a)
 
-#if MIN_VERSION_deepseq(1,4,3)
 instance NFData1 SmallArray where
   liftRnf r = foldl' (\_ -> r) ()
-#endif
 
 instance NFData a => NFData (SmallArray a) where
   rnf = foldl' (\_ -> rnf) ()
@@ -104,17 +100,10 @@ instance NFData a => NFData (SmallArray a) where
 data SmallMutableArray s a = SmallMutableArray (SmallMutableArray# s a)
 
 instance Lift a => Lift (SmallArray a) where
-#if MIN_VERSION_template_haskell(2,16,0)
   liftTyped ary = case lst of
     [] -> [|| SmallArray (emptySmallArray# (##)) ||]
     [x] -> [|| pure $! x ||]
     x : xs -> [|| unsafeSmallArrayFromListN' len x xs ||]
-#else
-  lift ary = case lst of
-    [] -> [| SmallArray (emptySmallArray# (##)) |]
-    [x] -> [| pure $! x |]
-    x : xs -> [| unsafeSmallArrayFromListN' len x xs |]
-#endif
     where
       len = length ary
       lst = toList ary
@@ -377,13 +366,9 @@ getSizeofSmallMutableArray
   :: PrimMonad m
   => SmallMutableArray (PrimState m) a
   -> m Int
-#if MIN_VERSION_base(4,14,0)
 getSizeofSmallMutableArray (SmallMutableArray sa#) = primitive $ \s ->
   case getSizeofSmallMutableArray# sa# s of
     (# s', sz# #) -> (# s', I# sz# #)
-#else
-getSizeofSmallMutableArray sa = pure $! sizeofSmallMutableArray sa
-#endif
 {-# INLINE getSizeofSmallMutableArray #-}
 
 -- | The number of elements in a mutable array. This should only be used
@@ -772,10 +757,6 @@ instance Monad SmallArray where
       copySmallArray smb off sb 0 (length sb)
         *> fill (off + length sb) sbs smb
 
-#if !(MIN_VERSION_base(4,13,0))
-  fail = Fail.fail
-#endif
-
 instance Fail.MonadFail SmallArray where
   fail _ = emptySmallArray
 
@@ -835,9 +816,6 @@ instance Semigroup (SmallArray a) where
 
 instance Monoid (SmallArray a) where
   mempty = empty
-#if !(MIN_VERSION_base(4,11,0))
-  mappend = (<>)
-#endif
   mconcat l = createSmallArray n (die "mconcat" "impossible") $ \ma ->
     let go !_  [    ] = return ()
         go off (a:as) =
@@ -929,7 +907,6 @@ smallArrayFromListN n l =
 smallArrayFromList :: [a] -> SmallArray a
 smallArrayFromList l = smallArrayFromListN (length l) l
 
-#if MIN_VERSION_base(4,14,0)
 -- | Shrink the mutable array in place. The size given must be equal to
 -- or less than the current size of the array. This is not checked.
 shrinkSmallMutableArray :: PrimMonad m
@@ -963,4 +940,3 @@ resizeSmallMutableArray (SmallMutableArray arr) (I# n) x = primitive
     (# s1, arr' #) -> (# s1, SmallMutableArray arr' #)
   )
 {-# INLINE resizeSmallMutableArray #-}
-#endif

@@ -59,13 +59,10 @@ Library
         Data.Primitive.Internal.Operations
         Data.Primitive.Internal.Read
 
-  Build-Depends: base >= 4.10 && < 4.23
-               , deepseq >= 1.1 && < 1.6
-               , transformers >= 0.5 && < 0.7
-               , template-haskell >= 2.11
-
-  if impl(ghc >= 9.2)
-    cpp-options: -DHAVE_KEEPALIVE
+  Build-Depends: base >= 4.16 && < 4.23
+               , deepseq >= 1.4.7 && < 1.6
+               , transformers >= 0.6 && < 0.7
+               , template-haskell >= 2.18
 
   if impl(ghc < 9.4)
     build-depends: data-array-byte >= 0.1 && < 0.1.1
@@ -94,9 +91,7 @@ test-suite test-qc
                , QuickCheck >= 2.13 && < 2.16
                , tasty >= 1.2 && < 1.6
                , tasty-quickcheck
-               , tagged
-               , transformers >= 0.5
-               , transformers-compat
+               , transformers >= 0.6
 
   cpp-options: -DHAVE_UNARY_LAWS
   ghc-options: -O2
@@ -119,7 +114,7 @@ benchmark bench
     , primitive
     , deepseq
     , tasty-bench
-    , transformers >= 0.5
+    , transformers >= 0.6
 
 source-repository head
   type:     git

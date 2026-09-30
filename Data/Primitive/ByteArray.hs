@@ -61,9 +61,7 @@ module Data.Primitive.ByteArray (
   -- * Information
   sizeofByteArray,
   sizeofMutableByteArray, getSizeofMutableByteArray, sameMutableByteArray,
-#if __GLASGOW_HASKELL__ >= 802
   isByteArrayPinned, isMutableByteArrayPinned,
-#endif
   byteArrayAsForeignPtr,
   mutableByteArrayAsForeignPtr,
   byteArrayContents,
@@ -81,16 +79,9 @@ import Data.Proxy
 import qualified GHC.ST as GHCST
 
 import Data.Word ( Word8 )
-#if __GLASGOW_HASKELL__ >= 802
 import qualified GHC.Exts as Exts
-#endif
 import GHC.Exts hiding (setByteArray#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(..))
-
-#if __GLASGOW_HASKELL__ < 804
-import Foreign.C.Types
-import System.IO.Unsafe (unsafeDupablePerformIO)
-#endif
 
 import Data.Array.Byte (ByteArray(..), MutableByteArray(..))
 
@@ -223,14 +214,9 @@ resizeMutableByteArray (MutableByteArray arr#) (I# n#)
 getSizeofMutableByteArray
   :: PrimMonad m => MutableByteArray (PrimState m) -> m Int
 {-# INLINE getSizeofMutableByteArray #-}
-#if __GLASGOW_HASKELL__ >= 801
 getSizeofMutableByteArray (MutableByteArray arr#)
   = primitive (\s# -> case getSizeofMutableByteArray# arr# s# of
                         (# s'#, n# #) -> (# s'#, I# n# #))
-#else
-getSizeofMutableByteArray arr
-  = return (sizeofMutableByteArray arr)
-#endif
 
 -- | Create an immutable copy of a slice of a byte array. The offset and
 -- length are given in bytes.
@@ -319,13 +305,9 @@ shrinkMutableByteArray :: PrimMonad m
 shrinkMutableByteArray (MutableByteArray arr#) (I# n#)
   = primitive_ (shrinkMutableByteArray# arr# n#)
 
-#if __GLASGOW_HASKELL__ >= 802
 -- | Check whether or not the byte array is pinned. Pinned byte arrays cannot
 -- be moved by the garbage collector. It is safe to use 'byteArrayContents' on
 -- such byte arrays.
---
--- Caution: This function is only available when compiling with GHC 8.2 or
--- newer.
 --
 -- @since 0.6.4.0
 isByteArrayPinned :: ByteArray -> Bool
@@ -334,14 +316,10 @@ isByteArrayPinned (ByteArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
 
 -- | Check whether or not the mutable byte array is pinned.
 --
--- Caution: This function is only available when compiling with GHC 8.2 or
--- newer.
---
 -- @since 0.6.4.0
 isMutableByteArrayPinned :: MutableByteArray s -> Bool
 {-# INLINE isMutableByteArrayPinned #-}
 isMutableByteArrayPinned (MutableByteArray marr#) = isTrue# (Exts.isMutableByteArrayPinned# marr#)
-#endif
 
 -- | Read a primitive value from the byte array. The offset is given in
 -- elements of type @a@ rather than in bytes.
@@ -592,20 +570,8 @@ compareByteArrays
   -> Int       -- ^ length of the slice, given in bytes
   -> Ordering
 {-# INLINE compareByteArrays #-}
-#if __GLASGOW_HASKELL__ >= 804
 compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#)
   = compare (I# (compareByteArrays# ba1# off1# ba2# off2# n#)) 0
-#else
--- Emulate GHC 8.4's 'GHC.Prim.compareByteArrays#'
-compareByteArrays (ByteArray ba1#) (I# off1#) (ByteArray ba2#) (I# off2#) (I# n#)
-  = compare (fromCInt (unsafeDupablePerformIO (memcmp_ba_offs ba1# off1# ba2# off2# n))) 0
-  where
-    n = fromIntegral (I# n#) :: CSize
-    fromCInt = fromIntegral :: CInt -> Int
-
-foreign import ccall unsafe "primitive-memops.h hsprimitive_memcmp_offset"
-  memcmp_ba_offs :: ByteArray# -> Int# -> ByteArray# -> Int# -> CSize -> IO CInt
-#endif
 
 -- | The empty 'ByteArray'.
 emptyByteArray :: ByteArray

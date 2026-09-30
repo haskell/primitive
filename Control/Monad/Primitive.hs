@@ -3,9 +3,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DataKinds #-}
-#if __GLASGOW_HASKELL__ < 806
-{-# LANGUAGE TypeInType #-}
-#endif
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 -- |
@@ -35,43 +32,27 @@ import Data.Kind (Type)
 
 import GHC.Exts   ( State#, RealWorld, noDuplicate#, touch#
                   , unsafeCoerce#, realWorld#, seq# )
-import Data.Primitive.Internal.Operations (UnliftedType)
-#if defined(HAVE_KEEPALIVE)
-import Data.Primitive.Internal.Operations (keepAliveLiftedLifted#,keepAliveUnliftedLifted#)
-#endif
+import Data.Primitive.Internal.Operations (UnliftedType, keepAliveLiftedLifted#,keepAliveUnliftedLifted#)
 import GHC.IO     ( IO(..) )
 import GHC.ST     ( ST(..) )
 
-#if __GLASGOW_HASKELL__ >= 802
 import qualified Control.Monad.ST.Lazy as L
-#endif
 
 import Control.Monad.Trans.Class (lift)
 
+import Control.Monad.Trans.Accum    ( AccumT   )
 import Control.Monad.Trans.Cont     ( ContT    )
+import Control.Monad.Trans.Except   ( ExceptT  )
 import Control.Monad.Trans.Identity ( IdentityT (IdentityT) )
 import Control.Monad.Trans.Maybe    ( MaybeT   )
 import Control.Monad.Trans.Reader   ( ReaderT  )
+import Control.Monad.Trans.Select   ( SelectT  )
 import Control.Monad.Trans.State    ( StateT   )
 import Control.Monad.Trans.Writer   ( WriterT  )
 import Control.Monad.Trans.RWS      ( RWST     )
 
-#if !MIN_VERSION_transformers(0,6,0)
-import Control.Monad.Trans.List     ( ListT    )
-import Control.Monad.Trans.Error    ( ErrorT, Error)
-#endif
-
-import Control.Monad.Trans.Except   ( ExceptT  )
-
-#if MIN_VERSION_transformers(0,5,3)
-import Control.Monad.Trans.Accum    ( AccumT   )
-import Control.Monad.Trans.Select   ( SelectT  )
-#endif
-
-#if MIN_VERSION_transformers(0,5,6)
 import qualified Control.Monad.Trans.Writer.CPS as CPS
 import qualified Control.Monad.Trans.RWS.CPS as CPS
-#endif
 
 import qualified Control.Monad.Trans.RWS.Strict    as Strict ( RWST   )
 import qualified Control.Monad.Trans.State.Strict  as Strict ( StateT )
@@ -129,18 +110,6 @@ instance PrimBase m => PrimBase (IdentityT m) where
   internal (IdentityT m) = internal m
   {-# INLINE internal #-}
 
-#if !MIN_VERSION_transformers(0,6,0)
-instance PrimMonad m => PrimMonad (ListT m) where
-  type PrimState (ListT m) = PrimState m
-  primitive = lift . primitive
-  {-# INLINE primitive #-}
-
-instance (Error e, PrimMonad m) => PrimMonad (ErrorT e m) where
-  type PrimState (ErrorT e m) = PrimState m
-  primitive = lift . primitive
-  {-# INLINE primitive #-}
-#endif
-
 instance PrimMonad m => PrimMonad (MaybeT m) where
   type PrimState (MaybeT m) = PrimState m
   primitive = lift . primitive
@@ -161,31 +130,26 @@ instance (Monoid w, PrimMonad m) => PrimMonad (WriterT w m) where
   primitive = lift . primitive
   {-# INLINE primitive #-}
 
-#if MIN_VERSION_transformers(0,5,6)
 instance (Monoid w, PrimMonad m) => PrimMonad (CPS.WriterT w m) where
   type PrimState (CPS.WriterT w m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
-#endif
 
 instance (Monoid w, PrimMonad m) => PrimMonad (RWST r w s m) where
   type PrimState (RWST r w s m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
 
-#if MIN_VERSION_transformers(0,5,6)
 instance (Monoid w, PrimMonad m) => PrimMonad (CPS.RWST r w s m) where
   type PrimState (CPS.RWST r w s m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
-#endif
 
 instance PrimMonad m => PrimMonad (ExceptT e m) where
   type PrimState (ExceptT e m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
 
-#if MIN_VERSION_transformers(0,5,3)
 -- | @since 0.6.3.0
 instance ( Monoid w
          , PrimMonad m
@@ -198,7 +162,6 @@ instance PrimMonad m => PrimMonad (SelectT r m) where
   type PrimState (SelectT r m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}
-#endif
 
 instance PrimMonad m => PrimMonad (Strict.StateT s m) where
   type PrimState (Strict.StateT s m) = PrimState m
@@ -224,9 +187,6 @@ instance PrimBase (ST s) where
   internal (ST p) = p
   {-# INLINE internal #-}
 
--- see https://gitlab.haskell.org/ghc/ghc/commit/2f5cb3d44d05e581b75a47fec222577dfa7a533e
--- for why we only support an instance for ghc >= 8.2
-#if __GLASGOW_HASKELL__ >= 802
 -- @since 0.7.1.0
 instance PrimMonad (L.ST s) where
   type PrimState (L.ST s) = s
@@ -237,7 +197,6 @@ instance PrimMonad (L.ST s) where
 instance PrimBase (L.ST s) where
   internal = internal . L.lazyToStrictST
   {-# INLINE internal #-}
-#endif
 
 -- | 'PrimMonad'\'s state token type can be annoying to handle
 --   in constraints. This typeclass lets users (visually) notice
@@ -367,28 +326,16 @@ keepAlive :: PrimBase m
   => a -- ^ Value @x@ to keep alive while computation @k@ runs.
   -> m r -- ^ Computation @k@
   -> m r
-#if defined(HAVE_KEEPALIVE)
 {-# INLINE keepAlive #-}
 keepAlive x k =
   primitive $ \s0 -> keepAliveLiftedLifted# x s0 (internal k)
 
-#else
-{-# NOINLINE keepAlive #-}
-keepAlive x k = k <* touch x
-#endif
-
 -- | Variant of 'keepAlive' in which the value kept alive is of an unlifted
 -- boxed type.
 keepAliveUnlifted :: forall (m :: Type -> Type) (a :: UnliftedType) (r :: Type). PrimBase m => a -> m r -> m r
-#if defined(HAVE_KEEPALIVE)
 {-# INLINE keepAliveUnlifted #-}
 keepAliveUnlifted x k =
   primitive $ \s0 -> keepAliveUnliftedLifted# x s0 (internal k)
-
-#else
-{-# NOINLINE keepAliveUnlifted #-}
-keepAliveUnlifted x k = k <* touchUnlifted x
-#endif
 
 -- | Create an action to force a value; generalizes 'Control.Exception.evaluate'
 --
@@ -397,12 +344,7 @@ evalPrim :: forall a m . PrimMonad m => a -> m a
 evalPrim a = primitive (\s -> seq# a s)
 
 noDuplicate :: PrimMonad m => m ()
-#if __GLASGOW_HASKELL__ >= 802
 noDuplicate = primitive $ \ s -> (# noDuplicate# s, () #)
-#else
--- noDuplicate# was limited to RealWorld
-noDuplicate = unsafeIOToPrim $ primitive $ \s -> (# noDuplicate# s, () #)
-#endif
 
 unsafeInterleave, unsafeDupableInterleave :: PrimBase m => m a -> m a
 unsafeInterleave x = unsafeDupableInterleave (noDuplicate >> x)

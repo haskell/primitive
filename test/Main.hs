@@ -1,19 +1,16 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-
-#if __GLASGOW_HASKELL__ >= 805
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-#endif
 
 import Control.Monad
 import Control.Monad.ST
@@ -32,12 +29,7 @@ import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
 import Data.Semigroup (stimes, stimesMonoid)
 import qualified Data.Semigroup as Semigroup
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Monoid ((<>))
-#endif
-#if __GLASGOW_HASKELL__ >= 805
 import Foreign.Storable (Storable)
-#endif
 import Data.Orphans ()
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
@@ -161,11 +153,9 @@ main = do
     , testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
-#if __GLASGOW_HASKELL__ >= 805
     , testGroup "PrimStorable"
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
       ]
-#endif
     , testGroup "Prim"
       [ renameLawsToTest "Word" (primLaws (Proxy :: Proxy Word))
       , renameLawsToTest "Word8" (primLaws (Proxy :: Proxy Word8))
@@ -438,9 +428,7 @@ instance Prim DefaultSetMethod where
   writeOffAddr# addr off (DefaultSetMethod n) s0 = writeOffAddr# addr off n s0
   setOffAddr# = defaultSetOffAddr#
 
-#if __GLASGOW_HASKELL__ >= 805
 newtype Derived = Derived Int16
   deriving stock (Eq, Show)
   deriving newtype (Arbitrary, Prim)
   deriving Storable via (PrimStorable Derived)
-#endif
