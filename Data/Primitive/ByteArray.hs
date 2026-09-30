@@ -85,8 +85,6 @@ import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(..))
 
 import Data.Array.Byte (ByteArray(..), MutableByteArray(..))
 
-import Data.Primitive.Internal.Operations (mutableByteArrayContentsShim)
-
 -- | Create a new mutable byte array of the specified size in bytes.
 -- The underlying memory is left uninitialized.
 --
@@ -137,7 +135,7 @@ byteArrayAsForeignPtr (ByteArray arr#) = ForeignPtr (byteArrayContents# arr#) (P
 -- the foreign pointer.
 mutableByteArrayAsForeignPtr :: MutableByteArray RealWorld -> ForeignPtr Word8
 {-# INLINE mutableByteArrayAsForeignPtr #-}
-mutableByteArrayAsForeignPtr (MutableByteArray arr#) = ForeignPtr (mutableByteArrayContentsShim arr#) (PlainPtr arr#)
+mutableByteArrayAsForeignPtr (MutableByteArray arr#) = ForeignPtr (mutableByteArrayContents# arr#) (PlainPtr arr#)
 
 -- | Yield a pointer to the array's data. This operation is only safe on
 -- /pinned/ byte arrays. Byte arrays allocated by 'newPinnedByteArray' and
@@ -172,7 +170,7 @@ withByteArrayContents (ByteArray arr#) f =
 -- garbage collected while the pointer is being used.
 mutableByteArrayContents :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContents #-}
-mutableByteArrayContents (MutableByteArray arr#) = Ptr (mutableByteArrayContentsShim arr#)
+mutableByteArrayContents (MutableByteArray arr#) = Ptr (mutableByteArrayContents# arr#)
 
 -- | A composition of 'mutableByteArrayContents' and 'keepAliveUnlifted'.
 -- The callback function must not return the pointer. The argument byte
@@ -181,7 +179,7 @@ mutableByteArrayContents (MutableByteArray arr#) = Ptr (mutableByteArrayContents
 withMutableByteArrayContents :: PrimBase m => MutableByteArray (PrimState m) -> (Ptr Word8 -> m a) -> m a
 {-# INLINE withMutableByteArrayContents #-}
 withMutableByteArrayContents (MutableByteArray arr#) f =
-  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContentsShim arr#)))
+  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContents# arr#)))
 
 -- | Check if the two arrays refer to the same memory block.
 sameMutableByteArray :: MutableByteArray s -> MutableByteArray s -> Bool

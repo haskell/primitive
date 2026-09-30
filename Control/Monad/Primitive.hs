@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, TypeFamilies #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}

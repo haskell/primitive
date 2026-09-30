@@ -132,8 +132,6 @@ import Data.Semigroup
 
 import qualified GHC.Exts as Exts
 
-import Data.Primitive.Internal.Operations (mutableByteArrayContentsShim)
-
 -- | Arrays of unboxed elements. This accepts types like 'Double', 'Char',
 -- 'Int' and 'Word', as well as their fixed-length variants ('Data.Word.Word8',
 -- 'Data.Word.Word16', etc.). Since the elements are unboxed, a 'PrimArray' is
@@ -1087,7 +1085,7 @@ primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
 mutablePrimArrayContents (MutablePrimArray arr#) =
-  Ptr (mutableByteArrayContentsShim arr#)
+  Ptr (mutableByteArrayContents# arr#)
 
 -- | Return a newly allocated array with the specified subrange of the
 -- provided array. The provided array should contain the full subrange
@@ -1168,4 +1166,4 @@ withPrimArrayContents (PrimArray arr#) f =
 withMutablePrimArrayContents :: PrimBase m => MutablePrimArray (PrimState m) a -> (Ptr a -> m a) -> m a
 {-# INLINE withMutablePrimArrayContents #-}
 withMutablePrimArrayContents (MutablePrimArray arr#) f =
-  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContentsShim arr#)))
+  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContents# arr#)))

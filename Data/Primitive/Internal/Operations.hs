@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnliftedFFITypes, UnboxedTuples #-}
+{-# LANGUAGE MagicHash, UnliftedFFITypes, UnboxedTuples #-}
 {-# LANGUAGE RankNTypes, KindSignatures, ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 
@@ -30,7 +30,6 @@ module Data.Primitive.Internal.Operations (
 
   , keepAliveLiftedLifted#
   , keepAliveUnliftedLifted#
-  , mutableByteArrayContentsShim
   , UnliftedType
 ) where
 
@@ -142,7 +141,3 @@ keepAliveUnliftedLifted# x s0 f =
          (State# RealWorld -> (# State# RealWorld, b #))
        ) f)
     )
-
-mutableByteArrayContentsShim :: MutableByteArray# s -> Addr#
-{-# INLINE mutableByteArrayContentsShim #-}
-mutableByteArrayContentsShim x = mutableByteArrayContents# x

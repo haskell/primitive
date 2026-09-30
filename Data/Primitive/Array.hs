@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, BangPatterns #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
