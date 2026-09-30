@@ -182,14 +182,6 @@ main = do
       ]
     ]
 
-deriving instance Arbitrary a => Arbitrary (Down a)
--- Const, Dual, Sum, Product: all have Arbitrary instances defined
--- in QuickCheck itself
-deriving instance Arbitrary a => Arbitrary (Semigroup.First a)
-deriving instance Arbitrary a => Arbitrary (Semigroup.Last a)
-deriving instance Arbitrary a => Arbitrary (Semigroup.Min a)
-deriving instance Arbitrary a => Arbitrary (Semigroup.Max a)
-
 word8 :: Proxy Word8
 word8 = Proxy
 
@@ -378,15 +370,6 @@ instance Arbitrary1 SmallArray where
 
 instance Arbitrary a => Arbitrary (SmallArray a) where
   arbitrary = fmap smallArrayFromList QC.arbitrary
-
-instance Arbitrary ByteArray where
-  arbitrary = do
-    xs <- QC.arbitrary :: Gen [Word8]
-    return $ runST $ do
-      a <- newByteArray (L.length xs)
-      iforM_ xs $ \ix x -> do
-        writeByteArray a ix x
-      unsafeFreezeByteArray a
 
 instance (Arbitrary a, Prim a) => Arbitrary (PrimArray a) where
   arbitrary = do
