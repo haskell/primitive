@@ -69,10 +69,8 @@ module Data.Primitive.PrimArray
   , withPrimArrayContents
   , mutablePrimArrayContents
   , withMutablePrimArrayContents
-#if __GLASGOW_HASKELL__ >= 802
   , isPrimArrayPinned
   , isMutablePrimArrayPinned
-#endif
     -- * List Conversion
   , primArrayToList
   , primArrayFromList
@@ -132,11 +130,7 @@ import Language.Haskell.TH.Syntax (Lift (..))
 
 import Data.Semigroup
 
-#if __GLASGOW_HASKELL__ >= 802
 import qualified GHC.Exts as Exts
-#endif
-
-import Data.Primitive.Internal.Operations (mutableByteArrayContentsShim)
 
 -- | Arrays of unboxed elements. This accepts types like 'Double', 'Char',
 -- 'Int' and 'Word', as well as their fixed-length variants ('Data.Word.Word8',
@@ -148,11 +142,7 @@ data PrimArray a = PrimArray ByteArray#
 type role PrimArray nominal
 
 instance Lift (PrimArray a) where
-#if MIN_VERSION_template_haskell(2,16,0)
   liftTyped ary = [|| byteArrayToPrimArray ba ||]
-#else
-  lift ary = [| byteArrayToPrimArray ba |]
-#endif
     where
       ba = primArrayToByteArray ary
 
@@ -269,9 +259,6 @@ instance Semigroup (PrimArray a) where
 -- | @since 0.6.4.0
 instance Monoid (PrimArray a) where
   mempty = emptyPrimArray
-#if !(MIN_VERSION_base(4,11,0))
-  mappend = (<>)
-#endif
   mconcat = byteArrayToPrimArray . mconcat . map primArrayToByteArray
 
 -- | The empty 'PrimArray'.
@@ -467,19 +454,11 @@ getSizeofMutablePrimArray :: forall m a. (PrimMonad m, Prim a)
   => MutablePrimArray (PrimState m) a -- ^ array
   -> m Int
 {-# INLINE getSizeofMutablePrimArray #-}
-#if __GLASGOW_HASKELL__ >= 801
 getSizeofMutablePrimArray (MutablePrimArray arr#)
   = primitive (\s# ->
       case getSizeofMutableByteArray# arr# s# of
         (# s'#, sz# #) -> (# s'#, I# (quotInt# sz# (sizeOfType# (Proxy :: Proxy a))) #)
     )
-#else
--- On older GHCs, it is not possible to resize a byte array, so
--- this provides behavior consistent with the implementation for
--- newer GHCs.
-getSizeofMutablePrimArray arr
-  = return (sizeofMutablePrimArray arr)
-#endif
 
 -- | Size of the mutable primitive array in elements. This function shall not
 -- be used on primitive arrays that are an argument to or a result of
@@ -569,25 +548,21 @@ sizeofPrimArray :: forall a. Prim a => PrimArray a -> Int
 {-# INLINE sizeofPrimArray #-}
 sizeofPrimArray (PrimArray arr#) = I# (quotInt# (sizeofByteArray# arr#) (sizeOfType# (Proxy :: Proxy a)))
 
-#if __GLASGOW_HASKELL__ >= 802
 -- | Check whether or not the primitive array is pinned. Pinned primitive arrays cannot
 -- be moved by the garbage collector. It is safe to use 'primArrayContents'
--- on such arrays. This function is only available when compiling with
--- GHC 8.2 or newer.
+-- on such arrays.
 --
 -- @since 0.7.1.0
 isPrimArrayPinned :: PrimArray a -> Bool
 {-# INLINE isPrimArrayPinned #-}
 isPrimArrayPinned (PrimArray arr#) = isTrue# (Exts.isByteArrayPinned# arr#)
 
--- | Check whether or not the mutable primitive array is pinned. This function is
--- only available when compiling with GHC 8.2 or newer.
+-- | Check whether or not the mutable primitive array is pinned.
 --
 -- @since 0.7.1.0
 isMutablePrimArrayPinned :: MutablePrimArray s a -> Bool
 {-# INLINE isMutablePrimArrayPinned #-}
 isMutablePrimArrayPinned (MutablePrimArray marr#) = isTrue# (Exts.isMutableByteArrayPinned# marr#)
-#endif
 
 -- | Lazy right-associated fold over the elements of a 'PrimArray'.
 {-# INLINE foldrPrimArray #-}
@@ -1110,7 +1085,7 @@ primArrayContents (PrimArray arr#) = Ptr (byteArrayContents# arr#)
 mutablePrimArrayContents :: MutablePrimArray s a -> Ptr a
 {-# INLINE mutablePrimArrayContents #-}
 mutablePrimArrayContents (MutablePrimArray arr#) =
-  Ptr (mutableByteArrayContentsShim arr#)
+  Ptr (mutableByteArrayContents# arr#)
 
 -- | Return a newly allocated array with the specified subrange of the
 -- provided array. The provided array should contain the full subrange
@@ -1191,4 +1166,4 @@ withPrimArrayContents (PrimArray arr#) f =
 withMutablePrimArrayContents :: PrimBase m => MutablePrimArray (PrimState m) a -> (Ptr a -> m a) -> m a
 {-# INLINE withMutablePrimArrayContents #-}
 withMutablePrimArrayContents (MutablePrimArray arr#) f =
-  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContentsShim arr#)))
+  keepAliveUnlifted arr# (f (Ptr (mutableByteArrayContents# arr#)))

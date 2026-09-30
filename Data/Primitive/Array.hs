@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, BangPatterns #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
@@ -66,17 +66,10 @@ data Array a = Array
   { array# :: Array# a }
 
 instance Lift a => Lift (Array a) where
-#if MIN_VERSION_template_haskell(2,16,0)
   liftTyped ary = case lst of
     [] -> [|| Array (emptyArray# (##)) ||]
     [x] -> [|| pure $! x ||]
     x : xs -> [|| unsafeArrayFromListN' len x xs ||]
-#else
-  lift ary = case lst of
-    [] -> [| Array (emptyArray# (##)) |]
-    [x] -> [| pure $! x |]
-    x : xs -> [| unsafeArrayFromListN' len x xs |]
-#endif
     where
       len = length ary
       lst = toList ary
@@ -95,10 +88,8 @@ unsafeArrayFromListN' n y ys =
             go (ix+1) xs
     in go 1 ys
 
-#if MIN_VERSION_deepseq(1,4,3)
 instance NFData1 Array where
   liftRnf r = Foldable.foldl' (\_ -> r) ()
-#endif
 
 instance NFData a => NFData (Array a) where
   rnf = Foldable.foldl' (\_ -> rnf) ()
@@ -698,10 +689,6 @@ instance Monad Array where
       = copyArray smb off sb 0 lsb
           *> fill (off + lsb) sbs smb
 
-#if !(MIN_VERSION_base(4,13,0))
-  fail = Fail.fail
-#endif
-
 instance Fail.MonadFail Array where
   fail _ = empty
 
@@ -764,9 +751,6 @@ instance Semigroup (Array a) where
 
 instance Monoid (Array a) where
   mempty = empty
-#if !(MIN_VERSION_base(4,11,0))
-  mappend = (<>)
-#endif
   mconcat l = createArray sz (die "mconcat" "impossible") $ \ma ->
     let go !_  [    ] = return ()
         go off (a:as) =

@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash, UnboxedTuples, CPP #-}
+{-# LANGUAGE MagicHash, UnboxedTuples #-}
 
 -- |
 -- Module      : Data.Primitive.MutVar

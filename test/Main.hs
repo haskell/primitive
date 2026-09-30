@@ -1,19 +1,15 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-
-#if __GLASGOW_HASKELL__ >= 805
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-#endif
 
 import Control.Monad
 import Control.Monad.ST
@@ -32,12 +28,7 @@ import Data.Functor.Identity (Identity(..))
 import qualified Data.Monoid as Monoid
 import Data.Semigroup (stimes, stimesMonoid)
 import qualified Data.Semigroup as Semigroup
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Monoid ((<>))
-#endif
-#if __GLASGOW_HASKELL__ >= 805
 import Foreign.Storable (Storable)
-#endif
 import Data.Orphans ()
 
 import Test.Tasty (defaultMain,testGroup,TestTree)
@@ -161,11 +152,9 @@ main = do
     , testGroup "DefaultSetMethod"
       [ lawsToTest (primLaws (Proxy :: Proxy DefaultSetMethod))
       ]
-#if __GLASGOW_HASKELL__ >= 805
     , testGroup "PrimStorable"
       [ lawsToTest (QCC.storableLaws (Proxy :: Proxy Derived))
       ]
-#endif
     , testGroup "Prim"
       [ renameLawsToTest "Word" (primLaws (Proxy :: Proxy Word))
       , renameLawsToTest "Word8" (primLaws (Proxy :: Proxy Word8))
@@ -192,14 +181,6 @@ main = do
       , renameLawsToTest "Complex" (primLaws (Proxy :: Proxy (Complex Double)))
       ]
     ]
-
-deriving instance Arbitrary a => Arbitrary (Down a)
--- Const, Dual, Sum, Product: all have Arbitrary instances defined
--- in QuickCheck itself
-deriving instance Arbitrary a => Arbitrary (Semigroup.First a)
-deriving instance Arbitrary a => Arbitrary (Semigroup.Last a)
-deriving instance Arbitrary a => Arbitrary (Semigroup.Min a)
-deriving instance Arbitrary a => Arbitrary (Semigroup.Max a)
 
 word8 :: Proxy Word8
 word8 = Proxy
@@ -390,15 +371,6 @@ instance Arbitrary1 SmallArray where
 instance Arbitrary a => Arbitrary (SmallArray a) where
   arbitrary = fmap smallArrayFromList QC.arbitrary
 
-instance Arbitrary ByteArray where
-  arbitrary = do
-    xs <- QC.arbitrary :: Gen [Word8]
-    return $ runST $ do
-      a <- newByteArray (L.length xs)
-      iforM_ xs $ \ix x -> do
-        writeByteArray a ix x
-      unsafeFreezeByteArray a
-
 instance (Arbitrary a, Prim a) => Arbitrary (PrimArray a) where
   arbitrary = do
     xs <- QC.arbitrary :: Gen [a]
@@ -438,9 +410,7 @@ instance Prim DefaultSetMethod where
   writeOffAddr# addr off (DefaultSetMethod n) s0 = writeOffAddr# addr off n s0
   setOffAddr# = defaultSetOffAddr#
 
-#if __GLASGOW_HASKELL__ >= 805
 newtype Derived = Derived Int16
   deriving stock (Eq, Show)
   deriving newtype (Arbitrary, Prim)
   deriving Storable via (PrimStorable Derived)
-#endif
